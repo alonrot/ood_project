@@ -1,0 +1,8 @@
+*.pyc
+__pycache__/
+*/__pycache__/
+*.egg-info/
+*.tar.bz2
+.DS_Store
+ood/experiments/outputs/*
+ood/experiments/simulation_data/*

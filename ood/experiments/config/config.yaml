@@ -1,0 +1,15 @@
+hydra:
+  job_logging:
+    disable_existing_loggers: False
+  # run:
+    # dir: ./ # outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  # output_subdir: "${which_objective}/${acqui}_results/.hydra"
+  # output_subdir: "${which_objective}/results/.hydra"
+
+defaults:
+  # - config: RRTPQfeatures
+  # - config/spectral_density: cart_pole
+  # - config/spectral_density: matern
+  # - scheme: debug
+  - override hydra/job_logging : disabled # Completely deactivate the hydra logging.
+  - _self_

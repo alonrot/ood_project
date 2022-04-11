@@ -1,0 +1,12 @@
+# Model parameters: (SI units)
+spectral_density_pars:
+  name: "cart_pole"
+  model_pars:
+    length_pend: 0.6
+    mass: 1.
+    gravity: 9.81 
+    friction_cart: 0.1 # viscous friction
+
+  system_pars:
+    u_sat: 3.0
+    deltaT: 0.6

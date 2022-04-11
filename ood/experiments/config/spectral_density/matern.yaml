@@ -1,0 +1,5 @@
+spectral_density_pars:
+  name: "matern"
+  nu: 2.5
+  ls: 0.5
+  prior_var: 1.0

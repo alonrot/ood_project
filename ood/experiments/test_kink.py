@@ -256,14 +256,13 @@ class dotdict(dict):
 # 	spectral_density = KinkSpectralDensity(spectral_density_pars_dict,dim=dim_x)
 
 
-def test_sample_from_kink(Nsamples,num_burnin_steps):
+def test_sample_from_kink(Nsamples_per_state0,state0_vec,num_burnin_steps):
 
-	dim_x = 1
-	spectral_density_pars_dict = dotdict(name="kink",x_lim_min=-5.0,x_lim_max=+2.0,prior_var=1.0,Nsteps_integration=401)
-	# pdb.set_trace()
-	spectral_density = KinkSpectralDensity(spectral_density_pars_dict,dim=dim_x)
-
-	samples = spectral_density.get_samples_experimental(Nsamples_per_restart=Nsamples,num_burnin_steps=num_burnin_steps)
+	spectral_density_pars_dict = dotdict(name="kink",x_lim_min=-5.0,x_lim_max=+2.0,
+										prior_var=1.0,Nsteps_integration=401,
+										step_size_hmc=0.1,num_leapfrog_steps_hmc=4)
+	spectral_density = KinkSpectralDensity(spectral_density_pars_dict,dim=1)
+	samples = spectral_density.get_samples(Nsamples_per_state0,state0_vec,num_burnin_steps)
 
 	return samples
 
@@ -306,9 +305,10 @@ def test():
 	# Overlay samples:
 	# Nsamples = int(10e2)
 	# num_burnin_steps = int(1e2)
-	Nsamples = int(60)
+	Nsamples_per_state0 = int(60)
+	state0_vec = np.array([[0.0],[0.5],[1.0]],dtype=np.float32)
 	num_burnin_steps = int(50)
-	samples_kink = test_sample_from_kink(Nsamples,num_burnin_steps)
+	samples_kink = test_sample_from_kink(Nsamples_per_state0,state0_vec,num_burnin_steps)
 	hdl_splots[0].plot(samples_kink[:,0],0.1*np.ones(samples_kink.shape[0]),marker="x",color="green",linestyle="None")
 	# pdb.set_trace()
 

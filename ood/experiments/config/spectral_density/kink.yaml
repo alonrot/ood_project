@@ -1,0 +1,6 @@
+spectral_density_pars:
+  name: "kink"
+  x_lim_min: -5.0
+  x_lim_max: +2.0
+  prior_var: 1.0
+  Nsteps_integration: 801

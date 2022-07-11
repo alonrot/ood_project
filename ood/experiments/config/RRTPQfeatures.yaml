@@ -32,7 +32,7 @@ RRTPRandomFourierFeatures:
     sigma_n:
       init: 0.5 # Initial value for standard deviation of evaluation noise
     weights_features:
-      Nfeat: 20 # Number of features (i.e., number of linear models to sample)
+      Nfeat: 240 # Number of features (i.e., number of linear models to sample)
       init: "ones" # Initial value for the elements of the diagonal of the diagonal matrix that defines the weights covariance
     spectral_density:
       nu: 2.5 # nu = p + 0.5 (select p>=2 as an integer)
@@ -40,10 +40,10 @@ RRTPRandomFourierFeatures:
       prior_var: 1.0
   learning:
     learning_rate: 0.001
-    epochs: 100
+    epochs: 200
     stopping_condition:
       loss_val: -100.0
-  spectral_density_pars: ${spectral_density_pars}
+  # spectral_density_pars: ${spectral_density_pars}
 
   # spectral_density:
   #   name: "matern" # matern, cartpole

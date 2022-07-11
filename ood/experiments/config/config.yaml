@@ -7,9 +7,11 @@ hydra:
   # output_subdir: "${which_objective}/results/.hydra"
 
 defaults:
-  # - config: RRTPQfeatures
+  - RRTPQfeatures
   # - config/spectral_density: cart_pole
   # - config/spectral_density: matern
+  - spectral_density: kink
+  # - spectral_density: matern
   # - scheme: debug
-  - override hydra/job_logging : disabled # Completely deactivate the hydra logging.
+  # - override hydra/job_logging : disabled # Completely deactivate the hydra logging.
   - _self_

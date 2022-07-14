@@ -64,6 +64,12 @@ def simulate_kink(Nsteps,x0,visualize=False):
 
 	return Xlatent, Ylatent, Xobs, Yobs
 
+class dotdict(dict):
+	"""dot.notation access to dictionary attributes"""
+	__getattr__ = dict.get
+	__setattr__ = dict.__setitem__
+	__delattr__ = dict.__delitem__
+
 
 def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	"""
@@ -119,20 +125,35 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	# Xtrain = tf.convert_to_tensor(value=Xtrain_subset_np,dtype=np.float32)
 	# Ytrain = tf.convert_to_tensor(value=Ytrain_subset_np + np.sqrt(0.8)*np.random.randn(*Xtrain_subset_np.shape),dtype=np.float32)
 
-	# pdb.set_trace()
+	initial_states_sampling = np.array([[0.0],[0.5],[1.0]],dtype=np.float32)
+	Ninitial_states_sampling = initial_states_sampling.shape[0]
+	Nsamples_per_state0 = int(cfg.RRTPRandomFourierFeatures.hyperpars.weights_features.Nfeat//Ninitial_states_sampling)
+	num_burnin_steps = int(50)
 
 	for ii in range(dim_y):
 
 		if which_kernel == "kink":
 		
-			cfg.config.spectral_density.spectral_density_pars = dict(name="kink",x_lim_min=-5.0,x_lim_max=+2.0,prior_var=1.0,Nsteps_integration=401)
-			raise NotImplementedError("These params are being overwritten")
-			spectral_density[ii] = KinkSpectralDensity(cfg.config.spectral_density.spectral_density_pars,dim=dim_x)
+			cfg_spectral_density_pars = dotdict(name="kink",x_lim_min=-5.0,x_lim_max=+2.0,
+																		prior_var=1.0,Nsteps_integration=801,
+																		step_size_hmc=0.1,num_leapfrog_steps_hmc=4,
+																		Nsamples_per_state0=Nsamples_per_state0,
+																		initial_states_sampling=initial_states_sampling,
+																		num_burnin_steps=num_burnin_steps)
+	
+			# raise NotImplementedError("These params are being overwritten")
+			spectral_density[ii] = KinkSpectralDensity(cfg_spectral_density_pars,dim=dim_x)
 		
 		elif which_kernel == "matern":
 
-			cfg.config.spectral_density.spectral_density_pars = dict(name="matern",nu=2.5,ls=0.5,prior_var=1.0)
-			spectral_density[ii] = MaternSpectralDensity(cfg.config.spectral_density.spectral_density_pars,dim=dim_x)
+			cfg_spectral_density_pars = dotdict(name="matern",nu=2.5,ls=0.5,prior_var=1.0,
+																		Nsteps_integration=801,
+																		step_size_hmc=0.1,num_leapfrog_steps_hmc=4,
+																		Nsamples_per_state0=Nsamples_per_state0,
+																		initial_states_sampling=initial_states_sampling,
+																		num_burnin_steps=num_burnin_steps)
+
+			spectral_density[ii] = MaternSpectralDensity(cfg_spectral_density_pars,dim=dim_x)
 
 		rrtp_MO[ii] = RRTPRandomFourierFeatures(dim=dim_x,cfg=cfg.RRTPRandomFourierFeatures,spectral_density=spectral_density[ii])
 		rrtp_MO[ii].update_spectral_density(None,None)
@@ -178,7 +199,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 
 		hdl_splots[ii].plot(xpred,MO_mean_pred[ii],linestyle="-",color="b",lw=3)
 		hdl_splots[ii].fill_between(xpred[:,0],MO_mean_pred[ii] - 2.*MO_std_pred[ii],MO_mean_pred[ii] + 2.*MO_std_pred[ii],color="cornflowerblue",alpha=0.5)
-		hdl_splots[ii].fill_between(xpred[:,0],mean_prior - 2.*std_prior,mean_prior + 2.*std_prior,color="red",alpha=0.5)
+		# hdl_splots[ii].fill_between(xpred[:,0],mean_prior - 2.*std_prior,mean_prior + 2.*std_prior,color="red",alpha=0.5)
 		# hdl_splots[ii].plot(xpred,MO_mean_pred[ii] + 2.*MO_std_pred[ii],linestyle="-",color="b")
 		# hdl_splots[ii].plot(xpred,MO_mean_pred[ii] - 2.*MO_std_pred[ii],linestyle="-",color="b")
 		hdl_splots[ii].plot(xplot_true_fun,yplot_true_fun,marker="None",linestyle="-",color="k",lw=2)
@@ -199,14 +220,17 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	plt.show(block=block_plot)
 	plt.pause(1)
 
+	del spectral_density
+	del rrtp_MO
+
 
 
 @hydra.main(config_path=".",config_name="config/config.yaml")
 def test(cfg: dict) -> None:
 	
 
-	train_test_kink(cfg, block_plot=True, which_kernel="kink")
-	# train_test_kink(cfg, block_plot=True, which_kernel="matern")
+	train_test_kink(cfg, block_plot=False, which_kernel="kink")
+	train_test_kink(cfg, block_plot=True, which_kernel="matern")
 
 
 

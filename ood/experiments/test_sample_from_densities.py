@@ -36,7 +36,6 @@ def get_samples_and_density(spectral_density):
 	return W_samples_vec, S_vec_plotting, omegapred
 
 
-# @hydra.main(config_path=".",config_name="config/config.yaml")
 @hydra.main(config_path="./config",config_name="config")
 def test(cfg):
 

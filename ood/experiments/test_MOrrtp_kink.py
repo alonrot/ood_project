@@ -4,7 +4,8 @@ import math
 import matplotlib.pyplot as plt
 import matplotlib
 from lqrker.models.rrtp import RRTPSarkkaFeatures, RRTPRandomFourierFeatures
-from lqrker.utils.spectral_densities import MultiDimensionalFourierTransformQuadratureFromData, KinkSpectralDensity, MaternSpectralDensity
+# from lqrker.utils.spectral_densities import MultiDimensionalFourierTransformQuadratureFromData, KinkSpectralDensity, MaternSpectralDensity
+from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity
 import numpy as np
 import numpy.random as npr
 import scipy
@@ -134,26 +135,27 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 
 		if which_kernel == "kink":
 		
-			cfg_spectral_density_pars = dotdict(name="kink",x_lim_min=-5.0,x_lim_max=+2.0,
-																		prior_var=1.0,Nsteps_integration=801,
-																		step_size_hmc=0.1,num_leapfrog_steps_hmc=4,
-																		Nsamples_per_state0=Nsamples_per_state0,
-																		initial_states_sampling=initial_states_sampling,
-																		num_burnin_steps=num_burnin_steps)
+			# cfg_spectral_density_pars = dotdict(name="kink",x_lim_min=-5.0,x_lim_max=+2.0,
+			# 															prior_var=1.0,Nsteps_integration=801,
+			# 															step_size_hmc=0.1,num_leapfrog_steps_hmc=4,
+			# 															Nsamples_per_state0=Nsamples_per_state0,
+			# 															initial_states_sampling=initial_states_sampling,
+			# 															num_burnin_steps=num_burnin_steps)
 	
 			# raise NotImplementedError("These params are being overwritten")
-			spectral_density[ii] = KinkSpectralDensity(cfg_spectral_density_pars,dim=dim_x)
+			spectral_density[ii] = KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim=dim_x)
 		
 		elif which_kernel == "matern":
 
-			cfg_spectral_density_pars = dotdict(name="matern",nu=2.5,ls=0.5,prior_var=1.0,
-																		Nsteps_integration=801,
-																		step_size_hmc=0.1,num_leapfrog_steps_hmc=4,
-																		Nsamples_per_state0=Nsamples_per_state0,
-																		initial_states_sampling=initial_states_sampling,
-																		num_burnin_steps=num_burnin_steps)
+			# cfg_spectral_density_pars = dotdict(name="matern",nu=2.5,ls=0.5,prior_var=1.0,
+			# 															Nsteps_integration=801,
+			# 															step_size_hmc=0.1,num_leapfrog_steps_hmc=4,
+			# 															Nsamples_per_state0=Nsamples_per_state0,
+			# 															initial_states_sampling=initial_states_sampling,
+			# 															num_burnin_steps=num_burnin_steps)
 
-			spectral_density[ii] = MaternSpectralDensity(cfg_spectral_density_pars,dim=dim_x)
+			# spectral_density[ii] = MaternSpectralDensity(cfg_spectral_density_pars,dim=dim_x)
+			spectral_density[ii] = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)
 
 		rrtp_MO[ii] = RRTPRandomFourierFeatures(dim=dim_x,cfg=cfg.RRTPRandomFourierFeatures,spectral_density=spectral_density[ii])
 		rrtp_MO[ii].update_spectral_density(None,None)

@@ -9,6 +9,7 @@ import scipy
 from scipy import stats
 from scipy import integrate
 from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity
+import hydra
 
 markersize_x0 = 10
 markersize_trajs = 0.4
@@ -269,6 +270,9 @@ def test_sample_from_kink(Nsamples_per_state0,initial_states_sampling,num_burnin
 	return samples
 
 
+
+
+
 def test():
 
 
@@ -285,7 +289,11 @@ def test():
 
 	"""
 	TODO
-	Can I use Bochner's theorem at all? It's meant to be for stationary kernels
+	1) Can I use Bochner's theorem at all? It's meant to be for stationary kernels -> NO
+	2) use here the new density class. Do not call kernel_bochner, call InverseMVFourierTransform instead
+	3) Have also a 2D kernel
+	4) Compare with the kernel adding +1
+	5) Figure out the multiplication factors
 
 	"""
 
@@ -369,7 +377,7 @@ def test():
 
 if __name__ == "__main__":
 
-	test()
+	# test()
 
 	# test_kink_spectral_density_tfp()
 

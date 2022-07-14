@@ -8,7 +8,7 @@ import numpy as np
 import scipy
 from scipy import stats
 from scipy import integrate
-from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity
+from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity, ParabolaSpectralDensity
 import hydra
 
 markersize_x0 = 10
@@ -127,12 +127,13 @@ def test_ifou(cfg):
 	xpred = np.linspace(xmin,xmax,Npoints)
 	xpred = np.reshape(xpred,(-1,dim_x)) # [Nsteps,dim]
 
-	labels = ["Kink","Matern","SE"]
+	labels = ["Kink","Matern","SE","Parabola"]
 
 	spectral_densities = []
 	spectral_densities += [KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim=dim_x)]
 	spectral_densities += [MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)]
 	spectral_densities += [SquaredExponentialSpectralDensity(cfg.spectral_density.squaredexp,cfg.sampler.hmc,dim=dim_x)]
+	spectral_densities += [ParabolaSpectralDensity(cfg.spectral_density.parabola,cfg.sampler.hmc,dim=dim_x)]
 
 	inverse_fourier_toolboxes = []
 	for ii in range(len(spectral_densities)):
@@ -149,6 +150,12 @@ def test_ifou(cfg):
 			# Overlay true function:
 			fx_true = spectral_densities[ii]._kink_fun(xpred[:,0])
 			hdl_splots[0].plot(xpred[:,0],fx_true,label="kink",color="grey",lw=1)
+
+		if labels[ii] == "Parabola":
+
+			# Overlay true function:
+			fx_true = spectral_densities[ii]._parabola_fun(xpred[:,0])
+			hdl_splots[0].plot(xpred[:,0],fx_true,label="parabola",color="grey",lw=1)
 
 		hdl_splots[0].plot(xpred[:,0],fx,label="kink",color="red",lw=1,linestyle="--")
 		hdl_splots[0].set_ylabel(r"$f(x_t)$",fontsize=fontsize_labels)

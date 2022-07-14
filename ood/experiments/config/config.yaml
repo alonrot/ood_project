@@ -8,7 +8,7 @@ hydra:
 
 defaults:
   - gpmodel: RRTPRandomFourierFeatures
-  - spectral_density: [kink,matern,squaredexp]
+  - spectral_density: [kink,matern,squaredexp,parabola]
   - sampler: hmc
   # - spectral_density: kink
   - override hydra/job_logging : disabled # Completely deactivate the hydra logging.

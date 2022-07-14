@@ -8,7 +8,7 @@ import numpy as np
 import scipy
 from scipy import stats
 from scipy import integrate
-from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity
+from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity, ParabolaSpectralDensity
 from lqrker.utils.parsing import dotdict
 import hydra
 
@@ -46,11 +46,13 @@ def test(cfg):
 	spectral_densities += [KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim=dim_x)]
 	spectral_densities += [MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)]
 	spectral_densities += [SquaredExponentialSpectralDensity(cfg.spectral_density.squaredexp,cfg.sampler.hmc,dim=dim_x)]
-	labels = ["Kink","Matern","SquaredExp"]
+	spectral_densities += [ParabolaSpectralDensity(cfg.spectral_density.parabola,cfg.sampler.hmc,dim=dim_x)]
+	labels = ["Kink","Matern","SquaredExp","Parabola"]
+	Ndensities = len(spectral_densities)
 
 
-	hdl_fig, hdl_splots = plt.subplots(3,1,figsize=(12,8),sharex=True)
-	for jj in range(len(spectral_densities)):
+	hdl_fig, hdl_splots = plt.subplots(Ndensities,1,figsize=(12,8),sharex=True)
+	for jj in range(Ndensities):
 
 		W_samples_vec, S_vec_plotting, omegapred = get_samples_and_density(spectral_densities[jj])
 

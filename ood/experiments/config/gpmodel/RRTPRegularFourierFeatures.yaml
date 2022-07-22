@@ -1,9 +1,9 @@
 hyperpars:
   nu: 2.1 # Requirement: nu > 2 [fixed]
   sigma_n:
-    init: 0.5 # Initial value for standard deviation of evaluation noise
+    init: 0.01 # Initial value for standard deviation of evaluation noise
   weights_features:
-    Nfeat: 480 # Number of features (i.e., number of linear models to sample)
+    Nfeat: 1001 # Number of features (i.e., number of linear models to sample)
     init: "ones" # Initial value for the elements of the diagonal of the diagonal matrix that defines the weights covariance
   spectral_density:
     nu: 2.5 # nu = p + 0.5 (select p>=2 as an integer)

@@ -6,4 +6,5 @@ __pycache__/
 .DS_Store
 ood/experiments/outputs/*
 ood/experiments/simulation_data/*
+ood/experiments/plotting/*
 *.log

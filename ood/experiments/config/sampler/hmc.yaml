@@ -1,7 +1,6 @@
 hmc:
-  Nsteps_integration: 801
   step_size_hmc: 0.1
-  num_leapfrog_steps_hmc: 3
+  num_leapfrog_steps_hmc: 4
   Nsamples_per_state0: 30
   initial_states_sampling: "np.array([[0.0],[0.5],[1.0]],dtype=np.float32)"
   num_burnin_steps: 50

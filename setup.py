@@ -12,6 +12,6 @@ setup(
     description = (""),
     keywords = "Bayesian Optimization, Gaussian process, Learning representations",
     packages=[	'ood',
-    			'ood.models'],
+    			'ood.fourier_kernel'],
     long_description=read('README.md'),
 )

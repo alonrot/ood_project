@@ -7,7 +7,7 @@ import matplotlib
 import numpy as np
 import scipy
 from scipy import stats
-from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity, ParabolaSpectralDensity, NoNameSpectralDensity, KinkSharpSpectralDensity
+from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity, ParaboloidSpectralDensity, NoNameSpectralDensity, KinkSharpSpectralDensity
 from lqrker.utils.parsing import dotdict
 import hydra
 
@@ -45,7 +45,7 @@ def test(cfg):
 	spectral_densities += [KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim=dim_x)]
 	spectral_densities += [MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)]
 	spectral_densities += [SquaredExponentialSpectralDensity(cfg.spectral_density.squaredexp,cfg.sampler.hmc,dim=dim_x)]
-	spectral_densities += [ParabolaSpectralDensity(cfg.spectral_density.parabola,cfg.sampler.hmc,dim=dim_x)]
+	spectral_densities += [ParaboloidSpectralDensity(cfg.spectral_density.parabola,cfg.sampler.hmc,dim=dim_x)]
 	spectral_densities += [NoNameSpectralDensity(cfg.spectral_density.noname,cfg.sampler.hmc,dim=dim_x)]
 	spectral_densities += [KinkSharpSpectralDensity(cfg.spectral_density.kinksharp,cfg.sampler.hmc,dim=dim_x)]
 	labels = ["Kink","Matern","SquaredExp","Parabola","NoName","KinkSharp"]

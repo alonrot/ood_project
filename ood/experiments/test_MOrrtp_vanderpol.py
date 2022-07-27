@@ -1,0 +1,156 @@
+import tensorflow as tf
+import pdb
+import math
+import matplotlib.pyplot as plt
+import matplotlib
+from lqrker.models.rr_features import MultiObjectiveRRTPRegularFourierFeatures
+from lqrker.spectral_densities import MaternSpectralDensity, VanDerPolSpectralDensity
+import numpy as np
+import scipy
+import hydra
+from omegaconf import OmegaConf
+from lqrker.utils.parsing import get_logger
+logger = get_logger(__name__)
+
+markersize_x0 = 10
+markersize_trajs = 0.4
+fontsize_labels = 25
+matplotlib.rc('xtick', labelsize=fontsize_labels)
+matplotlib.rc('ytick', labelsize=fontsize_labels)
+matplotlib.rc('text', usetex=True)
+matplotlib.rc('font',**{'family':'serif','serif':['Computer Modern Roman']})
+plt.rc('legend',fontsize=fontsize_labels+2)
+
+def simulate_nonlinsystem(Nsteps,x0,nonlinear_system_fun,visualize=False):
+
+	dim = x0.shape[1]
+	x_vec = np.zeros((Nsteps,dim))
+	x_vec[0,:] = x0
+	y_vec = np.zeros((Nsteps,dim))
+	y_vec[0,:] = x0
+	std_noise_process = 0.05
+	std_noise_obs = np.sqrt(0.8)
+	for ii in range(Nsteps-1):
+
+		# True system evolution with process noise:
+		x_vec[ii+1,:] = nonlinear_system_fun(x_vec[ii:ii+1,:]) + std_noise_process * np.random.randn()
+
+		# Noisy observations:
+		y_vec[ii+1,:] = x_vec[ii+1,:] + std_noise_obs * np.random.randn()
+
+
+	# Get consecutive observations & latent states:
+	Xlatent = x_vec[0:Nsteps-1,:] # [Nsteps-1,dim]
+	Ylatent = x_vec[1:Nsteps,:] # [Nsteps-1,dim]
+	Xobs = y_vec[0:Nsteps-1,:] # [Nsteps-1,dim]
+	Yobs = y_vec[1:Nsteps,:] # [Nsteps-1,dim]
+
+	if visualize:
+
+		Ndiv = 201
+		xplot_true_fun = np.linspace(-5.,2.,Ndiv)
+		yplot_true_fun = nonlinear_system_fun(xplot_true_fun)
+
+		hdl_fig, hdl_splots = plt.subplots(1,1,figsize=(12,8),sharex=True)
+		hdl_splots.plot(xplot_true_fun,yplot_true_fun,marker="None",linestyle="-",color="k",lw=2)
+		hdl_splots.plot(Xtrain[:,0],Ytrain[:,0],marker=".",linestyle="--",color="gray",lw=0.5,markersize=4)
+		hdl_splots.plot(Xobs[:,0],Yobs[:,0],marker=".",linestyle="--",color="steelblue",lw=0.5,markersize=4)
+		plt.show(block=True)
+
+	return Xlatent, Ylatent, Xobs, Yobs
+
+
+def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
+	"""
+
+	Train the model to predict one-step ahead
+
+	Then, see how well the model can predict long term trajectories.
+	To this end, we evaluate the model at a trining point, then sample a new point from the output distribution, 
+	then evaluate the model at that sampled point, and then repeat the process
+	"""
+
+
+	"""
+	TODO
+	1) Most of the time, the samples are gathered at the high frequencies, which creates a lot of ripples in the prediction
+		1.1) Sample from individual Gaussians placed at the modes?
+	4) Intricude temporal dependendices in the model
+	"""
+
+	print(OmegaConf.to_yaml(cfg))
+
+	my_seed = 3
+	np.random.seed(seed=my_seed)
+	tf.random.set_seed(seed=my_seed)
+	
+	x0 = np.array([[1.0,0.5]])
+	dim_x = x0.shape[1]
+	dim_y = dim_x
+
+	if which_kernel == "vanderpol":
+		spectral_density = VanDerPolSpectralDensity(cfg.spectral_density.vanderpol,cfg.sampler.hmc,dim=dim_x)
+	elif which_kernel == "matern":
+		spectral_density = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)
+
+	omega_min = -5.
+	omega_max = +5.
+	Ndiv = 21
+	cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_x
+	spectral_density.update_Wpoints_regular(omega_min,omega_max,Ndiv)
+
+	# Generate training data:
+	# Nsteps = 120
+	Nsteps = 4
+	Xlatent, Ylatent, Xobs, Yobs = simulate_nonlinsystem(Nsteps,x0,spectral_density._nonlinear_system_fun,visualize=False)
+	xmin = -3.
+	xmax = +3.
+	Ndiv = 21
+	xpred = tf.linspace(xmin,xmax,Ndiv)
+	xpred_data = tf.meshgrid(*([xpred]*dim_x),indexing="ij")
+	xpred = tf.concat([tf.reshape(xpred_data_el,(-1,1)) for xpred_data_el in xpred_data],axis=1)
+
+	Xtrain = tf.convert_to_tensor(value=Xlatent,dtype=np.float32)
+	Ytrain = tf.convert_to_tensor(value=Ylatent,dtype=np.float32)
+
+	rrtp_MO = MultiObjectiveRRTPRegularFourierFeatures(dim_x,cfg,spectral_density,Xtrain,Ytrain)
+
+	# Get moments:
+	mean_prior, cov_prior = rrtp_MO.predict_at_locations(xpred,from_prior=True)
+	std_prior = tf.sqrt(tf.linalg.diag_part(cov_prior))
+
+	# Sample paths:
+	sample_paths_prior = rrtp_MO.sample_path_from_predictive(xpred,Nsamples=15,from_prior=True)
+	sample_paths_predictive = rrtp_MO.sample_path_from_predictive(xpred,Nsamples=3,from_prior=False)
+
+	fx = rrtp_MO.get_sample_path_callable(Nsamples=3,from_prior=False)
+
+	# Get prior trajectory:
+	x0_sample = np.array([[0.9,0.8]])
+	Nsteps_sample = 2
+	Xlatent_sample, Ylatent_sample, _, _ = simulate_nonlinsystem(Nsteps_sample,x0,spectral_density._nonlinear_system_fun,visualize=False)
+	Xlatent_sample = tf.convert_to_tensor(value=Xlatent_sample,dtype=np.float32)
+	Ylatent_sample = tf.convert_to_tensor(value=Ylatent_sample,dtype=np.float32)
+	xsamples_X, xsamples_Y = rrtp_MO.sample_state_space_from_prior_recursively(x0=Xlatent_sample,x1=Ylatent_sample,traj_length=50)
+
+	hdl_fig, hdl_splots = plt.subplots(2,1,figsize=(12,8),sharex=True)
+	hdl_fig.suptitle(r"Van Der Pol function simulation $x_{t+1} = f(x_t) + \varepsilon$"+", kernel: {0}".format("vanderpol"),fontsize=fontsize_labels)
+	hdl_splots[0].plot(xsamples_X[...,0],xsamples_Y[...,0],marker=".",linestyle="--",color="gray",lw=0.5,markersize=5)
+	plt.show(block=True)
+
+
+
+@hydra.main(config_path="./config",config_name="config")
+def test(cfg: dict) -> None:
+	
+
+	test_vanderpol(cfg, block_plot=True, which_kernel="vanderpol")
+	# test_vanderpol(cfg, block_plot=True, which_kernel="matern")
+
+
+
+if __name__ == "__main__":
+
+	test()
+
+

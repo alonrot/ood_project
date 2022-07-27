@@ -135,9 +135,6 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	mean_prior, cov_prior = rrtp_MO[ii].predict_at_locations(xpred,from_prior=True)
 	std_prior = tf.sqrt(tf.linalg.diag_part(cov_prior))
 
-	# # Sample from beta:
-	# sample_paths_predictive_from_beta = rrtp_MO[ii].sample_path_from_predictive_given_beta_moments(xpred,Nsamples=15)
-
 	# Get prior trajectory:
 	x0_sample = np.array([[0.9]])
 	Nsteps_sample = 2

@@ -3,7 +3,7 @@ import pdb
 import math
 import matplotlib.pyplot as plt
 import matplotlib
-from lqrker.models.rr_features import RRTPRegularFourierFeatures
+from lqrker.models.rr_features import MultiObjectiveRRTPRegularFourierFeatures
 from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity
 import numpy as np
 import scipy
@@ -93,76 +93,77 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	dim_x = x0.shape[1]
 
 	if which_kernel == "kink":
-		spectral_densities = [KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim=dim_x)]*dim_y
+		spectral_density = KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim=dim_x)
 	elif which_kernel == "matern":
-		spectral_densities = [MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)]*dim_y
+		spectral_density = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)
+
+	omega_min = -6.
+	omega_max = +6.
+	Ndiv = 31
+	cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_x
+	spectral_density.update_Wpoints_regular(omega_min,omega_max,Ndiv)
 
 	# Generate training data:
 	# Nsteps = 120
 	Nsteps = 4
-	Xlatent, Ylatent, Xobs, Yobs = simulate_nonlinsystem(Nsteps,x0,spectral_densities[0]._nonlinear_system_fun,visualize=False)
-	rrtp_MO = [None]*dim_y
-	MO_mean_pred = [None]*dim_y
-	MO_std_pred = [None]*dim_y
-	# xmin = cfg.config.spectral_density.spectral_density_pars.x_lim_min
-	# xmax = cfg.config.spectral_density.spectral_density_pars.x_lim_max
+	Xlatent, Ylatent, Xobs, Yobs = simulate_nonlinsystem(Nsteps,x0,spectral_density._nonlinear_system_fun,visualize=False)
+
+	Xtrain = tf.convert_to_tensor(value=Xlatent,dtype=np.float32)
+	Ytrain = tf.convert_to_tensor(value=Ylatent,dtype=np.float32)
+
+	rrtp_MO = MultiObjectiveRRTPRegularFourierFeatures(dim_x,cfg,spectral_density,Xtrain,Ytrain)
+
 	xmin = -6.
 	xmax = +3.
 	Ndiv = 201
 	xpred = tf.linspace(xmin,xmax,Ndiv)
 	xpred = tf.reshape(xpred,(-1,1))
 
-	Xtrain = tf.convert_to_tensor(value=Xlatent,dtype=np.float32)
-	Ytrain = tf.convert_to_tensor(value=Ylatent,dtype=np.float32)
+	# Get moments:
+	MO_mean_pred, MO_std_pred = rrtp_MO.predict_at_locations(xpred)
 
-	for ii in range(dim_y):
+	mean_prior, std_prior = rrtp_MO.predict_at_locations(xpred,from_prior=True)
 
-		rrtp_MO[ii] = RRTPRegularFourierFeatures(dim=dim_x,cfg=cfg.gpmodel,spectral_density=spectral_densities[ii])
-		rrtp_MO[ii].update_spectral_density(None,None)
 
-		rrtp_MO[ii].update_model(Xtrain,Ytrain) # Update model indexing the target outputs at the corresponding dimension
-		rrtp_MO[ii].train_model()
+	# for ii in range(dim_y):
 
-		# Compute predictive moments:
-		MO_mean_pred[ii], cov_pred = rrtp_MO[ii].predict_at_locations(xpred)
-		MO_std_pred[ii] = tf.sqrt(tf.linalg.diag_part(cov_pred))
+	# 	rrtp_MO[ii] = RRTPRegularFourierFeatures(dim=dim_x,cfg=cfg.gpmodel,spectral_density=spectral_densities[ii])
+	# 	rrtp_MO[ii].update_spectral_density(None,None)
+
+	# 	rrtp_MO[ii].update_model(Xtrain,Ytrain) # Update model indexing the target outputs at the corresponding dimension
+	# 	rrtp_MO[ii].train_model()
+
+	# 	# Compute predictive moments:
+	# 	MO_mean_pred[ii], cov_pred = rrtp_MO[ii].predict_at_locations(xpred)
+	# 	MO_std_pred[ii] = tf.sqrt(tf.linalg.diag_part(cov_pred))
 
 	# Sample paths:
-	sample_paths_prior = rrtp_MO[ii].sample_path_from_predictive(xpred,Nsamples=15,from_prior=True)
-	sample_paths_predictive = rrtp_MO[ii].sample_path_from_predictive(xpred,Nsamples=3,from_prior=False)
-
-	# Get moments:
-	mean_prior, cov_prior = rrtp_MO[ii].predict_at_locations(xpred,from_prior=True)
-	std_prior = tf.sqrt(tf.linalg.diag_part(cov_prior))
+	sample_paths_prior = rrtp_MO.sample_path_from_predictive(xpred,Nsamples=15,from_prior=True)
+	sample_paths_predictive = rrtp_MO.sample_path_from_predictive(xpred,Nsamples=3,from_prior=False)
 
 	# Get prior trajectory:
 	x0_sample = np.array([[0.9]])
 	Nsteps_sample = 2
-	Xlatent_sample, Ylatent_sample, _, _ = simulate_nonlinsystem(Nsteps_sample,x0_sample,spectral_densities[0]._nonlinear_system_fun,visualize=False)
+	Xlatent_sample, Ylatent_sample, _, _ = simulate_nonlinsystem(Nsteps_sample,x0_sample,spectral_density._nonlinear_system_fun,visualize=False)
 	Xlatent_sample = tf.convert_to_tensor(value=Xlatent_sample,dtype=np.float32)
 	Ylatent_sample = tf.convert_to_tensor(value=Ylatent_sample,dtype=np.float32)
-	xsamples_X, xsamples_Y = rrtp_MO[ii].sample_state_space_from_prior_recursively(x0=Xlatent_sample,x1=Ylatent_sample,traj_length=5,sort=True)
-	
-	# print("xsamples_X:",xsamples_X)
-	# print("xsamples_Y:",xsamples_Y)
-
-	# print("rrtp_MO[ii].sample_mvt0:",rrtp_MO[ii].sample_mvt0[0:3,:])
+	xsamples_X, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=Xlatent_sample,x1=Ylatent_sample,traj_length=5,sort=True)
 
 	# Plot:
 	assert dim_y == 1
-	ii = 0
 
 	Ndiv = 201
 	xplot_true_fun = np.linspace(-5.,2.,Ndiv)
-	yplot_true_fun = spectral_densities[0]._nonlinear_system_fun(xplot_true_fun)
+	yplot_true_fun = spectral_density._nonlinear_system_fun(xplot_true_fun)
 
 	hdl_fig, hdl_splots = plt.subplots(2,1,figsize=(12,8),sharex=True)
 	hdl_fig.suptitle(r"Kink function simulation $x_{t+1} = f(x_t) + \varepsilon$"+", kernel: {0}".format(which_kernel),fontsize=fontsize_labels)
-	hdl_splots[0].plot(xpred,MO_mean_pred[ii],linestyle="-",color="b",lw=3)
-	hdl_splots[0].fill_between(xpred[:,0],MO_mean_pred[ii] - 2.*MO_std_pred[ii],MO_mean_pred[ii] + 2.*MO_std_pred[ii],color="cornflowerblue",alpha=0.5)
+	hdl_splots[0].plot(xpred,MO_mean_pred,linestyle="-",color="b",lw=3)
+	# pdb.set_trace()
+	hdl_splots[0].fill_between(xpred[:,0],MO_mean_pred[:,0] - 2.*MO_std_pred[:,0],MO_mean_pred[:,0] + 2.*MO_std_pred[:,0],color="cornflowerblue",alpha=0.5)
 	hdl_splots[0].plot(xplot_true_fun,yplot_true_fun,marker="None",linestyle="-",color="k",lw=2)
-	for ii in range(sample_paths_predictive.shape[1]):
-		hdl_splots[0].plot(xpred,sample_paths_predictive[:,ii],marker="None",linestyle="--",color="r",lw=0.5)
+	for ii in range(len(sample_paths_predictive)):
+		hdl_splots[0].plot(xpred,sample_paths_predictive[ii],marker="None",linestyle="--",color="r",lw=0.5)
 	# for ii in range(sample_paths_predictive_from_beta.shape[1]):
 	# 	hdl_splots[0].plot(xpred,sample_paths_predictive_from_beta[:,ii],marker="None",linestyle="--",color="r",lw=0.5)
 	hdl_splots[0].plot(Xtrain[:,0],Ytrain[:,0],marker=".",linestyle="--",color="gray",lw=0.5,markersize=5)
@@ -170,11 +171,12 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	hdl_splots[0].set_ylabel(r"$x_{t+1}$",fontsize=fontsize_labels)
 
 	hdl_splots[1].plot(xpred,mean_prior,linestyle="-",color="b",lw=3)
-	hdl_splots[1].fill_between(xpred[:,0],mean_prior - 2.*std_prior,mean_prior + 2.*std_prior,color="cornflowerblue",alpha=0.5)
+	hdl_splots[1].fill_between(xpred[:,0],mean_prior[:,0] - 2.*std_prior[:,0],mean_prior[:,0] + 2.*std_prior[:,0],color="cornflowerblue",alpha=0.5)
 	hdl_splots[1].plot(xplot_true_fun,yplot_true_fun,marker="None",linestyle="-",color="k",lw=2)
-	for ii in range(sample_paths_prior.shape[1]):
-		hdl_splots[1].plot(xpred,sample_paths_prior[:,ii],marker="None",linestyle="--",color="k",lw=0.5)
-	hdl_splots[1].plot(xsamples_X,xsamples_Y,marker="o",linestyle="--",color="r",lw=0.5,markersize=5)
+	for ii in range(len(sample_paths_prior)):
+		hdl_splots[1].plot(xpred,sample_paths_prior[ii],marker="None",linestyle="--",color="k",lw=0.5)
+	# pdb.set_trace()
+	hdl_splots[1].plot(xsamples_X[0:-1,:],xsamples_X[1::,:],marker="o",linestyle="--",color="r",lw=0.5,markersize=5)
 	hdl_splots[1].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
 	hdl_splots[1].set_xlim([xmin,xmax])
 	hdl_splots[1].set_ylabel(r"$x_{t+1}$",fontsize=fontsize_labels)

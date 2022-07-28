@@ -3,6 +3,7 @@ import pdb
 import math
 import matplotlib.pyplot as plt
 import matplotlib
+import matplotlib.cm as cm
 from lqrker.models.rr_features import MultiObjectiveRRTPRegularFourierFeatures
 from lqrker.spectral_densities import MaternSpectralDensity, VanDerPolSpectralDensity
 import numpy as np
@@ -21,15 +22,13 @@ matplotlib.rc('text', usetex=True)
 matplotlib.rc('font',**{'family':'serif','serif':['Computer Modern Roman']})
 plt.rc('legend',fontsize=fontsize_labels+2)
 
-def simulate_nonlinsystem(Nsteps,x0,nonlinear_system_fun,visualize=False):
+def simulate_nonlinsystem(Nsteps,x0,nonlinear_system_fun,std_noise_process=0.001,std_noise_obs=0.001,visualize=False):
 
 	dim = x0.shape[1]
 	x_vec = np.zeros((Nsteps,dim))
 	x_vec[0,:] = x0
 	y_vec = np.zeros((Nsteps,dim))
 	y_vec[0,:] = x0
-	std_noise_process = 0.05
-	std_noise_obs = np.sqrt(0.8)
 	for ii in range(Nsteps-1):
 
 		# True system evolution with process noise:
@@ -80,7 +79,7 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 
 	print(OmegaConf.to_yaml(cfg))
 
-	my_seed = 3
+	my_seed = 4
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 	
@@ -93,16 +92,31 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	elif which_kernel == "matern":
 		spectral_density = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)
 
-	omega_min = -5.
-	omega_max = +5.
-	Ndiv = 21
+	omega_min = -6.
+	omega_max = +6.
+	Ndiv = 31
 	cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_x
 	spectral_density.update_Wpoints_regular(omega_min,omega_max,Ndiv)
 
 	# Generate training data:
 	# Nsteps = 120
-	Nsteps = 4
+	Nsteps = 500
 	Xlatent, Ylatent, Xobs, Yobs = simulate_nonlinsystem(Nsteps,x0,spectral_density._nonlinear_system_fun,visualize=False)
+	
+	Xtrain = tf.convert_to_tensor(value=Xlatent,dtype=np.float32)
+	Ytrain = tf.convert_to_tensor(value=Ylatent,dtype=np.float32)
+
+	rrtp_MO = MultiObjectiveRRTPRegularFourierFeatures(dim_x,cfg,spectral_density,Xtrain,Ytrain)
+
+
+	# Plot p(x_{t+1} | xt) as a function of xt. Since xt is 2D, we need two pairs of heatmaps, one pair for mu(xt) another pair for var(x_{t+1})
+	# When computing the callable fx, sample more, to have a better idea
+	# Figure out why it takes so long for iteration ii=0
+	# Use this same code but in dim=1 with the kink function; we should get the same results
+	# Could also be that we need positive features, meaning (phi(xt)+1)*beta, in order to get a PhiXTPhiX that is PD, and not
+	# having to fix the matrix
+
+
 	xmin = -3.
 	xmax = +3.
 	Ndiv = 21
@@ -110,32 +124,70 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	xpred_data = tf.meshgrid(*([xpred]*dim_x),indexing="ij")
 	xpred = tf.concat([tf.reshape(xpred_data_el,(-1,1)) for xpred_data_el in xpred_data],axis=1)
 
-	Xtrain = tf.convert_to_tensor(value=Xlatent,dtype=np.float32)
-	Ytrain = tf.convert_to_tensor(value=Ylatent,dtype=np.float32)
-
-	rrtp_MO = MultiObjectiveRRTPRegularFourierFeatures(dim_x,cfg,spectral_density,Xtrain,Ytrain)
-
 	# Get moments:
-	mean_prior, cov_prior = rrtp_MO.predict_at_locations(xpred,from_prior=True)
-	std_prior = tf.sqrt(tf.linalg.diag_part(cov_prior))
+	mean_prior, std_prior = rrtp_MO.predict_at_locations(xpred,from_prior=True)
 
-	# Sample paths:
-	sample_paths_prior = rrtp_MO.sample_path_from_predictive(xpred,Nsamples=15,from_prior=True)
-	sample_paths_predictive = rrtp_MO.sample_path_from_predictive(xpred,Nsamples=3,from_prior=False)
+	# pdb.set_trace()
+	# xpred_plotting = tf.reshape(xpred,(Ndiv,Ndiv))
+	mean_prior_plotting_0 = tf.reshape(mean_prior[:,0],(Ndiv,Ndiv))
+	mean_prior_plotting_1 = tf.reshape(mean_prior[:,1],(Ndiv,Ndiv))
+	std_prior_plotting_0 = tf.reshape(std_prior[:,0],(Ndiv,Ndiv))
+	std_prior_plotting_1 = tf.reshape(std_prior[:,1],(Ndiv,Ndiv))
 
-	fx = rrtp_MO.get_sample_path_callable(Nsamples=3,from_prior=False)
+	hdl_fig, hdl_splots = plt.subplots(2,2,figsize=(12,8),sharex=True)
+	hdl_splots[0,0].imshow(mean_prior_plotting_0, origin='lower', cmap=cm.winter, interpolation='spline36', extent=([xmin, xmax, xmin, xmax]))
+	hdl_splots[0,0].set_title("Mean 0")
+	hdl_splots[0,1].imshow(mean_prior_plotting_1, origin='lower', cmap=cm.winter, interpolation='spline36', extent=([xmin, xmax, xmin, xmax]))
+	hdl_splots[0,1].set_title("Mean 1")
+	hdl_splots[1,0].imshow(std_prior_plotting_0, origin='lower', cmap=cm.winter, interpolation='spline36', extent=([xmin, xmax, xmin, xmax]))
+	hdl_splots[1,0].set_title("std 0")
+	hdl_splots[1,1].imshow(std_prior_plotting_1, origin='lower', cmap=cm.winter, interpolation='spline36', extent=([xmin, xmax, xmin, xmax]))
+	hdl_splots[1,1].set_title("std 1")
+	hdl_splots[0,0].plot(Xlatent[:,0],Xlatent[:,1],marker=".",linestyle="None",color="black")
+	hdl_splots[0,1].plot(Xlatent[:,0],Xlatent[:,1],marker=".",linestyle="None",color="black")
+	hdl_splots[1,0].plot(Xlatent[:,0],Xlatent[:,1],marker=".",linestyle="None",color="black")
+	hdl_splots[1,1].plot(Xlatent[:,0],Xlatent[:,1],marker=".",linestyle="None",color="black")
+
+	# plt.show(block=True)
+	# pdb.set_trace()
+
+	# # Sample paths:
+	# sample_paths_prior = rrtp_MO.sample_path_from_predictive(xpred,Nsamples=15,from_prior=True)
+	# sample_paths_predictive = rrtp_MO.sample_path_from_predictive(xpred,Nsamples=3,from_prior=False)
+
+	# fx = rrtp_MO.get_sample_path_callable(Nsamples=3,from_prior=False)
 
 	# Get prior trajectory:
 	x0_sample = np.array([[0.9,0.8]])
 	Nsteps_sample = 2
-	Xlatent_sample, Ylatent_sample, _, _ = simulate_nonlinsystem(Nsteps_sample,x0,spectral_density._nonlinear_system_fun,visualize=False)
+	traj_length = 30
+	traj_length_true = 500
+	Xlatent_sample, Ylatent_sample, _, _ = simulate_nonlinsystem(Nsteps_sample,x0_sample,spectral_density._nonlinear_system_fun,visualize=False)
 	Xlatent_sample = tf.convert_to_tensor(value=Xlatent_sample,dtype=np.float32)
 	Ylatent_sample = tf.convert_to_tensor(value=Ylatent_sample,dtype=np.float32)
-	xsamples_X, xsamples_Y = rrtp_MO.sample_state_space_from_prior_recursively(x0=Xlatent_sample,x1=Ylatent_sample,traj_length=50)
+	xsamples_X, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=Xlatent_sample,x1=Ylatent_sample,traj_length=traj_length)
 
-	hdl_fig, hdl_splots = plt.subplots(2,1,figsize=(12,8),sharex=True)
+	Xlatent_true, _, _, _ = simulate_nonlinsystem(traj_length_true,x0,spectral_density._nonlinear_system_fun,std_noise_process=0.0,visualize=False)
+
+	hdl_fig, hdl_splots = plt.subplots(1,1,figsize=(12,8),sharex=True)
+	hdl_splots = [hdl_splots]
 	hdl_fig.suptitle(r"Van Der Pol function simulation $x_{t+1} = f(x_t) + \varepsilon$"+", kernel: {0}".format("vanderpol"),fontsize=fontsize_labels)
-	hdl_splots[0].plot(xsamples_X[...,0],xsamples_Y[...,0],marker=".",linestyle="--",color="gray",lw=0.5,markersize=5)
+	for ii in range(xsamples_X.shape[2]):
+		hdl_splots[0].plot(xsamples_X[:,0,ii],xsamples_X[:,1,ii],marker=".",linestyle="--",lw=0.5,markersize=5)
+	hdl_splots[0].plot(Xlatent_true[:,0],Xlatent_true[:,1],marker=".",linestyle="--",color="red",lw=0.5,markersize=5)
+	hdl_splots[0].plot(Xtrain[:,0],Xtrain[:,1],marker=".",linestyle="--",color="green",lw=0.5,markersize=5)
+	# plt.show(block=True)
+
+
+	# Plot true system:
+	xpred_next = spectral_density._nonlinear_system_fun(xpred)
+	xpred_next_X1 = tf.reshape(xpred_next[:,0],(Ndiv,Ndiv))
+	xpred_next_X2 = tf.reshape(xpred_next[:,1],(Ndiv,Ndiv))
+
+	hdl_fig, hdl_splots = plt.subplots(1,2,figsize=(12,8),sharex=True)
+	hdl_fig.suptitle(r"True system Van Der Pol function simulation $x_{t+1} = f(x_t)$",fontsize=fontsize_labels)
+	hdl_splots[0].imshow(xpred_next_X1, origin='lower', cmap=cm.winter, interpolation='spline36', extent=([xmin, xmax, xmin, xmax]))
+	hdl_splots[1].imshow(xpred_next_X2, origin='lower', cmap=cm.winter, interpolation='spline36', extent=([xmin, xmax, xmin, xmax]))
 	plt.show(block=True)
 
 

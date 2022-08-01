@@ -4,8 +4,9 @@ import math
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.cm as cm
-from lqrker.models.rr_features import MultiObjectiveRRTPRegularFourierFeatures
+from lqrker.models import MultiObjectiveRRTPRegularFourierFeatures
 from lqrker.spectral_densities import MaternSpectralDensity, VanDerPolSpectralDensity
+from ood.utils.common import CommonUtils
 import numpy as np
 import scipy
 import hydra
@@ -108,21 +109,10 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 
 	rrtp_MO = MultiObjectiveRRTPRegularFourierFeatures(dim_x,cfg,spectral_density,Xtrain,Ytrain)
 
-
-	# Plot p(x_{t+1} | xt) as a function of xt. Since xt is 2D, we need two pairs of heatmaps, one pair for mu(xt) another pair for var(x_{t+1})
-	# When computing the callable fx, sample more, to have a better idea
-	# Figure out why it takes so long for iteration ii=0
-	# Use this same code but in dim=1 with the kink function; we should get the same results
-	# Could also be that we need positive features, meaning (phi(xt)+1)*beta, in order to get a PhiXTPhiX that is PD, and not
-	# having to fix the matrix
-
-
 	xmin = -3.
 	xmax = +3.
 	Ndiv = 21
-	xpred = tf.linspace(xmin,xmax,Ndiv)
-	xpred_data = tf.meshgrid(*([xpred]*dim_x),indexing="ij")
-	xpred = tf.concat([tf.reshape(xpred_data_el,(-1,1)) for xpred_data_el in xpred_data],axis=1)
+	xpred = CommonUtils.create_Ndim_grid(xmin=xmin,xmax=xmax,Ndiv=Ndiv,dim=dim_x) # [Ndiv**dim_x,dim_x]
 
 	# Get moments:
 	mean_prior, std_prior = rrtp_MO.predict_at_locations(xpred,from_prior=True)
@@ -165,7 +155,7 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	Xlatent_sample, Ylatent_sample, _, _ = simulate_nonlinsystem(Nsteps_sample,x0_sample,spectral_density._nonlinear_system_fun,visualize=False)
 	Xlatent_sample = tf.convert_to_tensor(value=Xlatent_sample,dtype=np.float32)
 	Ylatent_sample = tf.convert_to_tensor(value=Ylatent_sample,dtype=np.float32)
-	xsamples_X, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=Xlatent_sample,x1=Ylatent_sample,traj_length=traj_length)
+	xsamples_X, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=Xlatent_sample,x1=Ylatent_sample,traj_length=traj_length,Nsamples=4)
 
 	Xlatent_true, _, _, _ = simulate_nonlinsystem(traj_length_true,x0,spectral_density._nonlinear_system_fun,std_noise_process=0.0,visualize=False)
 

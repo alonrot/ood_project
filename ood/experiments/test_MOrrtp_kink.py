@@ -83,20 +83,20 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 	
-	dim_y = 1
 	x0 = np.array([[1.0]])
 	dim_x = x0.shape[1]
+	dim_y = dim_x
 
 	if which_kernel == "kink":
 		spectral_density = KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim=dim_x)
 	elif which_kernel == "matern":
 		spectral_density = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)
 
-	omega_min = -6.
-	omega_max = +6.
-	Ndiv = 31
+	omega_min = -10.
+	omega_max = +10.
+	Ndiv = 1001
 	cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_x
-	spectral_density.update_Wpoints_regular(omega_min,omega_max,Ndiv)
+	spectral_density.update_Wpoints_regular(omega_min,omega_max,Ndiv,normalize_density_numerically=False)
 
 	# Generate training data:
 	Nsteps = 4
@@ -107,6 +107,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 
 	rrtp_MO = MultiObjectiveRRTPRegularFourierFeatures(dim_x,cfg,spectral_density,Xtrain,Ytrain)
 
+	# Create grid for predictions:
 	xmin = -6.0
 	xmax = +3.0
 	xpred = CommonUtils.create_Ndim_grid(xmin=xmin,xmax=xmax,Ndiv=201,dim=dim_x) # [Ndiv**dim_x,dim_x]

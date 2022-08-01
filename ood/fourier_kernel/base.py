@@ -5,10 +5,10 @@ import matplotlib.colors as mcolors
 from matplotlib import cm
 import matplotlib
 import numpy as np
+import tensorflow as tf
 import scipy
 from scipy import stats
 from scipy import integrate
-from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity, ParabolaSpectralDensity
 import hydra
 
 markersize_x0 = 10
@@ -26,18 +26,17 @@ class InverseFourierTransformKernelToolbox():
 	def __init__(self, spectral_density, dim):
 
 		self.dim = dim
+		assert self.dim == 1, "Not ready for dim > 1"
 		self.spectral_density = spectral_density
 
 		# Get density and angle:
 		omega_min = -40.
 		omega_max = +40.
 		Ndiv = 8001
-		omegapred = np.linspace(omega_min,omega_max,Ndiv)
-		self.Dw = omegapred[1] - omegapred[0]
-		self.omegapred = np.reshape(omegapred,(-1,1))
-		self.Sw_vec, self.phiw_vec = self.spectral_density.unnormalized_density(self.omegapred)
+		self.Sw_vec, self.phiw_vec, self.omegapred = self.spectral_density.get_Wpoints_on_regular_grid(omega_min,omega_max,Ndiv,normalize_density_numerically=False)
 
 		self.volume_w = omega_max - omega_min
+		self.Dw = (omega_max-omega_min)/Ndiv
 		self.volume_w = 1.0
 
 		# self.Sw_vec = self.Sw_vec / np.amax(self.Sw_vec) * 2.0 # Kink
@@ -45,18 +44,19 @@ class InverseFourierTransformKernelToolbox():
 		# self.Sw_vec = self.Sw_vec / np.amax(self.Sw_vec) * (2.*math.pi) # Parabola
 		# self.Sw_vec = self.Sw_vec / integrate.trapezoid(y=self.Sw_vec,dx=self.Dw) * 20.0
 
-	def get_features_mat(self,x_in,const=0.0):
+	def get_features_mat(self,X,const=0.0):
 		"""
 
-		x_in: [Npoints_x,self.dim]
-		omega_vec: [Npoints_w,self.dim]
-		Sw_vec: [Npoints_w,]
-		phiw_vec: [Npoints_w,]
+		X: [Npoints, dim]
+		return: PhiX: [Npoints, Nfeat]
 		"""
 
-		feat_mat_x = np.cos(x_in @ self.omegapred.T + self.phiw_vec) + const # [Npoints_x,Npoints_w]
+		# pdb.set_trace()
+		WX = X @ tf.transpose(self.omegapred) # [Npoints, Nfeat]
+		harmonics_vec = tf.math.cos(WX + tf.transpose(self.phiw_vec)) + const # [Npoints, Nfeat]
 
-		return feat_mat_x
+		return harmonics_vec
+
 
 	def _inverse_fourier_transform(self,xpred,fomega_callable):
 		"""
@@ -64,7 +64,7 @@ class InverseFourierTransformKernelToolbox():
 		xpred: [Npoints,self.dim]
 		"""
 
-		integrand_xpred = fomega_callable(xpred) * self.Sw_vec # [Npoints_x, Npoints_w]
+		integrand_xpred = fomega_callable(xpred) * tf.transpose(self.Sw_vec) # [Npoints_x, Npoints_w]
 		out_fun_x = integrate.trapezoid(y=integrand_xpred,dx=self.Dw,axis=1) / self.volume_w # [Npoints,]
 
 		return out_fun_x

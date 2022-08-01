@@ -8,8 +8,9 @@ import numpy as np
 import scipy
 from scipy import stats
 from scipy import integrate
-from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity, ParabolaSpectralDensity
+from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity, ParaboloidSpectralDensity
 from ood.fourier_kernel import InverseFourierTransformKernelToolbox
+from ood.utils.common import CommonUtils
 import hydra
 
 markersize_x0 = 10
@@ -24,7 +25,6 @@ plt.rc('legend',fontsize=fontsize_labels+2)
 
 def get_plotting_quantities(xpred,inverse_fourier_toolbox):
 
-
 	fx 			= inverse_fourier_toolbox.get_fx(xpred)
 	ker_diag 	= inverse_fourier_toolbox.get_kernel_diagonal(xpred)
 	cov_diag 	= inverse_fourier_toolbox.get_covariance_diagonal(xpred)
@@ -36,19 +36,16 @@ def get_plotting_quantities(xpred,inverse_fourier_toolbox):
 def test_ifou(cfg):
 
 	dim_x = 1
-	Npoints = 201
 	xmin = -5.0
 	xmax = +2.0
-	xpred = np.linspace(xmin,xmax,Npoints)
-	xpred = np.reshape(xpred,(-1,dim_x)) # [Nsteps,dim]
+	Ndiv = 201
+	xpred = CommonUtils.create_Ndim_grid(xmin=xmin,xmax=xmax,Ndiv=Ndiv,dim=dim_x) # [Ndiv**dim_x,dim_x]
 
-	labels = ["Kink","Matern","SE","Parabola"]
-
-	spectral_densities = []
-	spectral_densities += [KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim=dim_x)]
-	spectral_densities += [MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)]
-	spectral_densities += [SquaredExponentialSpectralDensity(cfg.spectral_density.squaredexp,cfg.sampler.hmc,dim=dim_x)]
-	spectral_densities += [ParabolaSpectralDensity(cfg.spectral_density.parabola,cfg.sampler.hmc,dim=dim_x)]
+	spectral_densities = []; labels = []
+	spectral_densities += [KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim=dim_x)]; labels += ["Kink"]
+	spectral_densities += [MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)]; labels += ["Matern"]
+	spectral_densities += [SquaredExponentialSpectralDensity(cfg.spectral_density.squaredexp,cfg.sampler.hmc,dim=dim_x)]; labels += ["SquaredExp"]
+	spectral_densities += [ParaboloidSpectralDensity(cfg.spectral_density.parabola,cfg.sampler.hmc,dim=dim_x)]; labels += ["Parabola"]
 
 	inverse_fourier_toolboxes = []
 	for ii in range(len(spectral_densities)):
@@ -56,21 +53,11 @@ def test_ifou(cfg):
 
 		fx, ker_diag, cov_diag = get_plotting_quantities(xpred,inverse_fourier_toolboxes[ii])
 
-
 		hdl_fig, hdl_splots = plt.subplots(3,1,figsize=(12,8),sharex=False)
 		hdl_fig.suptitle("Using Spectral density {0:s}".format(labels[ii]),fontsize=fontsize_labels)
 
-		if labels[ii] == "Kink":
-
-			# Overlay true function:
-			fx_true = spectral_densities[ii]._kink_fun(xpred[:,0])
-			hdl_splots[0].plot(xpred[:,0],fx_true,label="kink",color="grey",lw=1)
-
-		if labels[ii] == "Parabola":
-
-			# Overlay true function:
-			fx_true = spectral_densities[ii]._parabola_fun(xpred[:,0])
-			hdl_splots[0].plot(xpred[:,0],fx_true,label="parabola",color="grey",lw=1)
+		fx_true = spectral_densities[ii]._nonlinear_system_fun(xpred)
+		hdl_splots[0].plot(xpred[:,0],fx_true,label=labels[ii],color="grey",lw=1)
 
 		hdl_splots[0].plot(xpred[:,0],fx,label=labels[ii],color="red",lw=1,linestyle="--")
 		hdl_splots[0].set_ylabel(r"$f(x_t)$",fontsize=fontsize_labels)

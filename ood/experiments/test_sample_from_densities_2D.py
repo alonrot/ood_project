@@ -7,7 +7,7 @@ import matplotlib
 import numpy as np
 import scipy
 from scipy import stats
-from lqrker.spectral_densities import VanDerPolSpectralDensity, MaternSpectralDensity
+from lqrker.spectral_densities import VanDerPolSpectralDensity, MaternSpectralDensity, SquaredExponentialSpectralDensity
 from lqrker.utils.parsing import dotdict
 import hydra
 
@@ -25,10 +25,15 @@ def get_samples_and_density(spectral_density):
 	W_samples_vec = None
 	# W_samples_vec, S_samples_vec, phi_samples_vec = spectral_density.get_samples() # [Nsamples,1,dim], [Nsamples,], [Nsamples,]
 
-	omega_min = -5.
-	omega_max = +5.
-	Ndiv = 51
-	Sw_vec, phiw_vec, omegapred = spectral_density.get_Wpoints_on_regular_grid(omega_min,omega_max,Ndiv,reshape_for_plotting=True)
+	# omega_min = -5.
+	# omega_max = +5.
+	# Ndiv = 51
+	# Sw_vec, phiw_vec, omegapred = spectral_density.get_Wpoints_on_regular_grid(omega_min,omega_max,Ndiv,reshape_for_plotting=True)
+
+
+	Ndiv = 81
+	L = 100.0
+	Sw_vec, phiw_vec, omegapred = spectral_density.get_Wpoints_discrete(L=L,Ndiv=Ndiv,normalize_density_numerically=False,reshape_for_plotting=True)
 
 	return W_samples_vec, Sw_vec, phiw_vec, omegapred
 
@@ -38,34 +43,40 @@ def test(cfg):
 	np.random.seed(seed=0)
 	dim_x = 2
 
-	spectral_densities = []
-	spectral_densities += [VanDerPolSpectralDensity(cfg=cfg.spectral_density.vanderpol,cfg_sampler=cfg.sampler.hmc,dim=dim_x)]
-	spectral_densities += [MaternSpectralDensity(cfg=cfg.spectral_density.matern,cfg_sampler=cfg.sampler.hmc,dim=dim_x)]
-	labels = ["VanDerPol","Matern"]
+	spectral_densities = []; labels = []
+	spectral_densities += [VanDerPolSpectralDensity(cfg=cfg.spectral_density.vanderpol,cfg_sampler=cfg.sampler.hmc,dim=dim_x)]; labels += ["VanDerPol"]
+	spectral_densities += [MaternSpectralDensity(cfg=cfg.spectral_density.matern,cfg_sampler=cfg.sampler.hmc,dim=dim_x)]; labels += ["Matern"]
+	spectral_densities += [SquaredExponentialSpectralDensity(cfg.spectral_density.squaredexp,cfg.sampler.hmc,dim=dim_x)]; labels += ["SquaredExp"]
 
 	for kk in range(len(spectral_densities)):
 		
-		hdl_fig, hdl_splots = plt.subplots(dim_x,2,figsize=(12,8),sharex=True)
+		hdl_fig, hdl_splots = plt.subplots(dim_x,2,figsize=(14,10),sharex=False)
+		hdl_fig.suptitle(r"Spectral density $S(\omega) = [S_1(\omega),S_2(\omega)]$ and spectral phase $\varphi(\omega) = [\varphi_1(\omega), \varphi_2(\omega)]$ for {0:s} kernel".format(labels[kk]),fontsize=fontsize_labels)
 		W_samples_vec, S_vec_plotting, phi_vec_plotting, omegapred = get_samples_and_density(spectral_densities[kk])
+		extent_plot = [omegapred[0,0],omegapred[-1,0],omegapred[0,1],omegapred[-1,1]] #  scalars (left, right, bottom, top)
 		for jj in range(dim_x):
 
-			hdl_splots[jj,0].imshow(S_vec_plotting[jj,...])
+			hdl_splots[jj,0].imshow(S_vec_plotting[jj,...],extent=extent_plot)
 			if W_samples_vec is not None:
-				hdl_splots[jj,0].plot(W_samples_vec,0.1*np.ones(W_samples_vec.shape[0]),marker="x",color="green",linestyle="None")
-			hdl_splots[jj,0].set_title("Spectral density for {0:s} kernel".format(labels[kk]),fontsize=fontsize_labels)
+				# hdl_splots[jj,0].plot(W_samples_vec,0.1*np.ones(W_samples_vec.shape[0]),marker="x",color="green",linestyle="None")
+				raise NotImplementedError
+			my_title = "S_{0:d}(\omega)".format(jj+1)
+			hdl_splots[jj,0].set_title(r"${0:s}$".format(my_title),fontsize=fontsize_labels)
 			# hdl_splots[jj,0].set_xlim([omegapred[0,0],omegapred[-1,0]])
-			hdl_splots[jj,0].set_xlabel(r"$\omega_1$",fontsize=fontsize_labels)
+			if jj == dim_x-1: hdl_splots[jj,0].set_xlabel(r"$\omega_1$",fontsize=fontsize_labels)
 			hdl_splots[jj,0].set_ylabel(r"$\omega_2$",fontsize=fontsize_labels)
 
 		if np.any(phi_vec_plotting != 0.0):
 			for jj in range(dim_x):
 
-
-				hdl_splots[jj,1].imshow(phi_vec_plotting[jj,...])
-				hdl_splots[jj,1].set_title("phi(w) for {0:s} kernel".format(labels[kk]),fontsize=fontsize_labels)
+				hdl_splots[jj,1].imshow(phi_vec_plotting[jj,...],extent=extent_plot)
+				my_title = "\\varphi_{0:d}(\omega)".format(jj+1)
+				hdl_splots[jj,1].set_title(r"${0:s}$".format(my_title),fontsize=fontsize_labels)
 				# hdl_splots[jj,1].set_xlim([omegapred[0,0],omegapred[-1,0]])
-				hdl_splots[jj,1].set_xlabel(r"$\omega_1$",fontsize=fontsize_labels)
+				if jj == dim_x-1: hdl_splots[jj,0].set_xlabel(r"$\omega_1$",fontsize=fontsize_labels)
 				hdl_splots[jj,1].set_ylabel(r"$\omega_2$",fontsize=fontsize_labels)
+		else:
+			for jj in range(dim_x): hdl_splots[jj,1].set_xticks([],[]); hdl_splots[jj,1].set_yticks([],[])
 
 	plt.show(block=True)
 	plt.pause(1)

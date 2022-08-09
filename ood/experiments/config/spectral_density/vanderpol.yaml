@@ -1,5 +1,9 @@
 vanderpol:
-  x_lim_min: -5.0
-  x_lim_max: +2.0
-  Nsteps_integration: 501
+  # x_lim_min: -5.0
+  # x_lim_max: +2.0
+  # Nsteps_integration: 501
+  # deltaT: 0.01
+  x_lim_min: -10.0
+  x_lim_max: +10.0
+  Nsteps_integration: 101
   deltaT: 0.01

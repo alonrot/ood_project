@@ -23,11 +23,16 @@ plt.rc('legend',fontsize=fontsize_labels+2)
 
 def get_samples_and_density(spectral_density):
 
-	omega_min = -7.
-	omega_max = +7.
-	Ndiv = 401
+	# omega_min = -7.
+	# omega_max = +7.
 	Nsamples = 101
-	S_vec_plotting, _, omegapred = spectral_density.get_Wpoints_on_regular_grid(omega_min,omega_max,Ndiv,normalize_density_numerically=False)
+	# L = 500.0
+	# Ndiv = 4001
+
+	L = 500.
+	Ndiv = 2001
+	# S_vec_plotting, _, omegapred = spectral_density.get_Wpoints_on_regular_grid(omega_min,omega_max,Ndiv,normalize_density_numerically=False)
+	S_vec_plotting, _, omegapred = spectral_density.get_Wpoints_discrete(L=L,Ndiv=Ndiv,normalize_density_numerically=False)
 	_, _, W_samples_vec = spectral_density.get_Wsamples_from_Sw(Nsamples)
 
 	return W_samples_vec, S_vec_plotting, omegapred
@@ -42,10 +47,10 @@ def test(cfg):
 	spectral_densities = []; labels = []
 	spectral_densities += [KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim=dim_x)]; labels += ["Kink"]
 	spectral_densities += [MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)]; labels += ["Matern"]
-	# spectral_densities += [SquaredExponentialSpectralDensity(cfg.spectral_density.squaredexp,cfg.sampler.hmc,dim=dim_x)]; labels += ["SquaredExp"]
+	spectral_densities += [SquaredExponentialSpectralDensity(cfg.spectral_density.squaredexp,cfg.sampler.hmc,dim=dim_x)]; labels += ["SquaredExp"]
 	spectral_densities += [ParaboloidSpectralDensity(cfg.spectral_density.parabola,cfg.sampler.hmc,dim=dim_x)]; labels += ["Parabola"]
-	# spectral_densities += [NoNameSpectralDensity(cfg.spectral_density.noname,cfg.sampler.hmc,dim=dim_x)]; labels += ["NoName"]
-	# spectral_densities += [KinkSharpSpectralDensity(cfg.spectral_density.kinksharp,cfg.sampler.hmc,dim=dim_x)]; labels += ["KinkSharp"]
+	spectral_densities += [NoNameSpectralDensity(cfg.spectral_density.noname,cfg.sampler.hmc,dim=dim_x)]; labels += ["NoName"]
+	spectral_densities += [KinkSharpSpectralDensity(cfg.spectral_density.kinksharp,cfg.sampler.hmc,dim=dim_x)]; labels += ["KinkSharp"]
 	Ndensities = len(spectral_densities)
 
 

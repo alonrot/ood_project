@@ -23,26 +23,33 @@ plt.rc('legend',fontsize=fontsize_labels+2)
 
 class InverseFourierTransformKernelToolbox():
 
-	def __init__(self, spectral_density, dim):
+	def __init__(self, spectral_density, dim, dim_out_ind=0):
 
-		self.dim = dim
-		assert self.dim == 1, "Not ready for dim > 1"
+		self.dim_in = dim
+		self.dim_out_ind = dim_out_ind
+		# assert self.dim_in == 1, "Not ready for dim > 1"
 		self.spectral_density = spectral_density
 
 		# Get density and angle:
-		omega_min = -40.
-		omega_max = +40.
-		Ndiv = 8001
-		self.Sw_vec, self.phiw_vec, self.omegapred = self.spectral_density.get_Wpoints_on_regular_grid(omega_min,omega_max,Ndiv,normalize_density_numerically=False)
+		# omega_min = -40.
+		# omega_max = +40.
+		# Ndiv = 4001 # dim=1
+		# self.Sw_vec, self.phiw_vec, self.omegapred = self.spectral_density.get_Wpoints_on_regular_grid(omega_min,omega_max,Ndiv,normalize_density_numerically=True)
+		
+		Ndiv = 101
+		L = 10.0
+		Sw_vec, phiw_vec, omegapred = self.spectral_density.get_Wpoints_discrete(L=L,Ndiv=Ndiv,normalize_density_numerically=False)
 
-		self.volume_w = omega_max - omega_min
-		self.Dw = (omega_max-omega_min)/Ndiv
-		self.volume_w = 1.0
+		self.omegapred = omegapred
+		self.Dw = (self.omegapred[1,-1] - self.omegapred[0,-1])**self.dim_in # Equivalent to (math.pi/L)**self.dim for self.spectral_density.get_Wpoints_discrete()
+		
+		# Select channel:
+		self.Sw_vec = Sw_vec[:,self.dim_out_ind:self.dim_out_ind+1]
+		self.phiw_vec = phiw_vec[:,self.dim_out_ind:self.dim_out_ind+1]
 
-		# self.Sw_vec = self.Sw_vec / np.amax(self.Sw_vec) * 2.0 # Kink
-		# self.Sw_vec = self.Sw_vec / np.amax(self.Sw_vec) * 7.0 # Parabola
-		# self.Sw_vec = self.Sw_vec / np.amax(self.Sw_vec) * (2.*math.pi) # Parabola
-		# self.Sw_vec = self.Sw_vec / integrate.trapezoid(y=self.Sw_vec,dx=self.Dw) * 20.0
+		# Extarct normalization constant for selected channel dim_out_ind:
+		Zs = self.spectral_density.get_normalization_constant_numerical(self.omegapred) # [self.dim_in,]
+		self.Zs = Zs[self.dim_out_ind:self.dim_out_ind+1]
 
 	def get_features_mat(self,X,const=0.0):
 		"""
@@ -51,7 +58,6 @@ class InverseFourierTransformKernelToolbox():
 		return: PhiX: [Npoints, Nfeat]
 		"""
 
-		# pdb.set_trace()
 		WX = X @ tf.transpose(self.omegapred) # [Npoints, Nfeat]
 		harmonics_vec = tf.math.cos(WX + tf.transpose(self.phiw_vec)) + const # [Npoints, Nfeat]
 
@@ -61,17 +67,17 @@ class InverseFourierTransformKernelToolbox():
 	def _inverse_fourier_transform(self,xpred,fomega_callable):
 		"""
 
-		xpred: [Npoints,self.dim]
+		xpred: [Npoints,self.dim_in]
 		"""
 
-		integrand_xpred = fomega_callable(xpred) * tf.transpose(self.Sw_vec) # [Npoints_x, Npoints_w]
-		out_fun_x = integrate.trapezoid(y=integrand_xpred,dx=self.Dw,axis=1) / self.volume_w # [Npoints,]
+		integrand_xpred = fomega_callable(xpred) * tf.transpose(self.Sw_vec) # [Npoints_x, Npoints_w]		
+		out_fun_x = tf.reduce_sum(integrand_xpred,axis=1) # [Npoints,]
 
 		return out_fun_x
 
 	def get_fx(self,xpred):
 
-		fomega_callable = lambda x_in: self.get_features_mat(x_in,const=0.0)
+		fomega_callable = lambda x_in: self.get_features_mat(x_in,const=0.0) * self.Dw
 		fx = self._inverse_fourier_transform(xpred,fomega_callable)
 
 		return fx
@@ -79,34 +85,35 @@ class InverseFourierTransformKernelToolbox():
 	def get_kernel_diagonal(self,xpred):
 		"""
 
-		xpred: [Npoints,self.dim]
+		xpred: [Npoints,self.dim_in]
 		"""
 
 		fomega_callable = lambda x_in: self.get_features_mat(x_in,const=0.0)**2
-		ker_x = self._inverse_fourier_transform(xpred,fomega_callable)
+		ker_x = self._inverse_fourier_transform(xpred,fomega_callable) / self.Zs
 
 		return ker_x
 
 
 	def get_covariance_diagonal(self,xpred):
+		raise NotImplementedError
 
-		fomega_callable = lambda x_in: self.get_features_mat(x_in,const=1.0)**2
+		# fomega_callable = lambda x_in: self.get_features_mat(x_in,const=1.0)**2
 
-		var_x = self._inverse_fourier_transform(xpred,fomega_callable)
+		# var_x = self._inverse_fourier_transform(xpred,fomega_callable)
 
-		return var_x
+		# return var_x
 
 
 	def get_kernel_full(self,xpred):
 		"""
 
-		xpred: [Npoints,self.dim]
+		xpred: [Npoints,self.dim_in]
 		"""
 		raise NotImplementedError
 
 	def get_cov_full(self,xpred):
 		"""
 
-		xpred: [Npoints,self.dim]
+		xpred: [Npoints,self.dim_in]
 		"""
 		raise NotImplementedError

@@ -92,11 +92,16 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	elif which_kernel == "matern":
 		spectral_density = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)
 
-	omega_min = -10.
-	omega_max = +10.
-	Ndiv = 1001
+	# omega_min = -10.
+	# omega_max = +10.
+	# Ndiv = 1001
+	# cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_x
+	# spectral_density.update_Wpoints_regular(omega_min,omega_max,Ndiv,normalize_density_numerically=False)
+
+	L = 750.0
+	Ndiv = 2001
 	cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_x
-	spectral_density.update_Wpoints_regular(omega_min,omega_max,Ndiv,normalize_density_numerically=False)
+	spectral_density.update_Wpoints_discrete(L,Ndiv,normalize_density_numerically=False,reshape_for_plotting=False)
 
 	# Generate training data:
 	Nsteps = 4
@@ -118,7 +123,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 
 	# Sample paths:
 	sample_paths_prior = rrtp_MO.sample_path_from_predictive(xpred,Nsamples=15,from_prior=True)
-	sample_paths_predictive = rrtp_MO.sample_path_from_predictive(xpred,Nsamples=3,from_prior=False)
+	sample_paths_predictive = rrtp_MO.sample_path_from_predictive(xpred,Nsamples=15,from_prior=False)
 
 	# Get prior trajectory:
 	x0_sample = np.array([[0.9]])
@@ -126,7 +131,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	Xlatent_sample, Ylatent_sample, _, _ = simulate_nonlinsystem(Nsteps_sample,x0_sample,KinkSpectralDensity.kink_dynamics,visualize=False)
 	Xlatent_sample = tf.convert_to_tensor(value=Xlatent_sample,dtype=np.float32)
 	Ylatent_sample = tf.convert_to_tensor(value=Ylatent_sample,dtype=np.float32)
-	xsamples_X, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=Xlatent_sample,x1=Ylatent_sample,traj_length=5,Nsamples=4,sort=False) # [Npoints,self.dim_out,Nsamples]
+	xsamples_X, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=Xlatent_sample,x1=Ylatent_sample,traj_length=30,Nsamples=4,sort=True) # [Npoints,self.dim_out,Nsamples]
 
 	# Plot:
 	assert dim_y == 1
@@ -141,8 +146,8 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	# pdb.set_trace()
 	hdl_splots[0].fill_between(xpred[:,0],MO_mean_pred[:,0] - 2.*MO_std_pred[:,0],MO_mean_pred[:,0] + 2.*MO_std_pred[:,0],color="cornflowerblue",alpha=0.5)
 	hdl_splots[0].plot(xplot_true_fun,yplot_true_fun,marker="None",linestyle="-",color="k",lw=2)
-	# for ii in range(len(sample_paths_predictive)):
-	# 	hdl_splots[0].plot(xpred,sample_paths_predictive[ii],marker="None",linestyle="--",color="r",lw=0.5)
+	for ii in range(len(sample_paths_predictive)):
+		hdl_splots[0].plot(xpred,sample_paths_predictive[ii],marker="None",linestyle="--",color="r",lw=0.5)
 	hdl_splots[0].plot(Xtrain[:,0],Ytrain[:,0],marker=".",linestyle="--",color="gray",lw=0.5,markersize=5)
 	hdl_splots[0].set_xlim([xmin,xmax])
 	hdl_splots[0].set_ylabel(r"$x_{t+1}$",fontsize=fontsize_labels)
@@ -161,7 +166,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	plt.show(block=block_plot)
 	plt.pause(1)
 
-	del spectral_densities
+	del spectral_density
 	del rrtp_MO
 
 
@@ -170,7 +175,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 def test(cfg: dict) -> None:
 	
 
-	train_test_kink(cfg, block_plot=True, which_kernel="kink")
+	train_test_kink(cfg, block_plot=False, which_kernel="kink")
 	train_test_kink(cfg, block_plot=True, which_kernel="matern")
 
 

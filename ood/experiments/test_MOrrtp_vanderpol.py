@@ -93,11 +93,17 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	elif which_kernel == "matern":
 		spectral_density = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)
 
-	omega_min = -6.
-	omega_max = +6.
-	Ndiv = 31
+	# omega_min = -6.
+	# omega_max = +6.
+	# Ndiv = 31
+	# cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_x
+	# spectral_density.update_Wpoints_regular(omega_min,omega_max,Ndiv)
+
+	L = 750.0
+	Ndiv = 51
 	cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_x
-	spectral_density.update_Wpoints_regular(omega_min,omega_max,Ndiv)
+	spectral_density.update_Wpoints_discrete(L,Ndiv,normalize_density_numerically=False,reshape_for_plotting=False)
+
 
 	# Generate training data:
 	# Nsteps = 120
@@ -111,7 +117,7 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 
 	xmin = -3.
 	xmax = +3.
-	Ndiv = 21
+	Ndiv = 41
 	xpred = CommonUtils.create_Ndim_grid(xmin=xmin,xmax=xmax,Ndiv=Ndiv,dim=dim_x) # [Ndiv**dim_x,dim_x]
 
 	# Get moments:
@@ -148,9 +154,10 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	# fx = rrtp_MO.get_sample_path_callable(Nsamples=3,from_prior=False)
 
 	# Get prior trajectory:
-	x0_sample = np.array([[0.9,0.8]])
+	# x0_sample = np.array([[0.9,0.8]])
+	x0_sample = x0 + 0.01
 	Nsteps_sample = 2
-	traj_length = 30
+	traj_length = 500
 	traj_length_true = 500
 	Xlatent_sample, Ylatent_sample, _, _ = simulate_nonlinsystem(Nsteps_sample,x0_sample,spectral_density._nonlinear_system_fun,visualize=False)
 	Xlatent_sample = tf.convert_to_tensor(value=Xlatent_sample,dtype=np.float32)
@@ -186,8 +193,8 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 def test(cfg: dict) -> None:
 	
 
-	test_vanderpol(cfg, block_plot=True, which_kernel="vanderpol")
-	# test_vanderpol(cfg, block_plot=True, which_kernel="matern")
+	test_vanderpol(cfg, block_plot=False, which_kernel="vanderpol")
+	test_vanderpol(cfg, block_plot=True, which_kernel="matern")
 
 
 

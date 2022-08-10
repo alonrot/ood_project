@@ -88,10 +88,14 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	dim_x = x0.shape[1]
 	dim_y = dim_x
 
+	spectral_density_vanderpol = VanDerPolSpectralDensity(cfg.spectral_density.vanderpol,cfg.sampler.hmc,dim=dim_x)
+	nonlinear_system_fun_vanderpol = spectral_density_vanderpol._nonlinear_system_fun
+	spectral_density_matern = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)
+
 	if which_kernel == "vanderpol":
-		spectral_density = VanDerPolSpectralDensity(cfg.spectral_density.vanderpol,cfg.sampler.hmc,dim=dim_x)
+		spectral_density = spectral_density_vanderpol
 	elif which_kernel == "matern":
-		spectral_density = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)
+		spectral_density = spectral_density_matern
 
 	# omega_min = -6.
 	# omega_max = +6.
@@ -100,7 +104,7 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	# spectral_density.update_Wpoints_regular(omega_min,omega_max,Ndiv)
 
 	L = 750.0
-	Ndiv = 51
+	Ndiv = 21
 	cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_x
 	spectral_density.update_Wpoints_discrete(L,Ndiv,normalize_density_numerically=False,reshape_for_plotting=False)
 
@@ -108,7 +112,7 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	# Generate training data:
 	# Nsteps = 120
 	Nsteps = 500
-	Xlatent, Ylatent, Xobs, Yobs = simulate_nonlinsystem(Nsteps,x0,spectral_density._nonlinear_system_fun,visualize=False)
+	Xlatent, Ylatent, Xobs, Yobs = simulate_nonlinsystem(Nsteps,x0,nonlinear_system_fun_vanderpol,visualize=False)
 	
 	Xtrain = tf.convert_to_tensor(value=Xlatent,dtype=np.float32)
 	Ytrain = tf.convert_to_tensor(value=Ylatent,dtype=np.float32)
@@ -117,7 +121,7 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 
 	xmin = -3.
 	xmax = +3.
-	Ndiv = 41
+	Ndiv = 21
 	xpred = CommonUtils.create_Ndim_grid(xmin=xmin,xmax=xmax,Ndiv=Ndiv,dim=dim_x) # [Ndiv**dim_x,dim_x]
 
 	# Get moments:
@@ -159,12 +163,12 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	Nsteps_sample = 2
 	traj_length = 500
 	traj_length_true = 500
-	Xlatent_sample, Ylatent_sample, _, _ = simulate_nonlinsystem(Nsteps_sample,x0_sample,spectral_density._nonlinear_system_fun,visualize=False)
+	Xlatent_sample, Ylatent_sample, _, _ = simulate_nonlinsystem(Nsteps_sample,x0_sample,nonlinear_system_fun_vanderpol,visualize=False)
 	Xlatent_sample = tf.convert_to_tensor(value=Xlatent_sample,dtype=np.float32)
 	Ylatent_sample = tf.convert_to_tensor(value=Ylatent_sample,dtype=np.float32)
 	xsamples_X, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=Xlatent_sample,x1=Ylatent_sample,traj_length=traj_length,Nsamples=4)
 
-	Xlatent_true, _, _, _ = simulate_nonlinsystem(traj_length_true,x0,spectral_density._nonlinear_system_fun,std_noise_process=0.0,visualize=False)
+	Xlatent_true, _, _, _ = simulate_nonlinsystem(traj_length_true,x0,nonlinear_system_fun_vanderpol,std_noise_process=0.0,visualize=False)
 
 	hdl_fig, hdl_splots = plt.subplots(1,1,figsize=(12,8),sharex=True)
 	hdl_splots = [hdl_splots]
@@ -177,7 +181,7 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 
 
 	# Plot true system:
-	xpred_next = spectral_density._nonlinear_system_fun(xpred)
+	xpred_next = nonlinear_system_fun_vanderpol(xpred)
 	xpred_next_X1 = tf.reshape(xpred_next[:,0],(Ndiv,Ndiv))
 	xpred_next_X2 = tf.reshape(xpred_next[:,1],(Ndiv,Ndiv))
 
@@ -185,7 +189,7 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	hdl_fig.suptitle(r"True system Van Der Pol function simulation $x_{t+1} = f(x_t)$",fontsize=fontsize_labels)
 	hdl_splots[0].imshow(xpred_next_X1, origin='lower', cmap=cm.winter, interpolation='spline36', extent=([xmin, xmax, xmin, xmax]))
 	hdl_splots[1].imshow(xpred_next_X2, origin='lower', cmap=cm.winter, interpolation='spline36', extent=([xmin, xmax, xmin, xmax]))
-	plt.show(block=True)
+	plt.show(block=block_plot)
 
 
 
@@ -193,8 +197,8 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 def test(cfg: dict) -> None:
 	
 
-	test_vanderpol(cfg, block_plot=False, which_kernel="vanderpol")
 	test_vanderpol(cfg, block_plot=True, which_kernel="matern")
+	test_vanderpol(cfg, block_plot=False, which_kernel="vanderpol")
 
 
 

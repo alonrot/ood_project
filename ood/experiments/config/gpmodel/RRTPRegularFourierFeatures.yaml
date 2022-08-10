@@ -1,6 +1,6 @@
 hyperpars:
   nu: 2.1 # Requirement: nu > 2 [fixed]
-  prior_var_factor: 1.0 # This will multiply the prior covariance matrix of the weights
+  prior_variance: 20.0
   sigma_n:
     init: 0.01 # Initial value for standard deviation of evaluation noise
   weights_features:

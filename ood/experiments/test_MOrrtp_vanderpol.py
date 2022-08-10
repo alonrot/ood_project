@@ -103,8 +103,9 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	# cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_x
 	# spectral_density.update_Wpoints_regular(omega_min,omega_max,Ndiv)
 
-	L = 750.0
-	Ndiv = 21
+	L = 200.0
+	# L = 30.0
+	Ndiv = 61
 	cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_x
 	spectral_density.update_Wpoints_discrete(L,Ndiv,normalize_density_numerically=False,reshape_for_plotting=False)
 
@@ -148,7 +149,13 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	hdl_splots[1,0].plot(Xlatent[:,0],Xlatent[:,1],marker=".",linestyle="None",color="black")
 	hdl_splots[1,1].plot(Xlatent[:,0],Xlatent[:,1],marker=".",linestyle="None",color="black")
 
-	# plt.show(block=True)
+	# if not block_plot:
+	# 	return
+	# else:
+	# 	plt.show(block=True)
+	
+
+
 	# pdb.set_trace()
 
 	# # Sample paths:
@@ -172,7 +179,7 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 
 	hdl_fig, hdl_splots = plt.subplots(1,1,figsize=(12,8),sharex=True)
 	hdl_splots = [hdl_splots]
-	hdl_fig.suptitle(r"Van Der Pol function simulation $x_{t+1} = f(x_t) + \varepsilon$"+", kernel: {0}".format("vanderpol"),fontsize=fontsize_labels)
+	hdl_fig.suptitle(r"Van Der Pol function simulation $x_{t+1} = f(x_t) + \varepsilon$"+", kernel: {0}".format(which_kernel),fontsize=fontsize_labels)
 	for ii in range(xsamples_X.shape[2]):
 		hdl_splots[0].plot(xsamples_X[:,0,ii],xsamples_X[:,1,ii],marker=".",linestyle="--",lw=0.5,markersize=5)
 	hdl_splots[0].plot(Xlatent_true[:,0],Xlatent_true[:,1],marker=".",linestyle="--",color="red",lw=0.5,markersize=5)
@@ -197,8 +204,8 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 def test(cfg: dict) -> None:
 	
 
-	test_vanderpol(cfg, block_plot=True, which_kernel="matern")
 	test_vanderpol(cfg, block_plot=False, which_kernel="vanderpol")
+	test_vanderpol(cfg, block_plot=True, which_kernel="matern")
 
 
 

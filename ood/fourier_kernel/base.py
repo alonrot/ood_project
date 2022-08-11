@@ -51,6 +51,12 @@ class InverseFourierTransformKernelToolbox():
 		Zs = self.spectral_density.get_normalization_constant_numerical(self.omegapred) # [self.dim_in,]
 		self.Zs = Zs[self.dim_out_ind:self.dim_out_ind+1]
 
+
+
+		# self.prior_var_factor = 1./(tf.reduce_max(self.S_samples_vec)*((self.nu) / (self.nu - 2.) ) * self.Nfeat) * cfg.hyperpars.prior_variance
+		self.Zs = self.Zs*(1./self.Dw)
+
+
 	def get_features_mat(self,X,const=0.0):
 		"""
 

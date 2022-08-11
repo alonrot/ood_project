@@ -79,7 +79,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 
 	print(OmegaConf.to_yaml(cfg))
 
-	my_seed = 3
+	my_seed = 5
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 	
@@ -122,8 +122,9 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	mean_prior, std_prior = rrtp_MO.predict_at_locations(xpred,from_prior=True)
 
 	# Sample paths:
-	sample_paths_prior = rrtp_MO.sample_path_from_predictive(xpred,Nsamples=15,from_prior=True)
-	sample_paths_predictive = rrtp_MO.sample_path_from_predictive(xpred,Nsamples=15,from_prior=False)
+	Nsamples = 10
+	sample_paths_prior = rrtp_MO.sample_path_from_predictive(xpred,Nsamples=Nsamples,from_prior=True)
+	sample_paths_predictive = rrtp_MO.sample_path_from_predictive(xpred,Nsamples=Nsamples,from_prior=False)
 
 	# Get prior trajectory:
 	x0_sample = np.array([[0.9]])
@@ -131,7 +132,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	Xlatent_sample, Ylatent_sample, _, _ = simulate_nonlinsystem(Nsteps_sample,x0_sample,KinkSpectralDensity.kink_dynamics,visualize=False)
 	Xlatent_sample = tf.convert_to_tensor(value=Xlatent_sample,dtype=np.float32)
 	Ylatent_sample = tf.convert_to_tensor(value=Ylatent_sample,dtype=np.float32)
-	xsamples_X, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=Xlatent_sample,x1=Ylatent_sample,traj_length=30,Nsamples=4,sort=True) # [Npoints,self.dim_out,Nsamples]
+	xsamples_X, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=Xlatent_sample,x1=Ylatent_sample,traj_length=20,Nsamples=2,sort=True,plotting=True) # [Npoints,self.dim_out,Nsamples]
 
 	# Plot:
 	assert dim_y == 1
@@ -149,6 +150,9 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	for ii in range(len(sample_paths_predictive)):
 		hdl_splots[0].plot(xpred,sample_paths_predictive[ii],marker="None",linestyle="--",color="r",lw=0.5)
 	hdl_splots[0].plot(Xtrain[:,0],Ytrain[:,0],marker=".",linestyle="--",color="gray",lw=0.5,markersize=5)
+
+	for ii in range(xsamples_X.shape[1]):
+		hdl_splots[0].plot(xsamples_X[0:-1,ii],xsamples_X[1::,ii],marker=".",linestyle="--",lw=0.5,markersize=5)
 	hdl_splots[0].set_xlim([xmin,xmax])
 	hdl_splots[0].set_ylabel(r"$x_{t+1}$",fontsize=fontsize_labels)
 
@@ -157,8 +161,6 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	hdl_splots[1].plot(xplot_true_fun,yplot_true_fun,marker="None",linestyle="-",color="k",lw=2)
 	for ii in range(len(sample_paths_prior)):
 		hdl_splots[1].plot(xpred,sample_paths_prior[ii],marker="None",linestyle="--",color="k",lw=0.5)
-	for ii in range(xsamples_X.shape[2]):
-		hdl_splots[1].plot(xsamples_X[0:-1,0,ii],xsamples_X[1::,0,ii],marker=".",linestyle="--",lw=0.5,markersize=5)
 	hdl_splots[1].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
 	hdl_splots[1].set_xlim([xmin,xmax])
 	hdl_splots[1].set_ylabel(r"$x_{t+1}$",fontsize=fontsize_labels)

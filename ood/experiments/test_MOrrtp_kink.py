@@ -88,7 +88,8 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	dim_y = dim_x
 
 	if which_kernel == "kink":
-		spectral_density = KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim=dim_x)
+		use_nominal_model = True
+		spectral_density = KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim=dim_x,use_nominal_model=use_nominal_model)
 	elif which_kernel == "matern":
 		spectral_density = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)
 
@@ -132,7 +133,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	Xlatent_sample, Ylatent_sample, _, _ = simulate_nonlinsystem(Nsteps_sample,x0_sample,KinkSpectralDensity.kink_dynamics,visualize=False)
 	Xlatent_sample = tf.convert_to_tensor(value=Xlatent_sample,dtype=np.float32)
 	Ylatent_sample = tf.convert_to_tensor(value=Ylatent_sample,dtype=np.float32)
-	xsamples_X, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=Xlatent_sample,x1=Ylatent_sample,traj_length=20,Nsamples=2,sort=True,plotting=True) # [Npoints,self.dim_out,Nsamples]
+	xsamples_X, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=Xlatent_sample,x1=Ylatent_sample,traj_length=20,Nsamples=2,sort=True,plotting=False) # [Npoints,self.dim_out,Nsamples]
 
 	# Plot:
 	assert dim_y == 1
@@ -141,12 +142,19 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	xplot_true_fun = np.linspace(-5.,2.,Ndiv)
 	yplot_true_fun = KinkSpectralDensity.kink_dynamics(xplot_true_fun)
 
+	# True function wrong:
+	yplot_true_fun_wrong = spectral_density._nonlinear_system_fun(xplot_true_fun)
+
+	# spectral_density._nonlinear_system_fun(0.0)
+	# pdb.set_trace()
+
 	hdl_fig, hdl_splots = plt.subplots(2,1,figsize=(12,8),sharex=True)
 	hdl_fig.suptitle(r"Kink function simulation $x_{t+1} = f(x_t) + \varepsilon$"+", kernel: {0}".format(which_kernel),fontsize=fontsize_labels)
 	hdl_splots[0].plot(xpred,MO_mean_pred,linestyle="-",color="b",lw=3)
 	# pdb.set_trace()
 	hdl_splots[0].fill_between(xpred[:,0],MO_mean_pred[:,0] - 2.*MO_std_pred[:,0],MO_mean_pred[:,0] + 2.*MO_std_pred[:,0],color="cornflowerblue",alpha=0.5)
 	hdl_splots[0].plot(xplot_true_fun,yplot_true_fun,marker="None",linestyle="-",color="k",lw=2)
+	hdl_splots[0].plot(xplot_true_fun,yplot_true_fun_wrong,marker="None",linestyle="-",color="grey",lw=2)
 	for ii in range(len(sample_paths_predictive)):
 		hdl_splots[0].plot(xpred,sample_paths_predictive[ii],marker="None",linestyle="--",color="r",lw=0.5)
 	hdl_splots[0].plot(Xtrain[:,0],Ytrain[:,0],marker=".",linestyle="--",color="gray",lw=0.5,markersize=5)
@@ -159,6 +167,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	hdl_splots[1].plot(xpred,mean_prior,linestyle="-",color="b",lw=3)
 	hdl_splots[1].fill_between(xpred[:,0],mean_prior[:,0] - 2.*std_prior[:,0],mean_prior[:,0] + 2.*std_prior[:,0],color="cornflowerblue",alpha=0.5)
 	hdl_splots[1].plot(xplot_true_fun,yplot_true_fun,marker="None",linestyle="-",color="k",lw=2)
+	hdl_splots[1].plot(xplot_true_fun,yplot_true_fun_wrong,marker="None",linestyle="-",color="grey",lw=2)
 	for ii in range(len(sample_paths_prior)):
 		hdl_splots[1].plot(xpred,sample_paths_prior[ii],marker="None",linestyle="--",color="k",lw=0.5)
 	hdl_splots[1].set_xlabel(r"$x_t$",fontsize=fontsize_labels)

@@ -33,7 +33,7 @@ def simulate_nonlinsystem(Nsteps,x0,nonlinear_system_fun,std_noise_process=0.001
 	for ii in range(Nsteps-1):
 
 		# True system evolution with process noise:
-		x_vec[ii+1,:] = nonlinear_system_fun(x_vec[ii:ii+1,:]) + std_noise_process * np.random.randn()
+		x_vec[ii+1,:] = nonlinear_system_fun(x=x_vec[ii:ii+1,0:1],y=x_vec[ii:ii+1,1::],u1=0.,u2=0.) + std_noise_process * np.random.randn()
 
 		# Noisy observations:
 		y_vec[ii+1,:] = x_vec[ii+1,:] + std_noise_obs * np.random.randn()
@@ -88,14 +88,11 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	dim_x = x0.shape[1]
 	dim_y = dim_x
 
-	spectral_density_vanderpol = VanDerPolSpectralDensity(cfg.spectral_density.vanderpol,cfg.sampler.hmc,dim=dim_x)
-	nonlinear_system_fun_vanderpol = spectral_density_vanderpol._nonlinear_system_fun
-	spectral_density_matern = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)
-
 	if which_kernel == "vanderpol":
-		spectral_density = spectral_density_vanderpol
+		use_nominal_model = True
+		spectral_density = VanDerPolSpectralDensity(cfg.spectral_density.vanderpol,cfg.sampler.hmc,dim=dim_x,use_nominal_model=use_nominal_model)
 	elif which_kernel == "matern":
-		spectral_density = spectral_density_matern
+		spectral_density = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)
 
 	# omega_min = -6.
 	# omega_max = +6.
@@ -113,6 +110,7 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	# Generate training data:
 	# Nsteps = 120
 	Nsteps = 500
+	nonlinear_system_fun_vanderpol = VanDerPolSpectralDensity._controlled_vanderpol_dynamics
 	Xlatent, Ylatent, Xobs, Yobs = simulate_nonlinsystem(Nsteps,x0,nonlinear_system_fun_vanderpol,visualize=False)
 	
 	Xtrain = tf.convert_to_tensor(value=Xlatent,dtype=np.float32)
@@ -188,7 +186,7 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 
 
 	# Plot true system:
-	xpred_next = nonlinear_system_fun_vanderpol(xpred)
+	xpred_next = nonlinear_system_fun_vanderpol(x=xpred[:,0:1],y=xpred[:,1::],u1=0.,u2=0.)
 	xpred_next_X1 = tf.reshape(xpred_next[:,0],(Ndiv,Ndiv))
 	xpred_next_X2 = tf.reshape(xpred_next[:,1],(Ndiv,Ndiv))
 

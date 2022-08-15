@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 from lqrker.models import MultiObjectiveReducedRankProcess
 from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity
-from ood.utils.common import CommonUtils
+from lqrker.utils.common import CommonUtils
 import numpy as np
 import scipy
 import hydra

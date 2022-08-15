@@ -10,7 +10,7 @@ from scipy import stats
 from scipy import integrate
 from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity, ParaboloidSpectralDensity, KinkSharpSpectralDensity, VanDerPolSpectralDensity
 from ood.fourier_kernel import InverseFourierTransformKernelToolbox
-from ood.utils.common import CommonUtils
+from lqrker.utils.common import CommonUtils
 import hydra
 
 markersize_x0 = 10

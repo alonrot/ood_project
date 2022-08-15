@@ -3,7 +3,7 @@ import pdb
 import math
 import matplotlib.pyplot as plt
 import matplotlib
-from lqrker.models import MultiObjectiveRRTPRegularFourierFeatures
+from lqrker.models import MultiObjectiveReducedRankProcess
 from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity
 from ood.utils.common import CommonUtils
 import numpy as np
@@ -100,7 +100,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	# spectral_density.update_Wpoints_regular(omega_min,omega_max,Ndiv,normalize_density_numerically=False)
 
 	L = 750.0
-	Ndiv = 2001
+	Ndiv = 501
 	cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_x
 	spectral_density.update_Wpoints_discrete(L,Ndiv,normalize_density_numerically=False,reshape_for_plotting=False)
 
@@ -111,7 +111,8 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	Xtrain = tf.convert_to_tensor(value=Xlatent,dtype=np.float32)
 	Ytrain = tf.convert_to_tensor(value=Ylatent,dtype=np.float32)
 
-	rrtp_MO = MultiObjectiveRRTPRegularFourierFeatures(dim_x,cfg,spectral_density,Xtrain,Ytrain)
+	rrtp_MO = MultiObjectiveReducedRankProcess(dim_x,cfg,spectral_density,Xtrain,Ytrain)
+	rrtp_MO.train_model(verbosity=True)
 
 	# Create grid for predictions:
 	xmin = -6.0

@@ -33,7 +33,7 @@ class CommonUtils():
 		return vectorized_grid
 
 	@staticmethod
-	def fix_eigvals(Kmat):
+	def fix_eigvals(Kmat,verbosity=False):
 		"""
 
 		Among the negative eigenvalues, get the 'most negative one'
@@ -44,9 +44,9 @@ class CommonUtils():
 		# Kmat_sym = 0.5*(Kmat + tf.transpose(Kmat))
 		# Kmat_sol = tf.linalg.cholesky(Kmat_sym)
 		if tf.math.reduce_any(tf.math.is_nan(Kmat_sol)):
-			logger.info("Kmat needs to be fixed...")
+			if verbosity: logger.info("Kmat needs to be fixed...")
 		else:
-			logger.info("Kmat is PD; nothing to fix...")
+			if verbosity: logger.info("Kmat is PD; nothing to fix...")
 			return Kmat
 
 		try:
@@ -69,8 +69,8 @@ class CommonUtils():
 		eigvals_fixed = eigvals + tf.abs(min_eigval) + eps
 
 		# pdb.set_trace()
-		logger.info(" Fixed by adding " + str(tf.abs(min_eigval).numpy()))
-		logger.info(" and also by adding " + str(eps.numpy()))
+		if verbosity: logger.info(" Fixed by adding " + str(tf.abs(min_eigval).numpy()))
+		if verbosity: logger.info(" and also by adding " + str(eps.numpy()))
 
 		Kmat_fixed = eigvect @ ( tf.linalg.diag(eigvals_fixed) @ tf.transpose(eigvect) ) # tf.transpose(eigvect) is the same as tf.linalg.inv(eigvect) | checked
 

@@ -1,8 +1,7 @@
 hyperpars:
-  nu: 2.1 # Requirement: nu > 2 [fixed]
+  nu_init: 2.1 # Requirement: nu > 2 [fixed]
   prior_variance: 20.0
-  sigma_n:
-    init: 0.01 # Initial value for standard deviation of evaluation noise
+  sigma_n_init: 0.01 # Initial value for standard deviation of evaluation noise
   weights_features:
     Nfeat: 1001 # Number of features (i.e., number of linear models to sample)
     init: "ones" # Initial value for the elements of the diagonal of the diagonal matrix that defines the weights covariance
@@ -10,7 +9,9 @@ hyperpars:
     nu: 2.5 # nu = p + 0.5 (select p>=2 as an integer)
     ls: 0.5
 learning:
-  learning_rate: 0.001
-  epochs: 200
+  learning_rate: 0.1
+  epochs: 0
   stopping_condition:
     loss_val: -100.0
+which_process: "student-t" # [gaussian,student-t]
+# which_process: "gaussian" # [gaussian,student-t]

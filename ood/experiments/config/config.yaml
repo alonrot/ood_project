@@ -7,7 +7,7 @@ hydra:
   # output_subdir: "${which_objective}/results/.hydra"
 
 defaults:
-  - gpmodel: RRTPRegularFourierFeatures
+  - gpmodel: ReducedRankProcess
   - spectral_density: [kink,matern,squaredexp,parabola,noname,kinksharp,vanderpol]
   - sampler: hmc
   # - spectral_density: kink

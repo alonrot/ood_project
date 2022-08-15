@@ -4,7 +4,7 @@ import math
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.cm as cm
-from lqrker.models import MultiObjectiveRRTPRegularFourierFeatures
+from lqrker.models import MultiObjectiveReducedRankProcess
 from lqrker.spectral_densities import MaternSpectralDensity, VanDerPolSpectralDensity
 from ood.utils.common import CommonUtils
 import numpy as np
@@ -116,7 +116,8 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	Xtrain = tf.convert_to_tensor(value=Xlatent,dtype=np.float32)
 	Ytrain = tf.convert_to_tensor(value=Ylatent,dtype=np.float32)
 
-	rrtp_MO = MultiObjectiveRRTPRegularFourierFeatures(dim_x,cfg,spectral_density,Xtrain,Ytrain)
+	rrtp_MO = MultiObjectiveReducedRankProcess(dim_x,cfg,spectral_density,Xtrain,Ytrain)
+	rrtp_MO.train_model()
 
 	xmin = -3.
 	xmax = +3.

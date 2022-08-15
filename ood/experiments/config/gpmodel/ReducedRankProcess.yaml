@@ -13,5 +13,5 @@ learning:
   epochs: 0
   stopping_condition:
     loss_val: -100.0
-which_process: "student-t" # [gaussian,student-t]
-# which_process: "gaussian" # [gaussian,student-t]
+# which_process: "student-t" # [gaussian,student-t]
+which_process: "gaussian" # [gaussian,student-t]

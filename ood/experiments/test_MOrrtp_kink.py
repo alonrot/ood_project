@@ -65,7 +65,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	Train the model to predict one-step ahead
 
 	Then, see how well the model can predict long term trajectories.
-	To this end, we evaluate the model at a trining point, then sample a new point from the output distribution, 
+	To this end, we evaluate the model at a training point, then sample a new point from the output distribution, 
 	then evaluate the model at that sampled point, and then repeat the process
 	"""
 

@@ -112,12 +112,23 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 	Nsteps = 500
 	nonlinear_system_fun_vanderpol = VanDerPolSpectralDensity._controlled_vanderpol_dynamics
 	Xlatent, Ylatent, Xobs, Yobs = simulate_nonlinsystem(Nsteps,x0,nonlinear_system_fun_vanderpol,visualize=False)
+
+
+
+	# Basiclaly, repeat the above operation and collect data for 5-10 different initial conditions. 
+	# Then, see how the GP reacts to that and predicts
+	# Once that's done, see how to handle the OOD case
+		# Posbility 1) Lateral wind disturbance -> trigger re-learning... include disturbances in the spectral density?
+		# 2) Obstacles
+
+
+
 	
 	Xtrain = tf.convert_to_tensor(value=Xlatent,dtype=np.float32)
 	Ytrain = tf.convert_to_tensor(value=Ylatent,dtype=np.float32)
 
 	rrtp_MO = MultiObjectiveReducedRankProcess(dim_x,cfg,spectral_density,Xtrain,Ytrain)
-	rrtp_MO.train_model()
+	# rrtp_MO.train_model()
 
 	xmin = -3.
 	xmax = +3.
@@ -165,26 +176,40 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 
 	# Get prior trajectory:
 	# x0_sample = np.array([[0.9,0.8]])
-	x0_sample = x0 + 0.01
-	Nsteps_sample = 2
-	traj_length = 500
-	traj_length_true = 500
-	Xlatent_sample, Ylatent_sample, _, _ = simulate_nonlinsystem(Nsteps_sample,x0_sample,nonlinear_system_fun_vanderpol,visualize=False)
-	Xlatent_sample = tf.convert_to_tensor(value=Xlatent_sample,dtype=np.float32)
-	Ylatent_sample = tf.convert_to_tensor(value=Ylatent_sample,dtype=np.float32)
-	xsamples_X, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=Xlatent_sample,x1=Ylatent_sample,traj_length=traj_length,Nsamples=4)
+	xsamples_X_list = []
+	Nsamples_x0 = 5
+	x0_sample_vec = np.zeros((1,2,Nsamples_x0))
+	for ii in range(Nsamples_x0):
+		logger.info("Generating data for sample x0: {0:d}".format(ii+1))
+		x0_sample_vec[...,ii] = x0 + 0.05*np.random.normal((1,2))
+		Nsteps_sample = 2
+		traj_length = 500
+		traj_length_true = 500
+		Xlatent_sample, Ylatent_sample, _, _ = simulate_nonlinsystem(Nsteps_sample,x0_sample_vec[...,ii],nonlinear_system_fun_vanderpol,visualize=False)
+		Xlatent_sample = tf.convert_to_tensor(value=Xlatent_sample,dtype=np.float32)
+		Ylatent_sample = tf.convert_to_tensor(value=Ylatent_sample,dtype=np.float32)
+		xsamples_X, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=Xlatent_sample,x1=Ylatent_sample,traj_length=traj_length,Nsamples=4)
+
+		xsamples_X_list += [xsamples_X]
+
+	pdb.set_trace()
 
 	Xlatent_true, _, _, _ = simulate_nonlinsystem(traj_length_true,x0,nonlinear_system_fun_vanderpol,std_noise_process=0.0,visualize=False)
 
 	hdl_fig, hdl_splots = plt.subplots(1,1,figsize=(12,8),sharex=True)
 	hdl_splots = [hdl_splots]
 	hdl_fig.suptitle(r"Van Der Pol function simulation $x_{t+1} = f(x_t) + \varepsilon$"+", kernel: {0}".format(which_kernel),fontsize=fontsize_labels)
-	for ii in range(xsamples_X.shape[2]):
-		hdl_splots[0].plot(xsamples_X[:,0,ii],xsamples_X[:,1,ii],marker=".",linestyle="--",lw=0.5,markersize=5)
-	hdl_splots[0].plot(Xlatent_true[:,0],Xlatent_true[:,1],marker=".",linestyle="--",color="red",lw=0.5,markersize=5)
-	hdl_splots[0].plot(Xtrain[:,0],Xtrain[:,1],marker=".",linestyle="--",color="green",lw=0.5,markersize=5)
-	# plt.show(block=True)
+	hdl_splots[0].plot(Xtrain[:,0],Xtrain[:,1],marker=".",linestyle="--",color="red",lw=0.5,markersize=5)
+	hdl_splots[0].plot()
+	
+	for jj in range(Nsamples_x0):
+		xsamples_X_el = xsamples_X_list[jj]
+		for ii in range(xsamples_X.shape[2]):
+			hdl_splots[0].plot(xsamples_X_el[:,0,ii],xsamples_X_el[:,1,ii],marker=None,linestyle="-",lw=0.5,markersize=5,color="gray")
+		# hdl_splots[0].plot(Xlatent_true[:,0],Xlatent_true[:,1],marker=".",linestyle="--",color="red",lw=0.5,markersize=5)
+		# plt.show(block=True)
 
+		hdl_splots[0].plot(x0_sample_vec[0,0,jj],x0_sample_vec[0,1,jj],color="black",marker="o")
 
 	# Plot true system:
 	xpred_next = nonlinear_system_fun_vanderpol(x=xpred[:,0:1],y=xpred[:,1::],u1=0.,u2=0.)
@@ -203,7 +228,7 @@ def test_vanderpol(cfg: dict, block_plot: bool, which_kernel: str) -> None:
 def test(cfg: dict) -> None:
 	
 
-	test_vanderpol(cfg, block_plot=False, which_kernel="vanderpol")
+	test_vanderpol(cfg, block_plot=True, which_kernel="vanderpol")
 	test_vanderpol(cfg, block_plot=True, which_kernel="matern")
 
 

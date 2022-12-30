@@ -1,13 +1,9 @@
 hyperpars:
-  nu_init: 2.1 # Requirement: nu > 2 [fixed]
+  nu_init: 2.1 # (only used on Student-T processes) Requirement: nu > 2 [fixed]
   prior_variance: 20.0
-  sigma_n_init: 0.01 # Initial value for standard deviation of evaluation noise
+  noise_std_process: 1.0 # Initial value for standard deviation of the process noise
   weights_features:
     Nfeat: 1001 # Number of features (i.e., number of linear models to sample)
-    init: "ones" # Initial value for the elements of the diagonal of the diagonal matrix that defines the weights covariance
-  spectral_density:
-    nu: 2.5 # nu = p + 0.5 (select p>=2 as an integer)
-    ls: 0.5
 learning:
   learning_rate: 0.1
   epochs: 0
@@ -15,3 +11,5 @@ learning:
     loss_val: -100.0
 # which_process: "student-t" # [gaussian,student-t]
 which_process: "gaussian" # [gaussian,student-t]
+
+which_features: "RRPDiscreteCosineFeatures" # RRPLinearFeatures, RRPDiscreteCosineFeatures, RRPRegularFourierFeatures, RRPRandomFourierFeatures

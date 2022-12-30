@@ -14,8 +14,9 @@ import hydra
 import pickle
 import control
 from lqrker.utils.parsing import get_logger
-from lqrker.utils.spectral_densities import MaternSpectralDensity
-from bayeskoop.models.rrgp_model import RRGPLinearFeatures, RRGPRandomFourierFeatures
+# from lqrker.spectral_densities import MaternSpectralDensity, VanDerPolSpectralDensity
+from lqrker.spectral_densities import DubinsCarSpectralDensity
+# from bayeskoop.models.rrgp_model import RRGPLinearFeatures, RRGPRandomFourierFeatures
 logger = get_logger(__name__)
 from min_jerk_gen import min_jerk
 
@@ -31,24 +32,24 @@ matplotlib.rc('font',**{'family':'serif','serif':['Computer Modern Roman']})
 plt.rc('legend',fontsize=fontsize_labels+2)
 
 
+dyn_sys_true = DubinsCarSpectralDensity._controlled_dubinscar_dynamics
 
+# def dyn_sys_true(zt,ut,deltaT,mode=1):
 
-def dyn_sys_true(zt,ut,deltaT,mode=1):
+# 	if mode == 1:
+# 		distur = 0.0
+# 	elif mode == 2:
+# 		distur = 2.0
+# 	else:
+# 		raise ValueError("Wrong mode")
 
-	if mode == 1:
-		distur = 0.0
-	elif mode == 2:
-		distur = 2.0
-	else:
-		raise ValueError("Wrong mode")
+# 	zt_next = np.zeros(3)
 
-	zt_next = np.zeros(3)
+# 	zt_next[0] = deltaT*(ut[0] + distur)*np.cos(zt[2]) + zt[0]
+# 	zt_next[1] = deltaT*ut[0]*np.sin(zt[2]) + zt[1]
+# 	zt_next[2] = deltaT*ut[1] + zt[2]
 
-	zt_next[0] = deltaT*(ut[0] + distur)*np.cos(zt[2]) + zt[0]
-	zt_next[1] = deltaT*ut[0]*np.sin(zt[2]) + zt[1]
-	zt_next[2] = deltaT*ut[1] + zt[2]
-
-	return zt_next
+# 	return zt_next
 
 # def dyn_sys_model(zt,ut,deltaT,mode):
 
@@ -144,6 +145,7 @@ def get_feedback_control_infinite_horizon_LQR(deltaT,ref_xt,ref_ut,xt,mode=1):
 
 def rollout_with_INfinite_horizon_LQR(z0,deltaT,T,Nsteps,ref_xt,ref_ut,distur=0.0,sigma_n=0.002):
 
+	assert deltaT == 0.01, "This deltaT is the one used inside _controlled_dubinscar_dynamics()"
 	dim = len(z0)
 
 	t_vec = np.linspace(0.0,T,Nsteps)
@@ -157,7 +159,8 @@ def rollout_with_INfinite_horizon_LQR(z0,deltaT,T,Nsteps,ref_xt,ref_ut,distur=0.
 		u_vec[tt,:] = get_feedback_control_infinite_horizon_LQR(deltaT,ref_xt[tt,:],ref_ut[tt,:],z_vec_true[tt,:],mode=1)
 
 		# Roll-out dynamics:
-		z_vec_true[tt+1,:] = dyn_sys_true(zt=z_vec_true[tt,:],ut=u_vec[tt,:],deltaT=deltaT)
+		# z_vec_true[tt+1,:] = dyn_sys_true(zt=z_vec_true[tt,:],ut=u_vec[tt,:],deltaT=deltaT)
+		z_vec_true[tt+1,:] = dyn_sys_true(state_vec=z_vec_true[tt,:],control_vec=u_vec[tt,:])
 
 		# z_vec_true[tt+1,:] += sigma_n*np.random.randn(3)
 
@@ -166,10 +169,12 @@ def rollout_with_INfinite_horizon_LQR(z0,deltaT,T,Nsteps,ref_xt,ref_ut,distur=0.
 
 def rollout_with_finitie_horizon_LQR(x0,deltaT,T,Nsteps,ref_xt,ref_ut,distur=0.0,sigma_n=0.002,mode_dyn_sys=1,mode_policy=1):
 
+	dim_x = 3
+	dim_u = 2
 	t_vec = np.linspace(0.0,T,Nsteps)
-	z_vec_true = np.zeros((Nsteps,3))
-	u_vec = np.zeros((Nsteps,2))
-	z_vec_true[0,:] = x0
+	x_vec_true = np.zeros((Nsteps,dim_x))
+	u_vec = np.zeros((Nsteps,dim_u))
+	x_vec_true[0,:] = x0
 
 	Fk_all = get_sequence_of_feedback_gains_finite_horizon_LQR(deltaT,x0,ref_xt,ref_ut,mode=mode_policy)
 
@@ -177,22 +182,19 @@ def rollout_with_finitie_horizon_LQR(x0,deltaT,T,Nsteps,ref_xt,ref_ut,distur=0.0
 	for tt in range(Nsteps-1):
 
 		# Feedback policy:
-		uk_next = ref_ut[tt,:].reshape(-1,1) - Fk_all[tt,...] @ (ref_xt[tt,:]-z_vec_true[tt,:]).reshape(-1,1)
+		uk_next = ref_ut[tt,:] - Fk_all[tt,...] @ (ref_xt[tt,:]-x_vec_true[tt,:]) # [dim_u,] - [dim_u,]
+		u_vec[tt,:] = uk_next
 
 		# Roll-out dynamics:
-		z_vec_true[tt+1,:] = dyn_sys_true(zt=z_vec_true[tt,:],ut=uk_next,deltaT=deltaT,mode=mode_dyn_sys)
+		# x_vec_true[tt+1,:] = dyn_sys_true(zt=x_vec_true[tt,:],ut=uk_next,deltaT=deltaT,mode=mode_dyn_sys)
+		x_vec_true[tt+1,:] = dyn_sys_true(state_vec=x_vec_true[tt:tt+1,:],control_vec=uk_next.reshape(-1,dim_u))
 
-	return z_vec_true, u_vec, t_vec
+
+	return x_vec_true, u_vec, t_vec
 
 
-def generate_trajectories(ref_pars,mode_dyn_sys=1,mode_policy=1,Nsimus=10,include_ut_in_X=False,plotting=False,x0_noise_std=1.0,batch_nr=None):
 
-	deltaT = 0.01
-	T = 10.0
-	Nsteps = 201
-	sigma_n = 0.002
-	distur = 0.0
-	dim = 3 # State space dimensionality [X,Y,th]
+def generate_reference_trajectory(ref_pars,Nsteps,deltaT):
 
 	sign_xT = ref_pars["sign_xT"]
 	sign_Y = ref_pars["sign_Y"]
@@ -244,21 +246,52 @@ def generate_trajectories(ref_pars,mode_dyn_sys=1,mode_policy=1,Nsimus=10,includ
 	# 	hdl_splots[3].plot(ref_ut_vec[:,0])
 	# 	hdl_splots[4].plot(ref_ut_vec[:,1])
 
+	return ref_xt_vec, ref_ut_vec
+
+def generate_trajectories(ref_pars,mode_dyn_sys=1,mode_policy=1,Nsimus=10,include_ut_in_X=False,plotting=False,x0_noise_std=1.0,batch_nr=None,path2save=None,block=False):
+	"""
+
+	Generate Nsimus trajectories of the Dubins car following a reference.
+	The reference trajectory is the same for all trajectories.
+	The initial condition is different for each trajectory.
+	We stack row-wise all trajectories together.
+
+	The outputs (X,Y) are the trajectories prepared to train the GP model.
+	If the model is being trained in open loop, i.e., x_{t+1} = f(x_t,u_t), then X = [x_t,u_t] and Y = [x_{t+1}]
+	Set include_ut_in_X = True for that to happen
+
+	:return:
+	X: [(Nsteps-1)*Nsimus, dim_x+dim_u+2]
+	Y: [(Nsteps-1)*Nsimus, dim_x+dim_u+2]
+
+
+
+	"""
+
+	deltaT = 0.01
+	T = 10.0
+	Nsteps = 201
+	sigma_n = 0.002
+	distur = 0.0
+	dim_x = 3 # State space dimensionality [X,Y,th]
+	dim_u = 2
+
+	ref_xt_vec, ref_ut_vec = generate_reference_trajectory(ref_pars,Nsteps,deltaT)
 
 	if plotting:
 		hdl_fig_control, hdl_splots = plt.subplots(1,1,figsize=(12,8),sharex=True)
 	x0 = ref_xt_vec[0,:]
 	# x0 = np.array([0.0,2.0,np.pi/2.])
-	# z_vec_many = np.zeros((Nsimus,Nsteps,dim))
+	# z_vec_many = np.zeros((Nsimus,Nsteps,dim_x))
 	if include_ut_in_X:
-		X = np.zeros(((Nsteps-1)*Nsimus,len(x0)+2))
+		X = np.zeros(((Nsteps-1)*Nsimus,dim_x+dim_u))
 	else:
-		X = np.zeros(((Nsteps-1)*Nsimus,len(x0)))
-	Y = np.zeros(((Nsteps-1)*Nsimus,len(x0)))
+		X = np.zeros(((Nsteps-1)*Nsimus,dim_x))
+	Y = np.zeros(((Nsteps-1)*Nsimus,dim_x))
 	for ii in range(Nsimus):
 
 		# Modify initial condition:
-		x0_mod = x0 + np.array([0.2,0.2,0.5])*np.random.randn(3)*x0_noise_std
+		x0_mod = x0 + np.array([0.2,0.2,0.1])*np.random.randn(3)*x0_noise_std
 		# x0_mod[2] = 2.*np.pi
 
 		# z_vec, u_vec, t_vec = rollout_with_INfinite_horizon_LQR(x0_mod,deltaT,T,Nsteps,ref_xt_vec,ref_ut_vec,distur,sigma_n)
@@ -270,6 +303,7 @@ def generate_trajectories(ref_pars,mode_dyn_sys=1,mode_policy=1,Nsimus=10,includ
 		if include_ut_in_X:
 			X[ii*(Nsteps-1):(ii+1)*(Nsteps-1),:] = np.concatenate((z_vec[0:-1,:],u_vec[0:-1,:]),axis=1)
 			Y[ii*(Nsteps-1):(ii+1)*(Nsteps-1),:] = z_vec[1::,:]	
+			# pdb.set_trace()
 		else:
 			X[ii*(Nsteps-1):(ii+1)*(Nsteps-1),:] = z_vec[0:-1,:]
 			Y[ii*(Nsteps-1):(ii+1)*(Nsteps-1),:] = z_vec[1::,:]
@@ -277,6 +311,7 @@ def generate_trajectories(ref_pars,mode_dyn_sys=1,mode_policy=1,Nsimus=10,includ
 		if plotting:
 			hdl_splots.plot(z_vec[:,0],z_vec[:,1],color="gray",linestyle="-",lw=2)
 			hdl_splots.plot(z_vec[0,0],z_vec[0,1],color="gray",marker="o",markersize=5) # initial
+			hdl_splots.plot(x0_mod[0],x0_mod[1],color="green",marker="o",markersize=3) # x0
 
 	# Original trajectory:
 	if plotting:
@@ -286,17 +321,22 @@ def generate_trajectories(ref_pars,mode_dyn_sys=1,mode_policy=1,Nsimus=10,includ
 		hdl_splots.set_title(r"System 1, Policy 1",fontsize=fontsize_labels)
 		hdl_splots.set_xlabel(r"$x_1$",fontsize=fontsize_labels)
 		hdl_splots.set_ylabel(r"$x_2$",fontsize=fontsize_labels)
-		hdl_splots.set_xticks([],[])
-		hdl_splots.set_yticks([],[])
+		hdl_splots.set_xticks([])
+		hdl_splots.set_yticks([])
 
-		if batch_nr is not None:
-			name2save = "dub_car_{}{}_{}".format(mode_dyn_sys,mode_policy,batch_nr)
+		if path2save is not None:
+			if batch_nr is not None:
+				path2save = path2save+"_{}_{}_{}".format(mode_dyn_sys,mode_policy,batch_nr)
+			else:
+				path2save = path2save+"_{}_{}".format(mode_dyn_sys,mode_policy)
+			logger.info("Saving fig ...")
+			hdl_fig_control.savefig(path2save,bbox_inches='tight',dpi=300,transparent=True)
+			logger.info("Done saving fig!")
 		else:
-			name2save = "dub_car_{}{}".format(mode_dyn_sys,mode_policy)
-		hdl_fig_control.savefig("/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/plotting/{}".format(name2save),bbox_inches='tight',dpi=300,transparent=True)
-		# logger.info("Done!")
+			# if batch_nr == 1:
+			plt.show(block=block)
 
-		# plt.show(block=True)
+
 		# pdb.set_trace()
 	# pdb.set_trace()
 
@@ -503,7 +543,8 @@ def train_GPmodel_as_open_loop_model(mode_nr,plotting=False):
 	learning_rate = 0.01
 	training_epochs = 2
 	# rrgp = ReducedRankGPModel(X_tf,Y_tf,reduce_condition_number_by_adding_noise,sigma_n0,lambda_ij0,learning_rate,training_epochs,use_prior_mean=True)
-	rrgp = RRGPLinearFeatures(X_tf,Y_tf,reduce_condition_number_by_adding_noise,sigma_n0,lambda_ij0,learning_rate,training_epochs,use_prior_mean)
+	# rrgp = RRGPLinearFeatures(X_tf,Y_tf,reduce_condition_number_by_adding_noise,sigma_n0,lambda_ij0,learning_rate,training_epochs,use_prior_mean)
+	raise NotImplementedError("This function uses deprecated classes and modules from the package 'bayeskoop'. Above, we should be loading RRGPLinearFeatures()")
 
 	# cfg_spectral = CFGSpectralTMP()
 	# spectral_density = MaternSpectralDensity(cfg=cfg_spectral,dim=X.shape[1])

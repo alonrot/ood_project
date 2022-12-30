@@ -8,8 +8,7 @@ hydra:
 
 defaults:
   - gpmodel: ReducedRankProcess
-  - spectral_density: [kink,matern,squaredexp,parabola,noname,kinksharp,vanderpol]
+  - spectral_density: [kink,matern,squaredexp,parabola,noname,kinksharp,vanderpol,dubinscar]
   - sampler: hmc
-  # - spectral_density: kink
   - override hydra/job_logging : disabled # Completely deactivate the hydra logging.
   - _self_

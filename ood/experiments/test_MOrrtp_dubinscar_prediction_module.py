@@ -150,13 +150,16 @@ def main(cfg: dict):
 		x0_in = x_traj_real[0:1,:]
 		
 		# Compute predictions:
-		x_traj_pred, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=x0_in,Nsamples=10,u_traj=u_applied,traj_length=-1,sort=False,plotting=False)
-		x_traj_pred_list += [x_traj_pred]
+		Nsamples = 1
+		x_traj_pred, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=x0_in,Nsamples=Nsamples,u_traj=u_applied,traj_length=-1,sort=False,plotting=False)
+		x_traj_pred_list += [x_traj_pred] # x_traj_pred: [Nrollouts,traj_length-1,self.dim_out]
 
 		# Plot stuff:
 		hdl_splots_pred.plot(x_traj_real[:,0],x_traj_real[:,1],marker=".",linestyle="-",color="r",lw=1)
-		for ss in range(x_traj_pred.shape[2]):
-			hdl_splots_pred.plot(x_traj_pred[:,0,ss],x_traj_pred[:,1,ss],marker=".",linestyle="-",color="grey",lw=0.5)
+		# for ss in range(x_traj_pred.shape[2]):
+		# 	hdl_splots_pred.plot(x_traj_pred[:,0,ss],x_traj_pred[:,1,ss],marker=".",linestyle="-",color="grey",lw=0.5)
+		for ss in range(x_traj_pred.shape[0]):
+			hdl_splots_pred.plot(x_traj_pred[ss,:,0],x_traj_pred[ss,:,1],marker=".",linestyle="-",color="grey",lw=0.5)
 
 
 	plt.show(block=True)

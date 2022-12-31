@@ -137,6 +137,7 @@ def main(cfg: dict):
 	x_traj_pred_list = []
 	hdl_fig_pred, hdl_splots_pred = plt.subplots(1,1,figsize=(12,8),sharex=True)
 	hdl_splots_pred.set_xlabel(r"$x_1$"); hdl_splots_pred.set_ylabel(r"$x_2$")
+	loss_val_vec = np.zeros(Nsteps//Nhorizon)
 	for ii in range(Nsteps//Nhorizon):
 
 		logger.info("Iteration {0:d}".format(ii+1))
@@ -147,12 +148,15 @@ def main(cfg: dict):
 
 		u_applied = u_vec[ii*Nhorizon:(ii+1)*Nhorizon,:]
 
-		x0_in = x_traj_real[0:1,:]
-		
-		# Compute predictions:
-		Nsamples = 1
-		x_traj_pred, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=x0_in,Nsamples=Nsamples,u_traj=u_applied,traj_length=-1,sort=False,plotting=False)
+		x_traj_real_applied = np.reshape(x_traj_real,(1,Nhorizon,Ytrain.shape[1]))
+		loss_val, x_traj_pred, y_traj_pred = rrtp_MO.get_loss_gaussian_predictive(x_traj_real_applied,u_applied,Nsamples=1,Nrollouts=15,update_features=False)
 		x_traj_pred_list += [x_traj_pred] # x_traj_pred: [Nrollouts,traj_length-1,self.dim_out]
+		logger.info("loss_val: {0:f}".format(loss_val))
+		loss_val_vec[ii] = loss_val
+
+		# x0_in = x_traj_real[0:1,:]
+		# x_traj_pred, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=x0_in,Nsamples=Nsamples,Nrollouts=Nrollouts,u_traj=u_applied,traj_length=-1,sort=False,plotting=False)
+		# x_traj_pred_list += [x_traj_pred] # x_traj_pred: [Nrollouts,traj_length-1,self.dim_out]
 
 		# Plot stuff:
 		hdl_splots_pred.plot(x_traj_real[:,0],x_traj_real[:,1],marker=".",linestyle="-",color="r",lw=1)
@@ -161,6 +165,9 @@ def main(cfg: dict):
 		for ss in range(x_traj_pred.shape[0]):
 			hdl_splots_pred.plot(x_traj_pred[ss,:,0],x_traj_pred[ss,:,1],marker=".",linestyle="-",color="grey",lw=0.5)
 
+
+	logger.info("loss_val_vec: {0:s}".format(str(loss_val_vec)))
+	logger.info("loss_total: {0:f}".format(np.sum(loss_val_vec)))
 
 	plt.show(block=True)
 

@@ -1,6 +1,7 @@
 hyperpars:
   nu_init: 2.1 # (only used on Student-T processes) Requirement: nu > 2 [fixed]
   prior_variance: 20.0
+  prior_mean_factor: 1.0
   noise_std_process: 1.0 # Initial value for standard deviation of the process noise
   weights_features:
     Nfeat: 1001 # Number of features (i.e., number of linear models to sample)

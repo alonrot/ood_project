@@ -76,9 +76,11 @@ def get_sequence_of_feedback_gains_finite_horizon_LQR(deltaT,x0,ref_xt,ref_ut,mo
 		Q = np.array([[10.,0.,0.],[0.,10.,0.],[0.,0.,0.1]])
 		R = 0.1*np.eye(2)
 	elif mode == 2:
-		distur = 2.0
-		Q = np.array([[20.,0.,0.],[0.,20.,0.],[0.,0.,0.1]])
-		R = 1.*np.eye(2)
+		distur = -2.0
+		# Q = np.array([[20.,0.,0.],[0.,20.,0.],[0.,0.,0.1]])
+		# R = 1.*np.eye(2)
+		Q = np.array([[10.,0.,0.],[0.,10.,0.],[0.,0.,0.1]])
+		R = 0.1*np.eye(2)
 	else:
 		raise ValueError("Wrong mode")
 
@@ -167,7 +169,7 @@ def rollout_with_INfinite_horizon_LQR(z0,deltaT,T,Nsteps,ref_xt,ref_ut,distur=0.
 	return z_vec_true, u_vec, t_vec
 
 
-def rollout_with_finitie_horizon_LQR(x0,deltaT,T,Nsteps,ref_xt,ref_ut,distur=0.0,sigma_n=0.002,mode_dyn_sys=1,mode_policy=1):
+def rollout_with_finitie_horizon_LQR(x0,deltaT,T,Nsteps,ref_xt,ref_ut,distur=0.0,sigma_n=0.002,mode_dyn_sys=1,mode_policy=1,use_nominal_model=True):
 
 	dim_x = 3
 	dim_u = 2
@@ -175,6 +177,12 @@ def rollout_with_finitie_horizon_LQR(x0,deltaT,T,Nsteps,ref_xt,ref_ut,distur=0.0
 	x_vec_true = np.zeros((Nsteps,dim_x))
 	u_vec = np.zeros((Nsteps,dim_u))
 	x_vec_true[0,:] = x0
+
+	# TODO: Refactor all this; get rid of mode_policy and mode_dyn_sys
+	if use_nominal_model:
+		mode_policy = 1
+	else:
+		mode_policy = 2
 
 	Fk_all = get_sequence_of_feedback_gains_finite_horizon_LQR(deltaT,x0,ref_xt,ref_ut,mode=mode_policy)
 
@@ -187,7 +195,7 @@ def rollout_with_finitie_horizon_LQR(x0,deltaT,T,Nsteps,ref_xt,ref_ut,distur=0.0
 
 		# Roll-out dynamics:
 		# x_vec_true[tt+1,:] = dyn_sys_true(zt=x_vec_true[tt,:],ut=uk_next,deltaT=deltaT,mode=mode_dyn_sys)
-		x_vec_true[tt+1,:] = dyn_sys_true(state_vec=x_vec_true[tt:tt+1,:],control_vec=uk_next.reshape(-1,dim_u))
+		x_vec_true[tt+1,:] = dyn_sys_true(state_vec=x_vec_true[tt:tt+1,:],control_vec=uk_next.reshape(-1,dim_u),use_nominal_model=use_nominal_model)
 
 
 	return x_vec_true, u_vec, t_vec
@@ -248,7 +256,7 @@ def generate_reference_trajectory(ref_pars,Nsteps,deltaT):
 
 	return ref_xt_vec, ref_ut_vec
 
-def generate_trajectories(ref_pars,mode_dyn_sys=1,mode_policy=1,Nsimus=10,include_ut_in_X=False,plotting=False,x0_noise_std=1.0,batch_nr=None,path2save=None,block=False):
+def generate_trajectories(ref_pars,mode_dyn_sys=1,mode_policy=1,Nsimus=10,include_ut_in_X=False,plotting=False,x0_noise_std=1.0,batch_nr=None,path2save=None,block=False,use_nominal_model=True):
 	"""
 
 	Generate Nsimus trajectories of the Dubins car following a reference.
@@ -271,6 +279,7 @@ def generate_trajectories(ref_pars,mode_dyn_sys=1,mode_policy=1,Nsimus=10,includ
 	deltaT = 0.01
 	T = 10.0
 	Nsteps = 201
+	# Nsteps = 21
 	sigma_n = 0.002
 	distur = 0.0
 	dim_x = 3 # State space dimensionality [X,Y,th]
@@ -296,7 +305,8 @@ def generate_trajectories(ref_pars,mode_dyn_sys=1,mode_policy=1,Nsimus=10,includ
 
 		# z_vec, u_vec, t_vec = rollout_with_INfinite_horizon_LQR(x0_mod,deltaT,T,Nsteps,ref_xt_vec,ref_ut_vec,distur,sigma_n)
 		z_vec, u_vec, t_vec = rollout_with_finitie_horizon_LQR(x0_mod,deltaT,T,Nsteps,ref_xt_vec,ref_ut_vec,
-																distur=0.0,sigma_n=0.002,mode_dyn_sys=mode_dyn_sys,mode_policy=mode_policy)
+																distur=0.0,sigma_n=0.002,mode_dyn_sys=mode_dyn_sys,mode_policy=mode_policy,
+																use_nominal_model=use_nominal_model)
 
 		# z_vec_many[ii,...] = z_vec
 

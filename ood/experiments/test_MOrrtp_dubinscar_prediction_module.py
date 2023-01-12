@@ -1,5 +1,7 @@
 import tensorflow as tf
+# import tensorflow.compat.v2 as tf
 import tensorflow_probability as tfp
+import pickle
 import gpflow
 import pdb
 import math
@@ -15,16 +17,23 @@ from omegaconf import OmegaConf
 import pickle
 import control
 from lqrker.utils.parsing import get_logger
-# from lqrker.models import MultiObjectiveReducedRankProcess
-# from lqrker.spectral_densities import MaternSpectralDensity, VanDerPolSpectralDensity, DubinsCarSpectralDensity
 from lqrker.utils.common import CommonUtils
 logger = get_logger(__name__)
 from min_jerk_gen import min_jerk
 
+from lqrker.spectral_densities import DubinsCarSpectralDensity
 from test_dubin_car import get_sequence_of_feedback_gains_finite_horizon_LQR, rollout_with_finitie_horizon_LQR, generate_trajectories, generate_reference_trajectory
 
 from test_MOrrtp_vanderpol import initialize_GPmodel_with_existing_data
 
+dyn_sys_true = DubinsCarSpectralDensity._controlled_dubinscar_dynamics
+
+# tf.compat.v1.enable_v2_behavior()
+
+
+# tf.debugging.enable_check_numerics()
+
+# tf.compat.v1.disable_eager_execution()
 
 markersize_x0 = 10
 markersize_trajs = 0.4
@@ -36,14 +45,9 @@ matplotlib.rc('font',**{'family':'serif','serif':['Computer Modern Roman']})
 plt.rc('legend',fontsize=fontsize_labels+2)
 
 
-@hydra.main(config_path="./config",config_name="config")
-def main(cfg: dict):
+def get_training_data(save_data_dict=None,use_nominal_model=True):
 
 	# print(OmegaConf.to_yaml(cfg))
-
-	my_seed = 4
-	np.random.seed(seed=my_seed)
-	tf.random.set_seed(seed=my_seed)
 
 	# Generate random points:
 	name2save_base = "dubinscar_ood_detection"
@@ -68,7 +72,7 @@ def main(cfg: dict):
 		ref_pars["sign_xT"] = 1.0
 		assert ref_pars["sign_xT"] == 1.0, "[DBG]: The controller fails to track the reference when ref_pars['sign_xT']=-1; investigate why"
 
-		X, Y, deltaT, x0, ref_xt, ref_ut, Nsteps = generate_trajectories(ref_pars,Nsimus=Nsimus,plotting=False,include_ut_in_X=True,batch_nr=bb,block=True)
+		X, Y, deltaT, x0, ref_xt, ref_ut, Nsteps = generate_trajectories(ref_pars,Nsimus=Nsimus,plotting=False,include_ut_in_X=True,batch_nr=bb,block=True,use_nominal_model=use_nominal_model)
 
 		assert deltaT == 0.01, "This is the deltaT used inside DubinsCarSpectralDensity(), and it should be kept this way"
 
@@ -102,13 +106,63 @@ def main(cfg: dict):
 		hdl_fig_data.suptitle(r"Input data to GP model - Dubins car - Finite horizon LQR",fontsize=fontsize_labels)
 		plt.show(block=True)
 
-	# Initialize GP model:
-	which_kernel = "dubinscar"
-	# which_kernel = "matern"
 	Xtrain = tf.convert_to_tensor(value=np.concatenate(X_tot,axis=0),dtype=np.float32)
 	Ytrain = tf.convert_to_tensor(value=np.concatenate(Y_tot,axis=0),dtype=np.float32)
+
+	if save_data_dict is not None:
+		if save_data_dict["save"]:
+			data2save = dict(Xtrain=Xtrain,Ytrain=Ytrain,dim_x=dim_x,dim_u=dim_u,Nsteps=Nsteps,deltaT=deltaT)
+			file = open(save_data_dict["path2data"], 'wb')
+			pickle.dump(data2save,file)
+			file.close()
+
+	return Xtrain, Ytrain, dim_x, dim_u, Nsteps, deltaT
+
+
+
+@hydra.main(config_path="./config",config_name="config")
+def main(cfg: dict):
+
+	my_seed = 4
+	np.random.seed(seed=my_seed)
+	tf.random.set_seed(seed=my_seed)
+
+	# Get training data:
+	generate_data = False
+	# generate_data = True
+	path2data="/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_nominal_model.pickle"
+	# path2data="/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_disturbance_model.pickle"
+	# save_data_dict = dict(save=True,path2data=path2data)
+	save_data_dict = dict(save=False,path2data=path2data)
+	# Create a TF dataset: https://www.tensorflow.org/datasets/add_dataset
+	if generate_data:
+		Xtrain, Ytrain, dim_x, dim_u, Nsteps, deltaT = get_training_data(save_data_dict,use_nominal_model=True)
+	else:
+		file = open(path2data, 'rb')
+		data_dict = pickle.load(file)
+		file.close()
+		Xtrain = data_dict["Xtrain"]
+		Ytrain = data_dict["Ytrain"]
+		dim_x = data_dict["dim_x"]
+		dim_u = data_dict["dim_u"]
+		Nsteps = data_dict["Nsteps"]
+		deltaT = data_dict["deltaT"]
+
+	# tf.debugging.experimental.enable_dump_debug_info(
+	# 	"/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/tfdbg2_logdir",
+	# 	tensor_debug_mode="FULL_HEALTH",
+	# 	circular_buffer_size=-1)
+
+	# Initialize GP model:
 	dim_X = dim_x + dim_u
+	which_kernel = "dubinscar"
+	# which_kernel = "matern"
+	print("tf.executing_eagerly(): ",tf.executing_eagerly())
+	# tf.compat.v1.disable_eager_execution() # https://www.activestate.com/resources/quick-reads/how-to-debug-tensorflow/
+	# spectral_density = DubinsCarSpectralDensity(cfg.spectral_density.dubinscar,cfg.sampler.hmc,dim=dim_X)
 	rrtp_MO, Ndiv = initialize_GPmodel_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel)
+
+	# pdb.set_trace()
 
 	# New reference trajectory, for the true system to follow
 	ref_pars = dict()
@@ -118,12 +172,23 @@ def main(cfg: dict):
 
 	ref_xt_vec, ref_ut_vec = generate_reference_trajectory(ref_pars,Nsteps,deltaT)
 
-	# Roll-out with a model-based controller that knows the true dynamics, following the above reference
+	# Roll-out ONE trajectory with a model-based controller that knows the true dynamics, following the above reference
 	x0 = ref_xt_vec[0,:]
 	x0_noise_std = 1.0
 	x0_mod = x0 + np.array([0.2,0.2,0.5])*np.random.randn(3)*x0_noise_std
-	T = 10.0
-	z_vec, u_vec, t_vec = rollout_with_finitie_horizon_LQR(x0_mod,deltaT,T,Nsteps,ref_xt_vec,ref_ut_vec)
+	T = 10.0 # Not used, get rid of
+	z_vec, u_vec, t_vec = rollout_with_finitie_horizon_LQR(x0_mod,deltaT,T,Nsteps,ref_xt_vec,ref_ut_vec,use_nominal_model=True)
+	# z_vec: [Nsteps,dim_out]
+	# u_vec: [Nsteps,dim_in]
+
+	# Generate control sequence (u_vec) using the right nominal model, but then apply it to the changed dynamics.
+	z_vec_changed_dyn = np.zeros((Nsteps,dim_x))
+	z_vec_changed_dyn[0,:] = z_vec[0,:]
+	for tt in range(Nsteps-1):
+		z_vec_changed_dyn[tt+1:tt+2,:] = dyn_sys_true(state_vec=z_vec_changed_dyn[tt:tt+1,:],control_vec=u_vec[tt:tt+1,:],use_nominal_model=False)
+
+
+	# pdb.set_trace()
 
 
 	# At every x_t, predict x_{t:t+H} states. 
@@ -131,7 +196,89 @@ def main(cfg: dict):
 	# Compute OOD. 
 	# Repeat for time t+H+1
 	Nhorizon = 20
+	Nrollouts = 5
 	# x0 = np.random.rand(1,dim_x)
+
+	train = False
+	# log_noise_std_per_dim = tf.constant([-2.4124577,-2.2396216,-2.4339094]) # 50 iters
+	# log_prior_variance_per_dim = tf.constant([0.1828889,2.7030554,0.9408228]) # 50 iters
+
+	# log_noise_std_per_dim = tf.constant([-3.9496725, -2.8052473, -4.253263]) # 115 iters
+	# log_prior_variance_per_dim = tf.constant([-4.871695, 6.299472, -4.5974174]) # 115 iters
+
+	# # Weights: wrong, using matern kernel ... 88 iterations
+	# weights_list = []
+	# weights_list += [dict(log_noise_std=-1.055355,log_prior_variance=-1.9315833,log_prior_mean_factor=6.438162)]
+	# weights_list += [dict(log_noise_std=-1.589952,log_prior_variance=-1.0690501,log_prior_mean_factor=6.441733)]
+	# weights_list += [dict(log_noise_std=+0.367157,log_prior_variance=+5.218601,log_prior_mean_factor=-1.8352405)]
+
+	# Weights: 85 iterations
+	weights_list = []
+	weights_list += [dict(log_noise_std=-3.2072575,log_prior_variance=-2.3769002,log_prior_mean_factor=-2.1808307e-06)]
+	weights_list += [dict(log_noise_std=-3.375641,log_prior_variance=5.378116,log_prior_mean_factor=3.5671384e-08)]
+	weights_list += [dict(log_noise_std=-3.5728772,log_prior_variance=-1.7348373,log_prior_mean_factor=-1.6369743e-06)]
+
+
+	# Prepare the training and its loss; the latter compares the true trajectory with the predicted one, in chunks.
+	learning_rate = 5e-2
+	epochs = 200
+	# epochs = 2
+	stop_loss_val = -1000.
+	z_vec_tf = tf.convert_to_tensor(value=z_vec,dtype=tf.float32)
+	z_vec_changed_dyn_tf = tf.convert_to_tensor(value=z_vec_changed_dyn,dtype=tf.float32)
+	u_vec_tf = tf.convert_to_tensor(value=u_vec,dtype=tf.float32)
+	rrtp_MO.update_dataset_predictive_loss(	z_vec_real=z_vec_changed_dyn_tf,u_traj_real=u_vec_tf,Nhorizon=Nhorizon,
+											learning_rate=learning_rate,epochs=epochs,stop_loss_val=stop_loss_val)
+
+	# plt.show(block=True)
+
+	# Before training to predict:
+	plotting_dict = dict(plotting=True,block_plot=False,title_fig="Predictions || Using prior, no training",ref_xt_vec=None,z_vec=None,z_vec_changed_dyn=None)
+	plotting_dict["ref_xt_vec"] = ref_xt_vec
+	plotting_dict["z_vec"] = z_vec
+	plotting_dict["z_vec_changed_dyn"] = z_vec_changed_dyn
+	# rrtp_MO.set_dbg_flag(True)
+	loss_val = rrtp_MO.get_negative_log_evidence_predictive_full_trajs_in_batch(update_features=False,plotting_dict=plotting_dict,Nrollouts=Nrollouts)
+	logger.info("loss_total (before training): {0:f}".format(loss_val))
+
+	plt.show(block=True)
+
+	# Before conditioning (prior):
+	plotting_dict["title_fig"] = "Predictions || Using posterior, after training one-step ahead"
+	loss_val = rrtp_MO.get_negative_log_evidence_predictive_full_trajs_in_batch(update_features=False,plotting_dict=plotting_dict,Nrollouts=Nrollouts,from_prior=True)
+	logger.info("loss_total (before conditioning; prior): {0:f}".format(loss_val))
+
+	# plt.show(block=True)
+
+	# Train:
+	if train:
+		rrtp_MO.train_MOrrp_predictive()
+	else:
+		# rrtp_MO = assign_weights(rrtp_MO,log_noise_std_per_dim,log_prior_variance_per_dim)
+		rrtp_MO = assign_weights(rrtp_MO,weights_list)
+
+	# After training to predict:
+	plotting_dict["title_fig"] = "Predictions || Using posterior after training H-step ahead)"
+	loss_val = rrtp_MO.get_negative_log_evidence_predictive_full_trajs_in_batch(update_features=True,plotting_dict=plotting_dict,Nrollouts=Nrollouts)
+	logger.info("loss_total (after training): {0:f}".format(loss_val))
+
+	plt.show(block=True)
+
+	# deprecated()
+
+def assign_weights(rrtp_MO,weights_list):
+
+	dd = 0
+	for weights in weights_list:
+		rrtp_MO.rrgpMO[dd].log_noise_std.assign(value=[weights["log_noise_std"]])
+		rrtp_MO.rrgpMO[dd].log_prior_variance.assign(value=[weights["log_prior_variance"]])
+		rrtp_MO.rrgpMO[dd].log_prior_mean_factor.assign(value=[weights["log_prior_mean_factor"]])
+		dd += 1
+
+	return rrtp_MO
+
+def deprecated():
+
 	
 	x_traj_real_list = []
 	x_traj_pred_list = []
@@ -148,15 +295,29 @@ def main(cfg: dict):
 
 		u_applied = u_vec[ii*Nhorizon:(ii+1)*Nhorizon,:]
 
+		# Negative log evidence (numpy/tensorflow selected inside)
 		x_traj_real_applied = np.reshape(x_traj_real,(1,Nhorizon,Ytrain.shape[1]))
-		loss_val, x_traj_pred, y_traj_pred = rrtp_MO.get_loss_gaussian_predictive(x_traj_real_applied,u_applied,Nsamples=1,Nrollouts=15,update_features=False)
+		x_traj_real_applied_tf = tf.convert_to_tensor(value=x_traj_real_applied,dtype=tf.float32) # [Npoints,self.dim_in], with Npoints=1
+		u_applied_tf = tf.convert_to_tensor(value=u_applied,dtype=tf.float32) # [Npoints,self.dim_in], with Npoints=1
+		loss_per_dim, x_traj_pred, y_traj_pred = rrtp_MO.get_negative_log_evidence_predictive(x_traj_real_applied_tf,u_applied_tf,Nsamples=1,Nrollouts=15,update_features=False)
 		x_traj_pred_list += [x_traj_pred] # x_traj_pred: [Nrollouts,traj_length-1,self.dim_out]
+		loss_val = tf.math.reduce_sum(loss_per_dim)
 		logger.info("loss_val: {0:f}".format(loss_val))
 		loss_val_vec[ii] = loss_val
+		# print("x_traj_pred:",str(x_traj_pred))
 
+		# # Roll-outs tensorflow:
+		# x0_tf = tf.convert_to_tensor(value=x_traj_real[0:1,:],dtype=tf.float32) # [Npoints,self.dim_in], with Npoints=1
+		# u_applied_tf = tf.convert_to_tensor(value=u_applied,dtype=tf.float32) # [Npoints,self.dim_in], with Npoints=1
+		# x_traj_pred, _ = rrtp_MO.sample_state_space_from_prior_recursively_tf(x0=x0_tf,Nsamples=1,Nrollouts=15,u_traj=u_applied_tf,traj_length=-1,sort=False,plotting=False)
+		# x_traj_pred_list += [x_traj_pred] # x_traj_pred: [Nrollouts,traj_length-1,self.dim_out]
+		# print("x_traj_pred:",str(x_traj_pred))
+
+		# # Roll-outs numpy:
 		# x0_in = x_traj_real[0:1,:]
 		# x_traj_pred, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=x0_in,Nsamples=Nsamples,Nrollouts=Nrollouts,u_traj=u_applied,traj_length=-1,sort=False,plotting=False)
 		# x_traj_pred_list += [x_traj_pred] # x_traj_pred: [Nrollouts,traj_length-1,self.dim_out]
+		# print("x_traj_pred:",str(x_traj_pred))
 
 		# Plot stuff:
 		hdl_splots_pred.plot(x_traj_real[:,0],x_traj_real[:,1],marker=".",linestyle="-",color="r",lw=1)

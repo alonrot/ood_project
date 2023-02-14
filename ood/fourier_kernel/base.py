@@ -38,14 +38,54 @@ class InverseFourierTransformKernelToolbox():
 		
 		Ndiv = 101
 		L = 10.0
-		Sw_vec, phiw_vec, omegapred = self.spectral_density.get_Wpoints_discrete(L=L,Ndiv=Ndiv,normalize_density_numerically=False)
 
+		# # Discrete grid (will result in cosines being orthonormal):
+		# Sw_vec, phiw_vec, omegapred = self.spectral_density.get_Wpoints_discrete(L=L,Ndiv=Ndiv,normalize_density_numerically=False)
+		# self.omegapred = omegapred
+		# self.Dw = (self.omegapred[1,-1] - self.omegapred[0,-1])**self.dim_in # This is equal to (math.pi/L)**self.dim for self.spectral_density.get_Wpoints_discrete()
+
+
+
+		# Random grid using uniform/sobol randomization:
+		min_omega = -((Ndiv-1) //2) * (math.pi/L)
+		max_omega = +((Ndiv-1) //2) * (math.pi/L)
+		# pdb.set_trace()
+		omegapred = min_omega + (max_omega - min_omega)*tf.math.sobol_sample(dim=self.dim_in,num_results=(Ndiv**self.dim_in),skip=1000)
+		# omegapred = tf.random.uniform(shape=(Ndiv**self.dim_in,self.dim_in),minval=min_omega,maxval=max_omega,dtype=tf.dtypes.float32)
+		Sw_vec, phiw_vec = self.spectral_density.unnormalized_density(omegapred)
 		self.omegapred = omegapred
-		self.Dw = (self.omegapred[1,-1] - self.omegapred[0,-1])**self.dim_in # Equivalent to (math.pi/L)**self.dim for self.spectral_density.get_Wpoints_discrete()
-		
+		self.Dw = (math.pi/L)**self.dim_in
+
+
+
 		# Select channel:
 		self.Sw_vec = Sw_vec[:,self.dim_out_ind:self.dim_out_ind+1]
 		self.phiw_vec = phiw_vec[:,self.dim_out_ind:self.dim_out_ind+1]
+		# pdb.set_trace()
+		
+
+
+		# # Make it stationary:
+		# Sw_vec_np = self.Sw_vec.numpy()[0:-1]
+		# ind_mid = Sw_vec_np.shape[0]//2
+		# Sw_vec_np[ind_mid::,0] = Sw_vec_np[0:ind_mid,0]
+
+		# if tf.math.reduce_all(self.phiw_vec == 0.0):
+		# 	phiw_vec_np = np.zeros((self.Sw_vec.shape[0]-1,1),dtype=np.float32)
+		# else:
+		# 	phiw_vec_np = self.phiw_vec.numpy()[0:-1]
+		# phiw_vec_np[0:ind_mid,0] = 0.0
+		# phiw_vec_np[ind_mid::,0] = -math.pi/2.
+
+		# omegapred_np = self.omegapred.numpy()[0:-1]
+		# omegapred_np[ind_mid::,0] = omegapred_np[0:ind_mid,0]
+
+		# self.Sw_vec = Sw_vec_np
+		# self.phiw_vec = phiw_vec_np
+		# self.omegapred = omegapred_np
+
+		# # pdb.set_trace()
+
 
 		# Extarct normalization constant for selected channel dim_out_ind:
 		Zs = self.spectral_density.get_normalization_constant_numerical(self.omegapred) # [self.dim_in,]

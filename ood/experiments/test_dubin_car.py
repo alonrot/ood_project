@@ -73,10 +73,12 @@ def get_sequence_of_feedback_gains_finite_horizon_LQR(deltaT,x0,ref_xt,ref_ut,mo
 
 	if mode == 1:
 		distur = 0.0
+		distur_v = 1.0; distur_w = 1.0
 		Q = np.array([[10.,0.,0.],[0.,10.,0.],[0.,0.,0.1]])
 		R = 0.1*np.eye(2)
 	elif mode == 2:
 		distur = -2.0
+		distur_v = 2.0; distur_w = 3.0
 		# Q = np.array([[20.,0.,0.],[0.,20.,0.],[0.,0.,0.1]])
 		# R = 1.*np.eye(2)
 		Q = np.array([[10.,0.,0.],[0.,10.,0.],[0.,0.,0.1]])
@@ -91,13 +93,22 @@ def get_sequence_of_feedback_gains_finite_horizon_LQR(deltaT,x0,ref_xt,ref_ut,mo
 	S = Q
 	for ii in range(Nsteps-2,0,-1):
 
-		# Linearized system matrices using the true system:
-		Ak = np.array([	[1., 0., -deltaT*(ref_ut[ii,0]+distur)*np.sin(ref_xt[ii,2])],
-						[0., 1.,  deltaT*ref_ut[ii,0]*np.cos(ref_xt[ii,2])],
+		# # Linearized system matrices using the true system (additive disturbance to linear velocity)
+		# Ak = np.array([	[1., 0., -deltaT*(ref_ut[ii,0]+distur)*np.sin(ref_xt[ii,2])],
+		# 				[0., 1.,  deltaT*ref_ut[ii,0]*np.cos(ref_xt[ii,2])],
+		# 				[0., 0.,  1.0                      ]])
+		# Bk = np.array([	[deltaT*np.cos(ref_xt[ii,2]), 0.],
+		# 				[deltaT*np.sin(ref_xt[ii,2]), 0.],
+		# 				[0.0                 , deltaT]])
+
+
+		# Linearized system matrices using the true system (multiplicative disturbances to linear and velocity)
+		Ak = np.array([	[1., 0., -deltaT*(ref_ut[ii,0]*distur_v)*np.sin(ref_xt[ii,2])],
+						[0., 1.,  deltaT*(ref_ut[ii,0]*distur_v)*np.cos(ref_xt[ii,2])],
 						[0., 0.,  1.0                      ]])
-		Bk = np.array([	[deltaT*np.cos(ref_xt[ii,2]), 0.],
-						[deltaT*np.sin(ref_xt[ii,2]), 0.],
-						[0.0                 , deltaT]])
+		Bk = np.array([	[deltaT*distur_v*np.cos(ref_xt[ii,2]), 0.],
+						[deltaT*distur_v*np.sin(ref_xt[ii,2]), 0.],
+						[0.0                 , deltaT*distur_w]])
 
 		# Update controller:
 		Fk_all[ii,...] = -np.linalg.solve( Bk.T @ S @ Bk + R , Bk.T @ S @ Ak)
@@ -271,7 +282,6 @@ def generate_trajectories(ref_pars,mode_dyn_sys=1,mode_policy=1,Nsimus=10,includ
 	:return:
 	X: [(Nsteps-1)*Nsimus, dim_x+dim_u+2]
 	Y: [(Nsteps-1)*Nsimus, dim_x+dim_u+2]
-
 
 
 	"""

@@ -86,7 +86,7 @@ def generate_training_data(Nsteps,dim_x,Nx0_training,nonlinear_system_fun):
 
 
 
-def initialize_GPmodel_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel):
+def initialize_GPmodel_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use_nominal_model_for_spectral_density=True):
 	"""
 	<<< Initialize GP model >>>
 	"""
@@ -95,12 +95,11 @@ def initialize_GPmodel_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel):
 
 	print("Initializing Spectral density ...")
 	if which_kernel == "vanderpol":
-		use_nominal_model = True
 		spectral_density = VanDerPolSpectralDensity(cfg.spectral_density.vanderpol,cfg.sampler.hmc,dim=dim_X)
 	elif which_kernel == "matern":
 		spectral_density = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_X)
 	elif which_kernel == "dubinscar":
-		spectral_density = DubinsCarSpectralDensity(cfg.spectral_density.dubinscar,cfg.sampler.hmc,dim=dim_X)
+		spectral_density = DubinsCarSpectralDensity(cfg.spectral_density.dubinscar,cfg.sampler.hmc,dim=dim_X,use_nominal_model=use_nominal_model_for_spectral_density)
 	else:
 		raise ValueError("Possibilities: [vanderpol,matern,dubinscar]")
 

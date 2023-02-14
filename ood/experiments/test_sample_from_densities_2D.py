@@ -35,7 +35,19 @@ def get_samples_and_density(spectral_density):
 	L = 100.0
 	Sw_vec, phiw_vec, omegapred = spectral_density.get_Wpoints_discrete(L=L,Ndiv=Ndiv,normalize_density_numerically=False,reshape_for_plotting=True)
 
-	return W_samples_vec, Sw_vec, phiw_vec, omegapred
+	if "part_real_dbg" in dir(spectral_density):
+
+		# DBG/debug:
+		part_real_dbg = [ np.reshape(spectral_density.part_real_dbg[:,ii],(Ndiv,Ndiv)) for ii in range(spectral_density.dim) ]
+		part_real_dbg = np.stack(part_real_dbg) # [dim, Ndiv, Ndiv]
+		part_imag_dbg = [ np.reshape(spectral_density.part_imag_dbg[:,ii],(Ndiv,Ndiv)) for ii in range(spectral_density.dim) ]
+		part_imag_dbg = np.stack(part_imag_dbg) # [dim, Ndiv, Ndiv]
+
+	else:
+		part_real_dbg = Sw_vec
+		part_imag_dbg = Sw_vec
+
+	return W_samples_vec, Sw_vec, phiw_vec, omegapred, part_real_dbg, part_imag_dbg
 
 
 @hydra.main(config_path="./config",config_name="config")
@@ -52,7 +64,12 @@ def test(cfg):
 		
 		hdl_fig, hdl_splots = plt.subplots(dim_x,2,figsize=(14,10),sharex=False)
 		hdl_fig.suptitle(r"Spectral density $S(\omega) = [S_1(\omega),S_2(\omega)]$ and spectral phase $\varphi(\omega) = [\varphi_1(\omega), \varphi_2(\omega)]$ for {0:s} kernel".format(labels[kk]),fontsize=fontsize_labels)
-		W_samples_vec, S_vec_plotting, phi_vec_plotting, omegapred = get_samples_and_density(spectral_densities[kk])
+		W_samples_vec, S_vec_plotting, phi_vec_plotting, omegapred, part_real_dbg, part_imag_dbg = get_samples_and_density(spectral_densities[kk])
+
+		# # DBG/debug:
+		# S_vec_plotting = part_real_dbg
+		# phi_vec_plotting = part_imag_dbg
+		
 		extent_plot = [omegapred[0,0],omegapred[-1,0],omegapred[0,1],omegapred[-1,1]] #  scalars (left, right, bottom, top)
 		for jj in range(dim_x):
 

@@ -1,11 +1,28 @@
 hyperpars:
   nu_init: 2.1 # (only used on Student-T processes) Requirement: nu > 2 [fixed]
-  # prior_variance: 20.0 # works
-  prior_variance: 100.0 # works better with the new dataset
-  # prior_variance: 1.0
+  
+
+  # # Budins car stuff
+  # # prior_variance: 20.0 # works
+  # # prior_variance: 100.0 # works better with the new dataset
+  # prior_variance: 0.01 # works better with the new dataset
+  # # prior_variance: 1.0
+  # prior_mean_factor: 1.0
+  # # noise_std_process: 1.0 # Initial value for standard deviation of the process noise || # works
+  # noise_std_process: 0.2
+
+
+  # # Kink:
+  # prior_variance: 2.0
+  # prior_mean_factor: 1.0
+  # noise_std_process: 0.15
+
+  # Kink:
+  prior_variance: 0.1
   prior_mean_factor: 1.0
-  # noise_std_process: 1.0 # Initial value for standard deviation of the process noise || # works
-  noise_std_process: 1.0
+  noise_std_process: 0.15
+
+
   weights_features:
     Nfeat: 1001 # Number of features (i.e., number of linear models to sample)
 learning:
@@ -16,4 +33,5 @@ learning:
 # which_process: "student-t" # [gaussian,student-t]
 which_process: "gaussian" # [gaussian,student-t]
 
-which_features: "RRPDiscreteCosineFeatures" # RRPLinearFeatures, RRPDiscreteCosineFeatures, RRPRegularFourierFeatures, RRPRandomFourierFeatures
+which_features: "RRPDiscreteCosineFeaturesVariableIntegrationStep" # RRPLinearFeatures, RRPDiscreteCosineFeatures, RRPRegularFourierFeatures, RRPRandomFourierFeatures, RRPDiscreteCosineFeaturesVariableIntegrationStep
+# which_features: "RRPDiscreteCosineFeatures" # RRPLinearFeatures, RRPDiscreteCosineFeatures, RRPRegularFourierFeatures, RRPRandomFourierFeatures, RRPDiscreteCosineFeaturesVariableIntegrationStep

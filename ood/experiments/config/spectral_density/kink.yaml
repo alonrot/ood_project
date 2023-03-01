@@ -4,4 +4,5 @@ kink:
   # Nsteps_integration: 1001
   x_lim_min: -10.0
   x_lim_max: +10.0
-  Nsteps_integration: 20001 # dim=1
+  # Nsteps_integration: 80001 # dim=1
+  Nsteps_integration: 80001 # dim=1

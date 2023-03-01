@@ -8,3 +8,5 @@ ood/experiments/outputs/*
 ood/experiments/simulation_data/*
 ood/experiments/plotting/*
 *.log
+*.pickle
+*tfdbg2_logdir

@@ -12,6 +12,7 @@ setup(
     description = (""),
     keywords = "Bayesian Optimization, Gaussian process, Learning representations",
     packages=[	'ood',
-    			'ood.fourier_kernel'],
+    			'ood.fourier_kernel',
+                'ood.spectral_density_approximation'],
     long_description=read('README.md'),
 )

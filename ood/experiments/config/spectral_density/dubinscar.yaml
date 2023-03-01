@@ -2,6 +2,9 @@ dubinscar:
   # x_lim_min: -5.0
   # x_lim_max: +2.0
   # Nsteps_integration: 501
-  x_lim_min: -1.5
-  x_lim_max: +1.5
-  Nsteps_integration: 6
+  # x_lim_min: -1.5 # || works
+  # x_lim_max: +1.5 # || works
+  # Nsteps_integration: 6 # || works
+  x_lim_min: -5.0
+  x_lim_max: +5.0
+  Nsteps_integration: 10

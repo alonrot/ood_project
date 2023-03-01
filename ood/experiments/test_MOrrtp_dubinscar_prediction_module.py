@@ -18,8 +18,8 @@ import hydra
 from omegaconf import OmegaConf
 import pickle
 import control
-from lqrker.utils.parsing import get_logger
 from lqrker.utils.common import CommonUtils
+from lqrker.utils.parsing import get_logger
 logger = get_logger(__name__)
 from min_jerk_gen import min_jerk
 
@@ -60,7 +60,9 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use
 	elif which_kernel == "matern":
 		spectral_density = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_X)
 	elif which_kernel == "dubinscar":
-		spectral_density = DubinsCarSpectralDensity(cfg.spectral_density.dubinscar,cfg.sampler.hmc,dim=dim_X,use_nominal_model=use_nominal_model_for_spectral_density)
+		# integration_method = "integrate_with_regular_grid"
+		integration_method = "integrate_with_data"
+		spectral_density = DubinsCarSpectralDensity(cfg.spectral_density.dubinscar,cfg.sampler.hmc,dim=dim_X,integration_method=integration_method,use_nominal_model=use_nominal_model_for_spectral_density,Xtrain=Xtrain,Ytrain=Ytrain)
 	else:
 		raise ValueError("Possibilities: [vanderpol,matern,dubinscar]")
 
@@ -74,8 +76,10 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use
 
 
 	# Discrete grid:
-	# L = 200.0; Ndiv = 5 # 5**5=3125 # works
-	L = 50.0; Ndiv = 3 # 3**5=243
+	L = 200.0; Ndiv = 5 # 5**5=3125 # works
+	# L = 100.0; Ndiv = 3 # 3**5=243 # reasonable for being just Ndiv=3
+	# L = 50.0; Ndiv = 3 # 3**5=243 # reasonable for being just Ndiv=3
+	# L = 50.0; Ndiv = 13 # 3**5=243 # reasonable for being just Ndiv=3
 	# L = 10.0; Ndiv = 5 # 5**5=3125
 	# L = 10.0; Ndiv = 7 # 7**5=16807
 	# L = 30.0
@@ -83,6 +87,20 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use
 	cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_X
 	spectral_density.update_Wpoints_discrete(L,Ndiv,normalize_density_numerically=False,reshape_for_plotting=False)
 
+	raise ValueError("Make sure # which_features: RRPDiscreteCosineFeatures")
+
+
+
+
+	# We should be able to do 1500 with wlim maybe 1.0 or 2.0, and tune the noise and variance parameters by training the model -> doesn't work
+
+
+
+	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid_omegalim1p0_omegas_within_lims.pickle"
+	# # path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid_omegalim0p5.pickle"
+	# # path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid.pickle"
+	# # path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters.pickle"
+	# spectral_density.update_Wsamples_from_file(path2save)
 
 
 	# # Randomly sampled uniform grid:
@@ -199,7 +217,9 @@ def get_training_data_from_waypoints(save_data_dict=None,use_nominal_model=True)
 	Nsteps = 201+2 # We add 2 because numerical differentiation will suppress 2 points
 
 	# Generate randomly the middle points of vel_lin_way_points, vel_ang_way_points, and also z0
-	Ntrajs = 3000
+	# Ntrajs = 3000
+	# Ntrajs = 1000
+	Ntrajs = 200
 	Nwaypoints = 4
 	x_lim = [0.0,5.0]; y_lim = [-5.0,5.0]; 
 	# th_lim_low = [-math.pi/2., math.pi/2.]; # Why do we not need the heading? Because it's inferred from [x(t),y(t)] as th = arctan(yd(t) / xd(t)), where xd(t) = d/dt x(t)
@@ -271,11 +291,13 @@ def get_training_data_from_waypoints(save_data_dict=None,use_nominal_model=True)
 		hdl_splots_data[1].plot(time_vec,vel_profile_batch[ii,:,1],lw=1,alpha=0.3,color="navy")
 		hdl_splots_data[2].plot(time_vec,vel_mod_profile_batch[ii,:],lw=1,alpha=0.3,color="navy")
 		hdl_splots_data[3].plot(time_vec[0:-1],th_vel_profile_batch[ii,:,0],lw=1,alpha=0.3,color="navy")
-	hdl_splots_data[2].set_xlabel(r"$t$ [sec]",fontsize=fontsize_labels)
 	hdl_splots_data[0].set_ylabel(r"$v_x$ [m/s]",fontsize=fontsize_labels)
 	hdl_splots_data[1].set_ylabel(r"$v_y$ [m/s]",fontsize=fontsize_labels)
 	hdl_splots_data[2].set_ylabel(r"$v$ [m/s]",fontsize=fontsize_labels)
 	hdl_splots_data[3].set_ylabel(r"$\dot{\theta}$ [rad/s]",fontsize=fontsize_labels)
+	hdl_splots_data[-1].set_xlabel(r"$t$ [sec]",fontsize=fontsize_labels)
+	hdl_splots_data[-1].set_xlim([time_vec[0],time_vec[-1]])
+	hdl_splots_data[-1].set_xticks([time_vec[0],time_vec[-1]])
 
 
 	# Trajectories:
@@ -405,7 +427,7 @@ def main(cfg: dict):
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
-	# get_training_data_from_waypoints(save_data_dict=None,use_nominal_model=True)
+	get_training_data_from_waypoints(save_data_dict=None,use_nominal_model=True)
 
 	merge_existing_data = False
 	if merge_existing_data:
@@ -419,7 +441,8 @@ def main(cfg: dict):
 	# generate_data = True
 	# path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_nominal_model_waypoints.pickle"
 	# path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_nominal_model_waypoints_lighter.pickle"
-	path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_nominal_model_waypoints_lighter_many_trajs.pickle"
+	# path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_nominal_model_waypoints_lighter_many_trajs.pickle"
+	path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_nominal_model_waypoints_lighter_many_trajs_for_searching_wlim.pickle"
 	# path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_nominal_model.pickle" # I accidentally overwrote this
 	# path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_disturbance_model.pickle" # additive in linear velocity; distur = -2.0
 	# path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_disturbance_model_2.pickle" # multiplicative in linear and angular velocities; distur_v = 2.0; distur_w = 3.0
@@ -450,6 +473,9 @@ def main(cfg: dict):
 	# 	tensor_debug_mode="FULL_HEALTH",
 	# 	circular_buffer_size=-1)
 	# 	
+	# 	
+	# 	
+	# pdb.set_trace()
 
 	# Initialize GP model:
 	dim_X = dim_x + dim_u
@@ -462,6 +488,38 @@ def main(cfg: dict):
 	# pdb.set_trace()
 	rrtp_MO = initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use_nominal_model_for_spectral_density=True)
 	
+
+	# Prediction, to see:
+
+	# z_vec = Xtrain[-Nsteps::,0:3].numpy()
+	# u_vec = Xtrain[-Nsteps::,3::].numpy()
+
+	# z_vec_tf = tf.convert_to_tensor(value=z_vec,dtype=tf.float32)
+	# u_vec_tf = tf.convert_to_tensor(value=u_vec,dtype=tf.float32)
+
+	zu_vec = Xtrain[-Nsteps::,...]
+	zu_next_vec = Ytrain[-Nsteps::,...]
+
+	MO_mean_pred, MO_std_pred = rrtp_MO.predict_at_locations(zu_vec)
+
+
+	hdl_fig_pred, hdl_splots_pred = plt.subplots(1,1,figsize=(12,8),sharex=True)
+	hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
+	hdl_splots_pred.plot(zu_vec[:,0],zu_vec[:,1],marker=".",linestyle="-",color="grey",lw=1.0,markersize=5,label=r"Real traj - Input",alpha=0.3)
+	hdl_splots_pred.plot(zu_next_vec[:,0],zu_next_vec[:,1],marker=".",linestyle="-",color="navy",lw=1.0,markersize=5,label=r"Real traj - Next state",alpha=0.3)
+	hdl_splots_pred.plot(MO_mean_pred[:,0],MO_mean_pred[:,1],marker=".",linestyle="-",color="navy",lw=1.0,markersize=5,label=r"Predicted traj - Next dynamics",alpha=0.7)
+
+
+
+	plt.show(block=False)
+	plt.pause(1.)
+	pdb.set_trace()
+
+
+
+
+
+
 
 	# pdb.set_trace()
 
@@ -555,7 +613,7 @@ def main(cfg: dict):
 	# Prepare the training and its loss; the latter compares the true trajectory with the predicted one, in chunks.
 	# learning_rate = 5e-2
 	learning_rate = 1e-1
-	epochs = 200
+	epochs = 5
 	# epochs = 2
 	stop_loss_val = -1000.
 	scale_loss_entropy = 0.1
@@ -589,7 +647,7 @@ def main(cfg: dict):
 	loss_val = rrtp_MO.get_negative_log_evidence_predictive_full_trajs_in_batch(update_features=False,plotting_dict=plotting_dict,Nrollouts=Nrollouts)
 	logger.info("loss_total (before training): {0:f}".format(loss_val))
 
-	plt.show(block=True)
+	# plt.show(block=True)
 
 	# Before conditioning (prior):
 	plotting_dict["title_fig"] = "Predictions || Using prior, no training"

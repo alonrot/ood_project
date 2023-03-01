@@ -11,6 +11,9 @@ from scipy import stats
 from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity, ParaboloidSpectralDensity, NoNameSpectralDensity, KinkSharpSpectralDensity
 from lqrker.utils.parsing import dotdict
 import hydra
+import pickle
+from lqrker.utils.parsing import get_logger
+logger = get_logger(__name__)
 
 markersize_x0 = 10
 markersize_trajs = 0.4
@@ -68,15 +71,40 @@ def test(cfg):
 
 	np.random.seed(seed=0)
 	dim_x = 1
-	
+
+	# path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_nominal_model_waypoints_lighter_many_trajs.pickle"
+	# logger.info("Loading {0:s} ...".format(path2data))
+	# file = open(path2data, 'rb')
+	# data_dict = pickle.load(file)
+	# file.close()
+	# Xtrain = data_dict["Xtrain"]
+	# Ytrain = data_dict["Ytrain"]
+	# dim_x = data_dict["dim_x"]
+	# dim_u = data_dict["dim_u"]
+	# Nsteps = data_dict["Nsteps"]
+	# Ntrajs = data_dict["Ntrajs"]
+	# deltaT = data_dict["deltaT"]
+
+
+	integration_method = "integrate_with_regular_grid"
+	# integration_method = "integrate_with_irregular_grid"
+	# integration_method = "integrate_with_bayesian_quadrature"
+	# integration_method = "integrate_with_data"
+
+	# data = data_dict["Xtrain"]
+	data = None
 	spectral_densities = []; labels = []
-	spectral_densities += [ParaboloidSpectralDensity(cfg.spectral_density.parabola,cfg.sampler.hmc,dim=dim_x)]; labels += ["Parabola"]
-	spectral_densities += [KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim=dim_x)]; labels += ["Kink"]
-	spectral_densities += [MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_x)]; labels += ["Matern"]
-	spectral_densities += [SquaredExponentialSpectralDensity(cfg.spectral_density.squaredexp,cfg.sampler.hmc,dim=dim_x)]; labels += ["SquaredExp"]
-	# spectral_densities += [NoNameSpectralDensity(cfg.spectral_density.noname,cfg.sampler.hmc,dim=dim_x)]; labels += ["NoName"]
-	# spectral_densities += [KinkSharpSpectralDensity(cfg.spectral_density.kinksharp,cfg.sampler.hmc,dim=dim_x)]; labels += ["KinkSharp"]
+	spectral_densities += [ParaboloidSpectralDensity(cfg.spectral_density.parabola,cfg.sampler.hmc,dim_x,integration_method)]; labels += ["Parabola"]
+	spectral_densities += [KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim_x,integration_method)]; labels += ["Kink"]
+	spectral_densities += [MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim_x)]; labels += ["Matern"]
+	spectral_densities += [SquaredExponentialSpectralDensity(cfg.spectral_density.squaredexp,cfg.sampler.hmc,dim_x)]; labels += ["SquaredExp"]
+	# spectral_densities += [NoNameSpectralDensity(cfg.spectral_density.noname,cfg.sampler.hmc,dim_x)]; labels += ["NoName"]
+	# spectral_densities += [KinkSharpSpectralDensity(cfg.spectral_density.kinksharp,cfg.sampler.hmc,dim_x)]; labels += ["KinkSharp"]
 	Ndensities = len(spectral_densities)
+
+
+
+
 
 
 	hdl_fig, hdl_splots = plt.subplots(Ndensities,1,figsize=(12,8),sharex=True)
@@ -94,6 +122,9 @@ def test(cfg):
 
 	plt.show(block=True)
 	plt.pause(1)
+
+
+
 
 
 if __name__ == "__main__":

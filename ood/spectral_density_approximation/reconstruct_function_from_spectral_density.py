@@ -11,118 +11,81 @@ logger = get_logger(__name__)
 
 class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 
-	def __init__(self, dim_in: int, omega_lim: float, Nomegas: int, inverse_fourier_toolbox: InverseFourierTransformKernelToolbox, Xtrain: tf.Tensor, Ytrain: tf.Tensor, omegas_weights=None, **kwargs):
+	def __init__(self, dim_in: int, dw_voxel_init: float, dX_voxel_init: float, omega_lim: float, Nomegas: int, inverse_fourier_toolbox: InverseFourierTransformKernelToolbox, Xtest: tf.Tensor, Ytest: tf.Tensor, **kwargs):
 
 		super().__init__(**kwargs)
 
 		self.dim_in = dim_in
-		self.Dw_voxel_val = (2.*omega_lim) / Nomegas
-		self.omega_lim = omega_lim
-		logger.info("voxel value Dw for reconstructing f(xt): {0:f}".format(float(self.Dw_voxel_val)))
 		self.inverse_fourier_toolbox = inverse_fourier_toolbox
+
+		# Integration step omegas:
+		self.Dw_voxel_val = dw_voxel_init
 
 		# initializer = tf.keras.initializers.RandomUniform(minval=0., maxval=1.)
 		# self.delta_omegas = self.add_weight(shape=(Nomegas,), initializer=initializer(shape=(Nomegas,)), trainable=True, name="delta_omegas")
-		self.delta_omegas_pre_activation = self.add_weight(shape=(Nomegas,), initializer=tf.keras.initializers.Constant(value=0.0), trainable=True, name="delta_omegas_pre_activation")
+		self.delta_dw_voxels_pre_activation = self.add_weight(shape=(Nomegas,1), initializer=tf.keras.initializers.Constant(value=0.0), trainable=True, name="delta_omegas_pre_activation")
 
-		if omegas_weights is None:
-			initializer_omegas = tf.keras.initializers.RandomUniform(minval=-omega_lim, maxval=omega_lim)
-			regularizer_omegas = tf.keras.regularizers.L1(l1=0.01) # https://www.tensorflow.org/api_docs/python/tf/keras/regularizers/L1
-			# regularizer_omegas = tf.keras.regularizers.L2(l2=100.) # https://www.tensorflow.org/api_docs/python/tf/keras/regularizers/L1
-			self.omegas_weights = self.add_weight(shape=(Nomegas,self.dim_in), initializer=initializer_omegas, regularizer=regularizer_omegas, trainable=True, name="omegas_weights")
-		else:
-			assert omegas_weights.shape[1] == self.dim_in and omegas_weights.shape[0] == Nomegas
-			self.omegas_weights = omegas_weights
+		# Frequencies locations:
+		initializer_omegas = tf.keras.initializers.RandomUniform(minval=-omega_lim, maxval=omega_lim)
+		regularizer_omegas = tf.keras.regularizers.L1(l1=0.01) # https://www.tensorflow.org/api_docs/python/tf/keras/regularizers/L1
+		# regularizer_omegas = tf.keras.regularizers.L2(l2=100.) # https://www.tensorflow.org/api_docs/python/tf/keras/regularizers/L1
+		self.omegas_weights = self.add_weight(shape=(Nomegas,self.dim_in), initializer=initializer_omegas, regularizer=regularizer_omegas, trainable=True, name="omegas_weights")
 
+		# Integration step dX:
+		self.delta_dX_voxels_preactivation = self.add_weight(shape=(Xtest.shape[0],1), initializer=tf.keras.initializers.Constant(value=0.0), trainable=True, name="delta_statespace_preactivation")
+		self.dX_voxel_val = self.add_weight(shape=(1,), initializer=tf.keras.initializers.Constant(value=dX_voxel_init), trainable=True, name="dX_voxel_val")
 
-		# learn_dX_voxels = False
-		learn_dX_voxels = True
-		if learn_dX_voxels:
-			self.delta_statespace_preactivation = self.add_weight(shape=(Xtrain.shape[0],1), initializer=tf.keras.initializers.Constant(value=0.0), trainable=True, name="delta_statespace_preactivation")
-			# self.dX_voxel_val = (tf.reduce_max(Xtrain) - tf.reduce_min(Xtrain))**self.dim_in / Xtrain.shape[0]
-			# self.dX_voxel_val = 1. / Xtrain.shape[0]
-			# self.dX_voxel_val = 10. # works well for dubins car
-			# self.delta_statespace_preactivation = tf.zeros((Xtrain.shape[0],1))
+		self.Xtest = Xtest # [Nxpoints,self.dim_in]
+		self.Ytest = Ytest # [Nxpoints,1]
 
-			# self.dX_voxel_val = self.add_weight(shape=(1,), initializer=tf.keras.initializers.Constant(value=10.0), trainable=True, name="dX_voxel_val")
-			self.dX_voxel_val = self.add_weight(shape=(1,), initializer=tf.keras.initializers.Constant(value=20./4001*2), trainable=True, name="dX_voxel_val")
-
-			"""
-			Las thing to try:
-			1) Just learn the voxel self.dX_voxel_val, but not dX; see if that has any impact... It's easier to explain in theory
-
-
-			Last thing to try: -> doesn't work
-			1) Use a discrete grid for the omegas (we can't for the state space because it comes fromm the data)
-			2) LEarn the voxels; 
-			3) prune the omegas whose delta voxels are close to zero
-			"""
-		else:
-			logger.info("[WARNING]: NOT learning dX_voxels ... (!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)")
-			logger.info("[WARNING]: NOT learning dX_voxels ... (!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)")
-			logger.info("[WARNING]: NOT learning dX_voxels ... (!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)")
-			logger.info("[WARNING]: NOT learning dX_voxels ... (!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)")
-			logger.info("[WARNING]: NOT learning dX_voxels ... (!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)")
-			logger.info("[WARNING]: NOT learning dX_voxels ... (!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)")
-			logger.info("[WARNING]: NOT learning dX_voxels ... (!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)")
-			logger.info("[WARNING]: NOT learning dX_voxels ... (!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)")
-			# pdb.set_trace()
-			# 
-			self.delta_statespace_preactivation = tf.zeros((Xtrain.shape[0],1))
-			# self.dX_voxel_val = self.add_weight(shape=(1,), initializer=tf.keras.initializers.Constant(value=10.0), trainable=True, name="dX_voxel_val")
-			# self.dX_voxel_val = 10./Xtrain.shape[0]
-			self.dX_voxel_val = self.add_weight(shape=(1,), initializer=tf.keras.initializers.Constant(value=10.0), trainable=True, name="dX_voxel_val")
-			# self.dX_voxel_val = self.add_weight(shape=(1,), initializer=tf.keras.initializers.Constant(value=20./4001), trainable=True, name="dX_voxel_val")
-
-
-
-		# assert tf.reduce_all(self.inverse_fourier_toolbox.spectral_density.xdata == Xtrain)
-		if not tf.reduce_all(self.inverse_fourier_toolbox.spectral_density.xdata == Xtrain):
-			logger.info("[WARNING]: Reconstruction loss is not using the training set, but the testing set (smaller)")
-
-		self.Xtrain = Xtrain
-		self.Ytrain = Ytrain
+		assert self.Xtest.shape[0] == self.Ytest.shape[0]
+		assert self.Xtest.shape[1] == self.dim_in
+		assert self.Ytest.shape[1] == 1
 
 		# Loss history for analysis:
 		self.loss_vec = None
 
-
-	def get_delta_omegas(self,delta_omegas_pre_activation):
-		delta_omegas = self.Dw_voxel_val*tf.keras.activations.sigmoid(delta_omegas_pre_activation) # Squeeze to (0,1)
-		return delta_omegas
-
 	def get_omegas_weights(self):
 		# omegas_weights_withinlims = self.omega_lim*tf.keras.activations.tanh(self.omegas_weights)
-		omegas_weights_withinlims = self.omegas_weights
-		return omegas_weights_withinlims
+		# omegas_weights_withinlims = self.omegas_weights
+		# return omegas_weights_withinlims
+		return self.omegas_weights
 
-	def get_delta_statespace(self,delta_statespace_preactivation):
-		delta_statespace = self.dX_voxel_val*tf.keras.activations.sigmoid(delta_statespace_preactivation) # Squeeze to (0,1)
+	def get_delta_omegas(self):
+		delta_omegas = self.Dw_voxel_val*tf.keras.activations.sigmoid(self.delta_dw_voxels_pre_activation) # Squeeze to (0,1)
+		return delta_omegas
+
+	def get_delta_statespace(self):
+		delta_statespace = self.dX_voxel_val*tf.keras.activations.sigmoid(self.delta_dX_voxels_preactivation) # Squeeze to (0,1)
 		return delta_statespace
 
+	def update_internal_spectral_density_parameters(self):
+		omegapred = self.get_omegas_weights()
+		dw_vec = self.get_delta_omegas()
+		dX_vec = self.get_delta_statespace()
+		self.inverse_fourier_toolbox.update_integration_parameters(	omega_locations=omegapred,
+																	dw_voxel_vec=dw_vec,
+																	dX_voxel_vec=dX_vec)
+		Sw_vec = self.inverse_fourier_toolbox.spectral_values
+		phiw_vec = self.inverse_fourier_toolbox.varphi_values
+		self.inverse_fourier_toolbox.spectral_density.update_Wsamples_as(Sw_points=Sw_vec,phiw_points=phiw_vec,W_points=omegapred,dw_vec=dw_vec,dX_vec=dX_vec)
+		return self.inverse_fourier_toolbox.spectral_density
+
+
 	def reconstruct_function_at(self,xpred):
-
-		delta_omegas = self.get_delta_omegas(self.delta_omegas_pre_activation)
-		delta_statespace = self.get_delta_statespace(self.delta_statespace_preactivation)
-		self.inverse_fourier_toolbox.update_spectral_density_and_angle(omegapred=self.get_omegas_weights(),Dw=None,dX=delta_statespace)
-		fx_integrand = self.inverse_fourier_toolbox.get_fx_integrand_variable_voxels(xpred=xpred,Dw_vec=delta_omegas) # [Npoints, Nomegas]
-		fx_reconstructed = tf.math.reduce_sum(fx_integrand,axis=1,keepdims=True) # Integrate wrt omegas [Npoints, 1]
-
+		delta_omegas = self.get_delta_omegas()
+		delta_statespace = self.get_delta_statespace()
+		self.inverse_fourier_toolbox.update_integration_parameters(	omega_locations=self.get_omegas_weights(),
+																	dw_voxel_vec=self.get_delta_omegas(),
+																	dX_voxel_vec=self.get_delta_statespace())
+		fx_reconstructed = self.inverse_fourier_toolbox.get_fx_with_variable_integration_step(xpred) # [Npoints, 1]
 		return fx_reconstructed
-
-
-	def get_integrand_for_pruning(self,xpred):
-		delta_omegas = self.get_delta_omegas(self.delta_omegas_pre_activation)
-		self.inverse_fourier_toolbox.update_spectral_density_and_angle(omegapred=self.get_omegas_weights(),Dw=None)
-		fx_integrand = self.inverse_fourier_toolbox.get_fx_integrand_variable_voxels(xpred=xpred,Dw_vec=delta_omegas) # [Npoints, Nomegas]
-		return fx_integrand
-
 
 	def loss_reconstruction_fun(self):
 
 		sigma_noise_stddev = 0.5
-		fx_reconstructed = self.reconstruct_function_at(xpred=self.Xtrain)
-		loss_val = tf.reduce_mean(0.5*((self.Ytrain - fx_reconstructed)/sigma_noise_stddev)**2,axis=0,keepdims=True) # [1, 1]
+		fx_reconstructed = self.reconstruct_function_at(xpred=self.Xtest)
+		loss_val = tf.reduce_mean(0.5*((self.Ytest - fx_reconstructed)/sigma_noise_stddev)**2,axis=0,keepdims=True) # [1, 1]
 
 		return loss_val
 

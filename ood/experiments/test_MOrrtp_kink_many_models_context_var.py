@@ -77,19 +77,26 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 	xmin_training = -10.0
 	xmax_training = +10.0
 	# Nsamples_nominal_dynsys = 20
-	Nsamples_nominal_dynsys = 1
-	Ndiv_per_dim = 2001
-	nonlinsys_for_data_generation = nonlinsys_true
-	# nonlinsys_for_data_generation = nonlinsys_sampled
+	Nsamples_nominal_dynsys = 3
+	Ndiv_per_dim = 201
+	# nonlinsys_for_data_generation = nonlinsys_true
+	nonlinsys_for_data_generation = nonlinsys_sampled
 
 	xpred_training, fx_true_training = generate_data_from_multiple_kink_systems(Nsamples_nominal_dynsys=Nsamples_nominal_dynsys,xmin=xmin_training,
 																				xmax=xmax_training,Ndiv_per_dim=Ndiv_per_dim,
 																				nonlin_fun=nonlinsys_for_data_generation)
+
+	dim_in_cntxt = dim_in + 1
+	theta_cntxt_vals = 2.*np.pi*np.random.rand(3,1)
+	theta_cntxt_vec = theta_cntxt_vals @ np.ones((1,Ndiv_per_dim))
+	theta_cntxt_vec = np.reshape(theta_cntxt_vec,(-1,1))
+	xpred_training_cntxt = tf.convert_to_tensor(np.concatenate([xpred_training,theta_cntxt_vec],axis=1),dtype=tf.float32)
+
 	if which_kernel == "kink":
 		kernel_name_plot_label = "Kink"
 		use_nominal_model = True
 		integration_method = "integrate_with_data"
-		spectral_density = KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim_in=dim_in,integration_method=integration_method,Xtrain=xpred_training,Ytrain=fx_true_training)
+		spectral_density = KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim_in=dim_in_cntxt,integration_method=integration_method,Xtrain=xpred_training_cntxt,Ytrain=fx_true_training)
 	elif which_kernel == "gaussian":
 		kernel_name_plot_label = "Gaussian"
 		variance_prior = 2.0
@@ -103,11 +110,11 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 
 
 	if which_nonlin_sys == "true":
-		nonlinsys2use = nonlinsys_true
+		nonlinsys4GPfitting = nonlinsys_true
 	elif which_nonlin_sys == "wrong":
-		nonlinsys2use = nonlinsys_sampled_fixed
+		nonlinsys4GPfitting = nonlinsys_sampled_fixed
 	elif which_nonlin_sys == "sampled":
-		nonlinsys2use = nonlinsys_sampled
+		nonlinsys4GPfitting = nonlinsys_sampled
 	
 
 
@@ -115,18 +122,19 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 	Create testing dataset
 	"""
 	xpred_testing = np.copy(xpred_training)
+	xpred_testing_cntxt = np.copy(xpred_training_cntxt)
 	fx_true_testing = np.copy(fx_true_training)
 	xmax_testing = xmax_training
 	xmin_testing = xmin_training
-	Ndiv_testing = xpred_testing.shape[0]
+	Ndiv_testing = xpred_testing_cntxt.shape[0]
 	delta_statespace = (xmax_testing-xmin_testing)**dim_in / Ndiv_testing
 	delta_statespace_vec = delta_statespace * np.ones((Ndiv_testing,1))
 
 
 	Nomegas_coarse = 31
 	omega_lim_coarse = 3.0
-	omegapred_coarse = CommonUtils.create_Ndim_grid(xmin=-omega_lim_coarse,xmax=omega_lim_coarse,Ndiv=Nomegas_coarse,dim=dim_in) # [Ndiv**dim_in,dim_in]
-	Dw_coarse =  (2.*omega_lim_coarse)**dim_in / omegapred_coarse.shape[0]
+	omegapred_coarse = CommonUtils.create_Ndim_grid(xmin=-omega_lim_coarse,xmax=omega_lim_coarse,Ndiv=Nomegas_coarse,dim=dim_in_cntxt) # [Ndiv**dim_in,dim_in]
+	Dw_coarse =  (2.*omega_lim_coarse)**dim_in_cntxt / omegapred_coarse.shape[0]
 	Dw_coarse_vec = Dw_coarse * np.ones((Nomegas_coarse,1))
 
 
@@ -134,21 +142,32 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 	"""
 	Reconstruct the mean: and plot it
 	"""
-	inverse_fourier_toolbox = InverseFourierTransformKernelToolbox(spectral_density=spectral_density,dim=dim_in)
-	reconstructor_fx = ReconstructFunctionFromSpectralDensity(	dim_in=dim_in,dw_voxel_init=Dw_coarse,dX_voxel_init=delta_statespace,
+	inverse_fourier_toolbox = InverseFourierTransformKernelToolbox(spectral_density=spectral_density,dim=dim_in_cntxt)
+	reconstructor_fx = ReconstructFunctionFromSpectralDensity(	dim_in=dim_in_cntxt,dw_voxel_init=Dw_coarse,dX_voxel_init=delta_statespace,
 																omega_lim=omega_lim_coarse,Nomegas=Nomegas_coarse,
 																inverse_fourier_toolbox=inverse_fourier_toolbox,
-																Xtest=xpred_testing,Ytest=fx_true_testing)
+																Xtest=xpred_testing_cntxt,Ytest=fx_true_testing)
 
-	reconstructor_fx.train(Nepochs=1500,learning_rate=1e-2,stop_loss_val=0.001)
-	fx_optimized_voxels_coarse = reconstructor_fx.reconstruct_function_at(xpred=xpred_testing)
+	reconstructor_fx.train(Nepochs=6000,learning_rate=1e-2,stop_loss_val=0.001)
+	fx_optimized_voxels_coarse = reconstructor_fx.reconstruct_function_at(xpred=xpred_testing_cntxt)
 	spectral_density_optimized = reconstructor_fx.update_internal_spectral_density_parameters()
 	omegapred_coarse_reconstr = reconstructor_fx.get_omegas_weights()
 	Sw_coarse_reconstr = reconstructor_fx.inverse_fourier_toolbox.spectral_values
 	phiw_coarse_reconstr = reconstructor_fx.inverse_fourier_toolbox.varphi_values
 
 
-	if plotting:
+	# Xtrain = tf.random.uniform((1,2)); Ytrain = tf.random.uniform((1,1))
+	# rrtp_MO = MultiObjectiveReducedRankProcess(dim_in,cfg,spectral_density_optimized,Xtrain,Ytrain)
+	# pdb.set_trace()
+
+	# rrtp_MO.rrgpMO[0].get_prior_mean()
+	# rrtp_MO.predict_at_locations(xpred_testing_cntxt[0:15,:],from_prior=True)[0]
+	# 
+	# reconstructor_fx.inverse_fourier_toolbox.get_fx_with_variable_integration_step(xpred_testing_cntxt[0:15,:])
+	# reconstructor_fx.reconstruct_function_at(xpred_testing_cntxt[0:15,:])
+
+	plotting_reconstruction = True
+	if plotting_reconstruction:
 		# hdl_fig, hdl_splots_reconstruct = plt.subplots(1,3,figsize=(30,10),sharex=False)
 		hdl_fig, hdl_splots_reconstruct = plt.subplots(1,3,figsize=(12,8),sharex=False)
 		for ii in range(Nsamples_nominal_dynsys):
@@ -166,67 +185,68 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 		hdl_splots_reconstruct[0].set_ylabel(r"$f(x_t)$",fontsize=fontsize_labels)
 		hdl_splots_reconstruct[0].set_title(r"Reconstruction; $M=20$",fontsize=fontsize_labels)
 
-		"""
-		Discrete grid of omega, for plotting and analysis:
-		"""
+		# """
+		# Discrete grid of omega, for plotting and analysis:
+		# """
 
-		Ndiv_omega_for_analysis = 301
-		omega_lim = 3.0
-		omegapred_analysis = CommonUtils.create_Ndim_grid(xmin=-omega_lim,xmax=omega_lim,Ndiv=Ndiv_omega_for_analysis,dim=dim_in) # [Ndiv**dim_in,dim_in]
-		Sw_vec, phiw_vec = spectral_density_optimized.unnormalized_density(omegapred_analysis)
+		# Ndiv_omega_for_analysis = 301
+		# omega_lim = 3.0
+		# omegapred_analysis = CommonUtils.create_Ndim_grid(xmin=-omega_lim,xmax=omega_lim,Ndiv=Ndiv_omega_for_analysis,dim=dim_in_cntxt) # [Ndiv**dim_in,dim_in]
+		# Sw_vec, phiw_vec = spectral_density_optimized.unnormalized_density(omegapred_analysis)
 
-		hdl_splots_reconstruct[1].plot(omegapred_analysis,Sw_vec,lw=2,color="crimson",alpha=0.6)
-		hdl_splots_reconstruct[1].set_xlim([-omega_lim,omega_lim])
-		hdl_splots_reconstruct[1].set_xticks([-omega_lim,0,omega_lim])
-		hdl_splots_reconstruct[1].set_xlabel(r"$\omega$",fontsize=fontsize_labels)
-		hdl_splots_reconstruct[1].set_ylabel(r"$S(\omega)$",fontsize=fontsize_labels)
-		hdl_splots_reconstruct[1].set_title(r"Spectral density $S(\omega)$",fontsize=fontsize_labels)
-		# Sw_coarse_reconstr, phiw_coarse_reconstr = spectral_density_optimized.unnormalized_density(omegapred_coarse_reconstr)
-		# hdl_splots_reconstruct[1].stem(omegapred_coarse_reconstr[:,0],Sw_coarse_reconstr[:,0],linefmt="crimson",markerfmt=".")
-		
+		# hdl_splots_reconstruct[1].plot(omegapred_analysis,Sw_vec,lw=2,color="crimson",alpha=0.6)
+		# hdl_splots_reconstruct[1].set_xlim([-omega_lim,omega_lim])
+		# hdl_splots_reconstruct[1].set_xticks([-omega_lim,0,omega_lim])
+		# hdl_splots_reconstruct[1].set_xlabel(r"$\omega$",fontsize=fontsize_labels)
+		# hdl_splots_reconstruct[1].set_ylabel(r"$S(\omega)$",fontsize=fontsize_labels)
+		# hdl_splots_reconstruct[1].set_title(r"Spectral density $S(\omega)$",fontsize=fontsize_labels)
+
 		# Sw_coarse_reconstr_interp = np.interp(x=omegapred_coarse_reconstr[:,0],xp=omegapred_analysis[:,0],fp=Sw_vec[:,0])
 		# phiw_coarse_reconstr_interp = np.interp(x=omegapred_coarse_reconstr[:,0],xp=omegapred_analysis[:,0],fp=phiw_vec[:,0])
-		# hdl_splots_reconstruct[1].plot(omegapred_coarse_reconstr[:,0],Sw_coarse_reconstr_interp,linestyle="None",marker=".",color="crimson",markersize=8)
+		# hdl_splots_reconstruct[1].plot(omegapred_coarse_reconstr[:,0],Sw_coarse_reconstr,linestyle="None",marker=".",color="crimson",markersize=8)
 
-		Sw_coarse_reconstr_interp = np.interp(x=omegapred_coarse_reconstr[:,0],xp=omegapred_analysis[:,0],fp=Sw_vec[:,0])
-		phiw_coarse_reconstr_interp = np.interp(x=omegapred_coarse_reconstr[:,0],xp=omegapred_analysis[:,0],fp=phiw_vec[:,0])
-		hdl_splots_reconstruct[1].plot(omegapred_coarse_reconstr[:,0],Sw_coarse_reconstr,linestyle="None",marker=".",color="crimson",markersize=8)
+		# hdl_splots_reconstruct[2].plot(omegapred_analysis,phiw_vec,lw=2,color="crimson",alpha=0.6)
+		# hdl_splots_reconstruct[2].set_xlim([-omega_lim,omega_lim])
+		# hdl_splots_reconstruct[2].set_xticks([-omega_lim,0,omega_lim])
+		# hdl_splots_reconstruct[2].set_xlabel(r"$\omega$",fontsize=fontsize_labels)
+		# hdl_splots_reconstruct[2].set_ylabel(r"$\varphi(\omega)$",fontsize=fontsize_labels)
+		# hdl_splots_reconstruct[2].set_title(r"Phase $\varphi(\omega)$",fontsize=fontsize_labels)
+		# # hdl_splots_reconstruct[2].plot(omegapred_coarse_reconstr[:,0],phiw_coarse_reconstr_interp,linestyle="None",marker=".",color="crimson",markersize=8)
+		# hdl_splots_reconstruct[2].plot(omegapred_coarse_reconstr[:,0],phiw_coarse_reconstr,linestyle="None",marker=".",color="crimson",markersize=8)
 
-		hdl_splots_reconstruct[2].plot(omegapred_analysis,phiw_vec,lw=2,color="crimson",alpha=0.6)
-		hdl_splots_reconstruct[2].set_xlim([-omega_lim,omega_lim])
-		hdl_splots_reconstruct[2].set_xticks([-omega_lim,0,omega_lim])
-		hdl_splots_reconstruct[2].set_xlabel(r"$\omega$",fontsize=fontsize_labels)
-		hdl_splots_reconstruct[2].set_ylabel(r"$\varphi(\omega)$",fontsize=fontsize_labels)
-		hdl_splots_reconstruct[2].set_title(r"Phase $\varphi(\omega)$",fontsize=fontsize_labels)
-		# hdl_splots_reconstruct[2].plot(omegapred_coarse_reconstr[:,0],phiw_coarse_reconstr_interp,linestyle="None",marker=".",color="crimson",markersize=8)
-		hdl_splots_reconstruct[2].plot(omegapred_coarse_reconstr[:,0],phiw_coarse_reconstr,linestyle="None",marker=".",color="crimson",markersize=8)
+		# plt.show(block=False)
+		# plt.pause(1)
 
-		plt.show(block=False)
-		plt.pause(1)
+	plt.show(block=False)
+	plt.pause(2)
 
 
 	"""
-	Fit a new function (could be true, fixed sample or new sample, depending on our choice for nonlinsys2use())
+	Fit a new function (could be true, fixed sample or new sample, depending on our choice for nonlinsys4GPfitting())
 	"""
 
 	# Create grid for predictions:
-	xmin = -6.0
-	xmax = +3.0
+	# xmin = -6.0
+	# xmax = +3.0
+	xmin = -10.0
+	xmax = +10.0
 	xpred_plotting = CommonUtils.create_Ndim_grid(xmin=xmin,xmax=xmax,Ndiv=201,dim=dim_in) # [Ndiv**dim_in,dim_in]
-	yplot_nonlin_sys = nonlinsys2use(xpred_plotting)
+	yplot_nonlin_sys = nonlinsys4GPfitting(xpred_plotting)
 
+	"""
 	# Get evaluations from a pre-generated sobol grid:
 	Nevals_tot = 100
 	Xtrain_tot = xmin + (xmax - xmin)*tf.math.sobol_sample(dim=dim_in,num_results=(Nevals_tot),skip=10000)
-	Xtrain_tot = Xtrain_tot.numpy()
-	Xtrain_tot = tf.convert_to_tensor(value=Xtrain_tot,dtype=tf.float32)
+	Xtrain_tot_cntxt = tf.concat([Xtrain_tot,tf.zeros((Nevals_tot,1))],axis=1) # Concatenate the context variable, but set it to zero; it's incorrect though
 
-	Nevals = 1
-	Xtrain = Xtrain_tot[0:Nevals,:]
-	Ytrain = nonlinsys2use(Xtrain)
+	Xtrain = Xtrain_tot_cntxt[0:1,:]
+	Ytrain = nonlinsys4GPfitting(Xtrain[:,0:1])
+	"""
 
-	Xtrain = tf.convert_to_tensor(value=Xtrain,dtype=tf.float32)
-	Ytrain = tf.convert_to_tensor(value=Ytrain,dtype=tf.float32)
+	# We don't need evaluations just yet:
+	Xtrain = tf.random.uniform((1,2))
+	Ytrain = tf.random.uniform((1,1))
+	
 
 	if which_kernel == "kink":
 		rrtp_MO = MultiObjectiveReducedRankProcess(dim_in,cfg,spectral_density_optimized,Xtrain,Ytrain)
@@ -244,25 +264,33 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 	"""
 	See effect of added phase in the prior
 	"""
+	logger.info("phase values: {0:s}".format(str(theta_cntxt_vals)))
 	plotting_phase_added = True
 	if plotting_phase_added:
 		hdl_fig, hdl_splots = plt.subplots(1,1,figsize=(12,8),sharex=True)
-		Ndiv_phase_added = 100
+		Ndiv_phase_added = 200
 		Nsample_paths = 3
-		phase_added_vec = np.linspace(0.0,2.*np.pi,Ndiv_phase_added)
+		var_context_vec = np.linspace(0.0,2.*np.pi,Ndiv_phase_added)
+
+		ind_closest = np.argmin(abs(np.reshape(var_context_vec,(-1,1)) - np.reshape(theta_cntxt_vals,(1,-1))),axis=0)
+
 		for jj in range(Ndiv_phase_added):
 
-			logger.info("phase: {0:f}".format(phase_added_vec[jj]))
+			logger.info("phase: {0:f}".format(var_context_vec[jj]))
 
-			rrtp_MO.rrgpMO[0].dbg_phase_added_to_features = phase_added_vec[jj]
+			xpred_plotting_loc = np.concatenate([xpred_plotting,var_context_vec[jj]*np.ones(xpred_plotting.shape)],axis=1)
 
-			MO_mean, MO_std = rrtp_MO.predict_at_locations(xpred_plotting,from_prior=True)
-			sample_paths = rrtp_MO.sample_path_from_predictive(xpred_plotting,Nsamples=Nsample_paths,from_prior=True)
+			MO_mean, MO_std = rrtp_MO.predict_at_locations(xpred_plotting_loc,from_prior=True)
+			sample_paths = rrtp_MO.sample_path_from_predictive(xpred_plotting_loc,Nsamples=Nsample_paths,from_prior=True)
 			sample_paths = sample_paths[0] # It's a list with one element, so get the first element
 			hdl_splots.cla()
 			hdl_splots.plot(xpred_plotting,MO_mean,linestyle="-",color="navy",lw=2,alpha=0.4)
 			hdl_splots.fill_between(xpred_plotting[:,0],MO_mean[:,0] - 2.*MO_std[:,0],MO_mean[:,0] + 2.*MO_std[:,0],color="cornflowerblue",alpha=0.7)
-			hdl_splots.plot(xpred_plotting,yplot_nonlin_sys,marker="None",linestyle="-",color="crimson",lw=3,alpha=0.6)
+			# hdl_splots.plot(xpred_plotting,yplot_nonlin_sys,marker="None",linestyle="-",color="crimson",lw=3,alpha=0.6)
+
+			for ii in range(Nsamples_nominal_dynsys):
+				fx_true_testing_loc = fx_true_testing[ii*Ndiv_per_dim:(ii+1)*Ndiv_per_dim,0]
+				hdl_splots.plot(xpred_plotting,fx_true_testing_loc,lw=2,color="crimson",alpha=0.4,label="Reconstructed")
 
 			# Sample paths:
 			for ii in range(Nsample_paths):
@@ -275,7 +303,10 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 			hdl_splots.set_ylabel(r"$x_{t+1}$",fontsize=fontsize_labels)
 
 			plt.show(block=False)
-			plt.pause(0.1)
+			plt.pause(0.01)
+			if jj in ind_closest:
+				logger.info("phase values: {0:s}".format(str(theta_cntxt_vals)))
+				plt.pause(5.0)
 
 		plt.show(block=True)
 
@@ -318,7 +349,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 			# Get evaluations:
 			Nevals = jj
 			Xtrain = Xtrain_tot[0:Nevals,:]
-			Ytrain = nonlinsys2use(Xtrain)
+			Ytrain = nonlinsys4GPfitting(Xtrain)
 
 			Xtrain = tf.convert_to_tensor(value=Xtrain,dtype=tf.float32)
 			Ytrain = tf.convert_to_tensor(value=Ytrain,dtype=tf.float32)
@@ -398,8 +429,8 @@ def main(cfg: dict) -> None:
 	# which_kernel = "matern"
 	which_kernel = "kink"
 
-	# which_nonlin_sys = "true"
-	which_nonlin_sys = "wrong"
+	which_nonlin_sys = "true"
+	# which_nonlin_sys = "wrong"
 	# which_nonlin_sys = "sampled"
 	
 	train_test_kink(cfg, block_plot=True, which_kernel=which_kernel, which_nonlin_sys=which_nonlin_sys, Nobs = 15, random_pars=None, my_seed=1, plotting=True, savefig=False)

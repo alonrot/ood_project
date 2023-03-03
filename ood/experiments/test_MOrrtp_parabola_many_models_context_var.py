@@ -4,7 +4,7 @@ import math
 import matplotlib.pyplot as plt
 import matplotlib
 from lqrker.models import MultiObjectiveReducedRankProcess
-from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity
+from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, ParaboloidSpectralDensity
 from ood.fourier_kernel import InverseFourierTransformKernelToolbox
 from ood.spectral_density_approximation.elliptical_slice_sampler import EllipticalSliceSampler
 from ood.spectral_density_approximation.reconstruct_function_from_spectral_density import ReconstructFunctionFromSpectralDensity
@@ -30,22 +30,22 @@ plt.rc('legend',fontsize=fontsize_labels+2)
 
 
 def nonlinsys_true(xpred):
-	return KinkSpectralDensity._nonlinear_system_fun_static(xpred)
+	return ParaboloidSpectralDensity._nonlinear_system_fun_static(xpred)
 
 def nonlinsys_sampled_fixed(xpred):
 	a0 = -0.8; a1 = -1.5; a2 = -3.0
 	model_pars = dict(a0=a0,a1=a1,a2=a2)
-	return KinkSpectralDensity._nonlinear_system_fun_static(xpred,model_pars)
+	return ParaboloidSpectralDensity._nonlinear_system_fun_static(xpred,model_pars)
 
 def nonlinsys_sampled(xpred):
 	a0_min = -1.0; a0_max = +1.0; a0 = a0_min + (a0_max-a0_min)*np.random.rand(1)
 	a1_min = -2.0; a1_max = +2.0; a1 = a1_min + (a1_max-a1_min)*np.random.rand(1)
-	a2_min = -4.0; a2_max = -1.0; a2 = a2_min + (a2_max-a2_min)*np.random.rand(1)
+	a2_min = -1; a2_max = +1; a2 = a2_min + (a2_max-a2_min)*np.random.rand(1)
 	model_pars = dict(a0=a0,a1=a1,a2=a2)
-	return KinkSpectralDensity._nonlinear_system_fun_static(xpred,model_pars=model_pars)
+	return ParaboloidSpectralDensity._nonlinear_system_fun_static(xpred,model_pars=model_pars)
 
 
-def generate_data_from_multiple_kink_systems(Nsamples_nominal_dynsys,xmin,xmax,Ndiv_per_dim,nonlin_fun):
+def generate_data_from_multiple_parabola_systems(Nsamples_nominal_dynsys,xmin,xmax,Ndiv_per_dim,nonlin_fun):
 
 	xpred_training_single = CommonUtils.create_Ndim_grid(xmin=xmin,xmax=xmax,Ndiv=Ndiv_per_dim,dim=1) # [Ndiv**dim_in,dim_in]
 	yeval_samples = np.zeros((Nsamples_nominal_dynsys,xpred_training_single.shape[0],1))
@@ -60,7 +60,7 @@ def generate_data_from_multiple_kink_systems(Nsamples_nominal_dynsys,xmin,xmax,N
 
 
 
-def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin_sys = "true", Nobs = 20, random_pars=None, my_seed = None, plotting = True, savefig = False) -> None:
+def train_test_parabola(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin_sys = "true", Nobs = 20, random_pars=None, my_seed = None, plotting = True, savefig = False) -> None:
 
 	if my_seed is not None:
 		np.random.seed(seed=my_seed)
@@ -83,7 +83,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 	# nonlinsys_for_data_generation = nonlinsys_true
 	nonlinsys_for_data_generation = nonlinsys_sampled
 
-	xpred_training, fx_true_training = generate_data_from_multiple_kink_systems(Nsamples_nominal_dynsys=Nsamples_nominal_dynsys,xmin=xmin_training,
+	xpred_training, fx_true_training = generate_data_from_multiple_parabola_systems(Nsamples_nominal_dynsys=Nsamples_nominal_dynsys,xmin=xmin_training,
 																				xmax=xmax_training,Ndiv_per_dim=Ndiv_per_dim,
 																				nonlin_fun=nonlinsys_for_data_generation)
 
@@ -93,11 +93,11 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 	theta_cntxt_vec = np.reshape(theta_cntxt_vec,(-1,1))
 	xpred_training_cntxt = tf.convert_to_tensor(np.concatenate([xpred_training,theta_cntxt_vec],axis=1),dtype=tf.float32)
 
-	if which_kernel == "kink":
+	if which_kernel == "parabola":
 		kernel_name_plot_label = "Elbow"
 		use_nominal_model = True
 		integration_method = "integrate_with_data"
-		spectral_density = KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim_in=dim_in_cntxt,integration_method=integration_method,Xtrain=xpred_training_cntxt,Ytrain=fx_true_training)
+		spectral_density = ParaboloidSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim_in=dim_in_cntxt,integration_method=integration_method,Xtrain=xpred_training_cntxt,Ytrain=fx_true_training)
 	elif which_kernel == "gaussian":
 		kernel_name_plot_label = "Gaussian"
 		variance_prior = 2.0
@@ -132,11 +132,13 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 	delta_statespace_vec = delta_statespace * np.ones((Ndiv_testing,1))
 
 
-	Nomegas_coarse = 31
+	Nomegas_coarse = 301
 	omega_lim_coarse = 3.0
 	omegapred_coarse = CommonUtils.create_Ndim_grid(xmin=-omega_lim_coarse,xmax=omega_lim_coarse,Ndiv=Nomegas_coarse,dim=dim_in_cntxt) # [Ndiv**dim_in,dim_in]
 	Dw_coarse =  (2.*omega_lim_coarse)**dim_in_cntxt / omegapred_coarse.shape[0]
+	Dw_coarse = 10.0*Dw_coarse
 	raise NotImplementedError("Do a line search to find the best Dw_coarse")
+	# The training is very sensitive to how this parameter is initialized. It's worth doing a line search on it first.
 	Dw_coarse_vec = Dw_coarse * np.ones((Nomegas_coarse,1))
 
 
@@ -150,7 +152,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 																inverse_fourier_toolbox=inverse_fourier_toolbox,
 																Xtest=xpred_testing_cntxt,Ytest=fx_true_testing)
 
-	Nepochs = 8000
+	Nepochs = 6000
 	reconstructor_fx.train(Nepochs=Nepochs,learning_rate=1e-2,stop_loss_val=0.001)
 	fx_optimized_voxels_coarse = reconstructor_fx.reconstruct_function_at(xpred=xpred_testing_cntxt)
 	spectral_density_optimized = reconstructor_fx.update_internal_spectral_density_parameters()
@@ -169,7 +171,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 	# reconstructor_fx.inverse_fourier_toolbox.get_fx_with_variable_integration_step(xpred_testing_cntxt[0:15,:])
 	# reconstructor_fx.reconstruct_function_at(xpred_testing_cntxt[0:15,:])
 
-	plotting_reconstruction = False
+	plotting_reconstruction = True
 	if plotting_reconstruction:
 		# hdl_fig, hdl_splots_reconstruct = plt.subplots(1,3,figsize=(30,10),sharex=False)
 		hdl_fig, hdl_splots_reconstruct = plt.subplots(1,3,figsize=(20,5),sharex=False)
@@ -257,7 +259,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 	Xtrain = tf.random.uniform((1,2))
 	Ytrain = tf.random.uniform((1,1))
 	
-	if which_kernel == "kink":
+	if which_kernel == "parabola":
 		rrtp_MO = MultiObjectiveReducedRankProcess(dim_in,cfg,spectral_density_optimized,Xtrain,Ytrain)
 		# rrtp_MO.train_model(verbosity=True)
 	else:
@@ -364,7 +366,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 	Nobs_analysis = 15
 	Nsample_paths = 3
 	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/plotting/presentation/kink/nonlinsys_{0:s}/".format(which_nonlin_sys)
-	path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/plotting/analysis/kink_kernel_multiple_nominal_models/"
+	path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/plotting/analysis/parabola_kernel_multiple_nominal_models/"
 	log_evidence_loss_vec = np.zeros(Nobs_analysis)
 	rmse_vec = np.zeros(Nobs_analysis)
 	fx_true_testing_for_first_context_var = fx_true_testing[0:Ndiv_per_dim,0]
@@ -429,7 +431,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 
 		if jj == 0:
 
-			if which_kernel == "kink":
+			if which_kernel == "parabola":
 				MO_mean, MO_std = rrtp_MO.predict_at_locations(xpred_plotting_loc,from_prior=True)
 				sample_paths = rrtp_MO.sample_path_from_predictive(xpred_plotting_loc,Nsamples=Nsample_paths,from_prior=True)
 				sample_paths = sample_paths[0] # It's a list with one element, so get the first element
@@ -442,7 +444,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 
 		else:
 
-			if which_kernel == "kink":
+			if which_kernel == "parabola":
 
 				# Update posterior:
 				Ytrain = tf.reshape(Ytrain,(-1,dim_out))
@@ -514,13 +516,13 @@ def main(cfg: dict) -> None:
 
 	# which_kernel = "gaussian"
 	# which_kernel = "matern"
-	which_kernel = "kink"
+	which_kernel = "parabola"
 
 	which_nonlin_sys = "true"
 	# which_nonlin_sys = "wrong"
 	# which_nonlin_sys = "sampled"
 	
-	train_test_kink(cfg, block_plot=True, which_kernel=which_kernel, which_nonlin_sys=which_nonlin_sys, Nobs = 15, random_pars=None, my_seed=1, plotting=True, savefig=True)
+	train_test_parabola(cfg, block_plot=True, which_kernel=which_kernel, which_nonlin_sys=which_nonlin_sys, Nobs = 15, random_pars=None, my_seed=2, plotting=True, savefig=True)
 
 
 if __name__ == "__main__":

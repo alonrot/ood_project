@@ -86,7 +86,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 																				xmax=xmax_training,Ndiv_per_dim=Ndiv_per_dim,
 																				nonlin_fun=nonlinsys_for_data_generation)
 	if which_kernel == "kink":
-		kernel_name_plot_label = "Kink"
+		kernel_name_plot_label = "Elbow"
 		use_nominal_model = True
 		integration_method = "integrate_with_data"
 		spectral_density = KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim_in=dim_in,integration_method=integration_method,Xtrain=xpred_training,Ytrain=fx_true_training)
@@ -140,7 +140,8 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 																inverse_fourier_toolbox=inverse_fourier_toolbox,
 																Xtest=xpred_testing,Ytest=fx_true_testing)
 
-	reconstructor_fx.train(Nepochs=1500,learning_rate=1e-2,stop_loss_val=0.001)
+	Nepochs = 1500
+	reconstructor_fx.train(Nepochs=Nepochs,learning_rate=1e-2,stop_loss_val=0.001)
 	fx_optimized_voxels_coarse = reconstructor_fx.reconstruct_function_at(xpred=xpred_testing)
 	spectral_density_optimized = reconstructor_fx.update_internal_spectral_density_parameters()
 	omegapred_coarse_reconstr = reconstructor_fx.get_omegas_weights()
@@ -201,8 +202,8 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 		# hdl_splots_reconstruct[2].plot(omegapred_coarse_reconstr[:,0],phiw_coarse_reconstr_interp,linestyle="None",marker=".",color="crimson",markersize=8)
 		hdl_splots_reconstruct[2].plot(omegapred_coarse_reconstr[:,0],phiw_coarse_reconstr,linestyle="None",marker=".",color="crimson",markersize=8)
 
-		plt.show(block=False)
-		plt.pause(1)
+		plt.show(block=True)
+		# plt.pause(1)
 
 
 	"""
@@ -244,7 +245,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 	"""
 	See effect of added phase in the prior
 	"""
-	plotting_phase_added = True
+	plotting_phase_added = False
 	if plotting_phase_added:
 		hdl_fig, hdl_splots = plt.subplots(1,1,figsize=(12,8),sharex=True)
 		Ndiv_phase_added = 100
@@ -277,6 +278,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 			plt.show(block=False)
 			plt.pause(0.1)
 
+		rrtp_MO.rrgpMO[0].dbg_phase_added_to_features = 0.0 # reset to zero!
 		plt.show(block=True)
 
 
@@ -287,11 +289,11 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 		hdl_splots = [hdl_splots]
 
 		if which_nonlin_sys == "true":
-			hdl_fig.suptitle(r"Kink dynamical system $x_{t+1} = f(x_t;\theta_{nom})$ "+"| Kernel: {0}".format(kernel_name_plot_label),fontsize=fontsize_labels)
+			hdl_fig.suptitle(r"Elbow dynamical system $x_{t+1} = f(x_t;\theta_{nom})$ "+"| Kernel: {0}".format(kernel_name_plot_label),fontsize=fontsize_labels)
 		elif which_nonlin_sys == "wrong":
-			hdl_fig.suptitle(r"Kink dynamical system $x_{t+1} = f(x_t;\theta_{rand})$ "+"| Kernel: {0}".format(kernel_name_plot_label),fontsize=fontsize_labels)
+			hdl_fig.suptitle(r"Elbow dynamical system $x_{t+1} = f(x_t;\theta_{rand})$ "+"| Kernel: {0}".format(kernel_name_plot_label),fontsize=fontsize_labels)
 		elif which_nonlin_sys == "sampled":
-			hdl_fig.suptitle(r"Kink dynamical system $x_{t+1} = f(x_t;\theta_{rand})$ "+"| Kernel: {0}".format(kernel_name_plot_label),fontsize=fontsize_labels)
+			hdl_fig.suptitle(r"Elbow dynamical system $x_{t+1} = f(x_t;\theta_{rand})$ "+"| Kernel: {0}".format(kernel_name_plot_label),fontsize=fontsize_labels)
 
 	Nsample_paths = 3
 	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/plotting/presentation/kink/nonlinsys_{0:s}/".format(which_nonlin_sys)
@@ -402,7 +404,8 @@ def main(cfg: dict) -> None:
 	which_nonlin_sys = "wrong"
 	# which_nonlin_sys = "sampled"
 	
-	train_test_kink(cfg, block_plot=True, which_kernel=which_kernel, which_nonlin_sys=which_nonlin_sys, Nobs = 15, random_pars=None, my_seed=1, plotting=True, savefig=False)
+	Nobs = 4
+	train_test_kink(cfg, block_plot=True, which_kernel=which_kernel, which_nonlin_sys=which_nonlin_sys, Nobs=Nobs, random_pars=None, my_seed=1, plotting=True, savefig=False)
 
 
 if __name__ == "__main__":

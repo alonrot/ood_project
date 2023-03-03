@@ -19,7 +19,7 @@ class EllipticalSliceSampler:
 
 	"""
 
-	def __init__(self,dim_in,target_log_lik,Nsamples,Nburning,Nrestarts,omega_lim_random_restarts,mean_w,var_w):
+	def __init__(self,dim_in,target_log_lik,Nsamples,Nburning,Nrestarts,omega_lim_random_restarts,mean_w,var_w,kwargs_to_fun):
 
 		logger.info("\nConstruct class EllipticalSliceSampler")
 		logger.info("====================")
@@ -43,6 +43,8 @@ class EllipticalSliceSampler:
 		self.Sigma_w = np.diag(var_w)
 
 		# self.v = np.random.multivariate_normal(self.mean_w,self.Sigma_w)
+
+		self.kwargs_to_fun = kwargs_to_fun
 
 	def run_ess(self):
 		"""
@@ -95,8 +97,10 @@ class EllipticalSliceSampler:
 		Nrestarts_enlarged = self.Nrestarts * 10
 
 		# Sample uniformly:
-		omega_min = -self.omega_lim_random_restarts
-		omega_max = self.omega_lim_random_restarts
+		# omega_min = -self.omega_lim_random_restarts
+		# omega_max = self.omega_lim_random_restarts
+		omega_min = self.omega_lim_random_restarts[0]
+		omega_max = self.omega_lim_random_restarts[1]
 		omega0_restarts = omega_min + (omega_max - omega_min)*tf.math.sobol_sample(dim=self.dim_in,
 																			num_results=(Nrestarts_enlarged),
 																			skip=1000 + 10*np.random.randint(100))
@@ -114,7 +118,7 @@ class EllipticalSliceSampler:
 
 		"""
 
-		log_lik_vals = self.target_fun_log_lik(omega_candidates) # [Nomegas,]
+		log_lik_vals = self.target_fun_log_lik(omega_candidates,*self.kwargs_to_fun) # [Nomegas,]
 		ind_sorted = np.argsort(log_lik_vals)[::-1] # returns indices; the [::-1] reverses the vector. Hence, ind_sorted will sort the values in decreasing order
 		w_sorted = omega_candidates[ind_sorted[0:Nbest],:] # [Nbest,self.dim_in]
 		
@@ -133,7 +137,7 @@ class EllipticalSliceSampler:
 		v = np.random.multivariate_normal(self.mean_w,self.Sigma_w)
 
 		# Log likelihood threshold:
-		logy = self.target_fun_log_lik(w_cur) + np.log(np.random.uniform())
+		logy = self.target_fun_log_lik(w_cur,*self.kwargs_to_fun) + np.log(np.random.uniform())
 
 		# Draw an initial \theta proposal, and define a bracket:
 		theta = np.random.uniform(low=0,high=2*np.pi)
@@ -146,7 +150,7 @@ class EllipticalSliceSampler:
 			w_cand = (w_cur-self.mean_w)*np.cos(theta) + (v-self.mean_w)*np.sin(theta) + self.mean_w
 
 			# Evaluate the candidate in the likelihood:
-			lik_w_cand = self.target_fun_log_lik(w_cand)
+			lik_w_cand = self.target_fun_log_lik(w_cand,*self.kwargs_to_fun)
 
 			# Compress the interval, or return candidate:
 			if lik_w_cand > logy:

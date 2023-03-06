@@ -37,7 +37,8 @@ def reconstruct(cfg):
 
 	savefig = True
 
-	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
+	# path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
+	path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
 
 	"""
 	Get training dataset

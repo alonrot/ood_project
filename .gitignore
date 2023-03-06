@@ -10,3 +10,4 @@ ood/experiments/plotting/*
 *.log
 *.pickle
 *tfdbg2_logdir
+dubins_car_reconstruction

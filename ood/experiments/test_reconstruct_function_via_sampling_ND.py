@@ -35,10 +35,14 @@ plt.rc('legend',fontsize=fontsize_labels//2)
 @hydra.main(config_path="./config",config_name="config")
 def reconstruct(cfg):
 
+	savefig = True
+
+	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
+
 	"""
 	Get training dataset
 	"""
-	path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_nominal_model_waypoints_lighter_many_trajs_for_searching_wlim.pickle"
+	path2data = "{0:s}/dubinscar_data_nominal_model_waypoints_lighter_many_trajs_for_searching_wlim.pickle".format(path2project)
 	assert path2data != "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_nominal_model.pickle", "I accidentally overwrote this"
 	# Create a TF dataset: https://www.tensorflow.org/datasets/add_dataset
 	logger.info("Loading {0:s} ...".format(path2data))
@@ -83,17 +87,24 @@ def reconstruct(cfg):
 	# delta_statespace = (xmax_testing-xmin_testing)**dim_in / Ndiv_testing
 	delta_statespace = 1.0 / Ndiv_testing
 
-	Nsamples_omega = 2000
+	Nsamples_omega = 1000
 	omega_lim = 3.0
 	Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
+	# Dw_coarse = 1.0 / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 
-	Nepochs = 100
 	extent_plot_statespace = [xpred_testing[0,0],xpred_testing[-1,0],xpred_testing[0,1],xpred_testing[-1,1]] #  scalars (left, right, bottom, top)
 	fx_optimized_omegas_and_voxels = np.zeros((xpred_testing.shape[0],dim_out))
+	Sw_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
+	varphi_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
 	omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,dim_in))
 	delta_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
 	delta_statespace_trainedNN = np.zeros((dim_out,Xtrain.shape[0],1))
 
+	Nepochs = 11
+	learning_rate = 1e-1
+	# stop_loss_val = 1./fx_true_testing.shape[0]
+	stop_loss_val = 1.0
+	lengthscale_loss = 0.01
 	loss_reconstruction_evolution = np.zeros((dim_out,Nepochs))
 	spectral_density_optimized_list = [None]*dim_out
 	# pdb.set_trace()
@@ -108,17 +119,12 @@ def reconstruct(cfg):
 																					inverse_fourier_toolbox=inverse_fourier_toolbox_channel,
 																					Xtest=xpred_testing,Ytest=fx_true_testing[:,jj:jj+1])
 
-		learning_rate = 1e-1
-		stop_loss_val = 1./fx_true_testing.shape[0]
-		logger.info("stop_loss_val = 1/{0:d} = {1:f}".format(fx_true_testing.shape[0],stop_loss_val))
-		lengthscale_loss = 0.01
-		logger.info("lengthscale_loss = {0:f}".format(lengthscale_loss))
 		reconstructor_fx_deltas_and_omegas.train(Nepochs=Nepochs,learning_rate=learning_rate,stop_loss_val=stop_loss_val,lengthscale_loss=lengthscale_loss,print_every=10)
 
 
 		spectral_density_optimized_list[jj] = reconstructor_fx_deltas_and_omegas.update_internal_spectral_density_parameters()
-		Sw_coarse_reconstr = reconstructor_fx_deltas_and_omegas.inverse_fourier_toolbox.spectral_values
-		phiw_coarse_reconstr = reconstructor_fx_deltas_and_omegas.inverse_fourier_toolbox.varphi_values
+		Sw_omegas_trainedNN[jj,...] = reconstructor_fx_deltas_and_omegas.inverse_fourier_toolbox.spectral_values
+		varphi_omegas_trainedNN[jj,...] = reconstructor_fx_deltas_and_omegas.inverse_fourier_toolbox.varphi_values
 
 
 		# Collect trained variables for each channel:
@@ -134,39 +140,30 @@ def reconstruct(cfg):
 
 
 	# Save relevant quantities:
-	# save_data = True
-	save_data = False
+	path2folder = "dubins_car_reconstruction"
+	save_data = True
+	# save_data = False
 	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid_omegalim1p0_omegas_within_lims.pickle"
 	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid_omegalim0p5.pickle"
-	path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid.pickle"
+	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid.pickle"
 	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_regular_Xgrid_and_omega_grid.pickle"
 	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_regular_Xgrid_irregular_omega_grid.pickle"
+	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_from_data_Nepochs{0:d}.pickle".format(Nepochs)
+	path2save = "{0:s}/{1:s}/learning_data_Nepochs{2:d}.pickle".format(path2project,path2folder,Nepochs)
 	if save_data:
-
-		Sw_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
-		varphi_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
-
-		for jj in range(dim_out):
-
-			raise NotImplementedError("Many of the functionalities here are not implmetnesd")
-
-			# In order to evaluate the spectral density and angle we need the correct data channel and the voxels:
-			spectral_density.update_fdata(fdata=fx_true_testing[:,jj:jj+1])
-			spectral_density.update_dX_voxels(dX_new=delta_statespace_trainedNN[jj,...])
-			Sw_omegas_trainedNN[jj,...], varphi_omegas_trainedNN[jj,...] = spectral_density.unnormalized_density(omegas_trainedNN[jj,...]) # This is not going to work because we need the right delta_statespace_trainedNN dimensions
 
 		data2save = dict(	omegas_trainedNN=omegas_trainedNN,
 							Sw_omegas_trainedNN=Sw_omegas_trainedNN,
 							varphi_omegas_trainedNN=varphi_omegas_trainedNN,
 							delta_omegas_trainedNN=delta_omegas_trainedNN,
-							delta_statespace_trainedNN=delta_statespace_trainedNN)
+							delta_statespace_trainedNN=delta_statespace_trainedNN,
+							path2data=path2data)
 		
 		logger.info("Saving learned omegas, S_w, varphi_w, delta_w, delta_xt at {0:s} ...".format(path2save))
 		file = open(path2save, 'wb')
 		pickle.dump(data2save,file)
 		file.close()
 		logger.info("Done!")
-	
 
 
 	"""
@@ -244,9 +241,16 @@ def reconstruct(cfg):
 		if jj == dim_out-1: hdl_splots_omegas[jj,0].set_xlabel(r"$\omega_1$",fontsize=fontsize_labels)
 		if jj == dim_out-1: hdl_splots_omegas[jj,1].set_xlabel(r"$\omega_1$",fontsize=fontsize_labels)
 		if jj == dim_out-1: hdl_splots_omegas[jj,2].set_xlabel(r"$\omega_1$",fontsize=fontsize_labels)
+	
 
-
-	# plt.show(block=True)
+	if savefig:
+		path2save_fig = "{0:s}/{1:s}/spectral_density_Nepochs{2:d}.png".format(path2project,path2folder,Nepochs)
+		logger.info("Saving fig at {0:s} ...".format(path2save_fig))
+		hdl_fig.savefig(path2save_fig,bbox_inches='tight',dpi=300,transparent=True)
+		logger.info("Done saving fig!")
+	else:
+		plt.pause(1)
+		plt.show(block=False)
 
 
 	plot_state_transition_reconstruction = True
@@ -286,10 +290,14 @@ def reconstruct(cfg):
 		lgnd.legendHandles[0]._legmarker.set_markersize(20)
 		lgnd.legendHandles[1]._legmarker.set_markersize(20)
 
-	# plt.show(block=True)
-
-
-
+		if savefig:
+			path2save_fig = "{0:s}/{1:s}/state_transition_Nepochs{2:d}.png".format(path2project,path2folder,Nepochs)
+			logger.info("Saving fig at {0:s} ...".format(path2save_fig))
+			hdl_fig.savefig(path2save_fig,bbox_inches='tight',dpi=300,transparent=True)
+			logger.info("Done saving fig!")
+		else:
+			plt.pause(1)
+			plt.show(block=False)
 
 
 	# # Trajectories:
@@ -343,7 +351,15 @@ def reconstruct(cfg):
 		hdl_splots_statespace.set_ylabel(r"$x_{t,2}$",fontsize=fontsize_labels)
 		hdl_splots_statespace.legend(loc="best",fontsize=fontsize_labels)
 
-	# plt.show(block=True)
+
+		if savefig:
+			path2save_fig = "{0:s}/{1:s}/state_trajectories_Nepochs{2:d}.png".format(path2project,path2folder,Nepochs)
+			logger.info("Saving fig at {0:s} ...".format(path2save_fig))
+			hdl_fig.savefig(path2save_fig,bbox_inches='tight',dpi=300,transparent=True)
+			logger.info("Done saving fig!")
+		else:
+			plt.pause(1)
+			plt.show(block=False)
 
 
 	# Loss:
@@ -357,6 +373,16 @@ def reconstruct(cfg):
 			hdl_splots_loss[jj].plot(np.arange(1,loss_reconstruction_evolution.shape[1]+1),np.log(loss_reconstruction_evolution[jj,...]),linestyle="-",marker=".",linewidth=0.5,markersize=3,color="navy")
 			hdl_splots_loss[jj].set_ylabel(r"$\log \mathcal{L}(\cdot)$",fontsize=fontsize_labels)
 		hdl_splots_loss[-1].set_xlabel(r"Epochs",fontsize=fontsize_labels)
+
+
+		if savefig:
+			path2save_fig = "{0:s}/{1:s}/reconstruction_loss_Nepochs{2:d}.png".format(path2project,path2folder,Nepochs)
+			logger.info("Saving fig at {0:s} ...".format(path2save_fig))
+			hdl_fig.savefig(path2save_fig,bbox_inches='tight',dpi=300,transparent=True)
+			logger.info("Done saving fig!")
+		else:
+			plt.pause(1)
+			plt.show(block=False)
 
 
 	plt.show(block=True)

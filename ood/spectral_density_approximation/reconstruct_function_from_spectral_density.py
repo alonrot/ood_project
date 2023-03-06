@@ -20,8 +20,7 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 		self.inverse_fourier_toolbox = inverse_fourier_toolbox
 
 		# Integration step omegas:
-		# self.Dw_voxel_val = dw_voxel_init
-		self.Dw_voxel_val = self.add_weight(shape=(1,), initializer=tf.keras.initializers.Constant(value=dw_voxel_init), trainable=True, name="Dw_voxel_val")
+		self.Dw_voxel_val = self.add_weight(shape=(1,), initializer=tf.keras.initializers.Constant(value=tf.math.log(dw_voxel_init)), trainable=True, name="Dw_voxel_val")
 
 		# initializer = tf.keras.initializers.RandomUniform(minval=0., maxval=1.)
 		# self.delta_omegas = self.add_weight(shape=(Nomegas,), initializer=initializer(shape=(Nomegas,)), trainable=True, name="delta_omegas")
@@ -35,7 +34,7 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 
 		# Integration step dX:
 		self.delta_dX_voxels_preactivation = self.add_weight(shape=(Xtest.shape[0],1), initializer=tf.keras.initializers.Constant(value=0.0), trainable=True, name="delta_statespace_preactivation")
-		self.dX_voxel_val = self.add_weight(shape=(1,), initializer=tf.keras.initializers.Constant(value=dX_voxel_init), trainable=True, name="dX_voxel_val")
+		self.dX_voxel_val = self.add_weight(shape=(1,), initializer=tf.keras.initializers.Constant(value=tf.math.log(dX_voxel_init)), trainable=True, name="dX_voxel_val")
 
 		self.Xtest = Xtest # [Nxpoints,self.dim_in]
 		self.Ytest = Ytest # [Nxpoints,1]
@@ -54,11 +53,11 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 		return self.omegas_weights
 
 	def get_delta_omegas(self):
-		delta_omegas = self.Dw_voxel_val*tf.keras.activations.sigmoid(self.delta_dw_voxels_pre_activation) # Squeeze to (0,1)
+		delta_omegas = tf.math.exp(self.Dw_voxel_val)*tf.keras.activations.sigmoid(self.delta_dw_voxels_pre_activation) # Squeeze to (0,1)
 		return delta_omegas
 
 	def get_delta_statespace(self):
-		delta_statespace = self.dX_voxel_val*tf.keras.activations.sigmoid(self.delta_dX_voxels_preactivation) # Squeeze to (0,1)
+		delta_statespace = tf.math.exp(self.dX_voxel_val)*tf.keras.activations.sigmoid(self.delta_dX_voxels_preactivation) # Squeeze to (0,1)
 		return delta_statespace
 
 	def update_internal_spectral_density_parameters(self):
@@ -93,6 +92,10 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 		optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
 		str_banner = " << Training the delta omegas >> "
+
+		logger.info("learning_rate = {0:f}".format(learning_rate))
+		logger.info("stop_loss_val = {0:f}".format(stop_loss_val))
+		logger.info("lengthscale_loss = {0:f}".format(lengthscale_loss))
 
 		epoch = 0
 		done = False
@@ -141,7 +144,8 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 			epoch += 1
 
 			# Report time:
-			time_per_epoch_avg = np.mean(time_elapsed_vec[0:epoch])
+			# time_per_epoch_avg = np.mean(time_elapsed_vec[0:epoch])
+			time_per_epoch_avg = time_elapsed_vec[epoch-1] # Estimated remaining time based on the elapsed time of the last iteration
 			if epoch % print_every == 0:
 				logger.info("    * Elapsed time per epoch: {0:.2f} sec.".format(time_per_epoch_avg))
 				remaining_time = time_per_epoch_avg*(Nepochs-epoch)

@@ -47,6 +47,8 @@ class InverseFourierTransformKernelToolbox():
 		
 		# Compute S(w) varphi(w)
 		self.spectral_values, self.varphi_values = self.spectral_density.unnormalized_density(omega_locations) # [Nomegas,1], [Nomegas,1]
+
+		# pdb.set_trace()
 		
 		# Store:
 		self.dw_voxel_vec = dw_voxel_vec # [Nomegas,1]

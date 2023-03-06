@@ -3,6 +3,7 @@ import math
 import numpy as np
 from ood.fourier_kernel import InverseFourierTransformKernelToolbox
 from lqrker.utils.common import CommonUtils
+import time
 import tensorflow as tf
 import tensorflow_probability as tfp
 from lqrker.utils.parsing import get_logger
@@ -19,7 +20,8 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 		self.inverse_fourier_toolbox = inverse_fourier_toolbox
 
 		# Integration step omegas:
-		self.Dw_voxel_val = dw_voxel_init
+		# self.Dw_voxel_val = dw_voxel_init
+		self.Dw_voxel_val = self.add_weight(shape=(1,), initializer=tf.keras.initializers.Constant(value=dw_voxel_init), trainable=True, name="Dw_voxel_val")
 
 		# initializer = tf.keras.initializers.RandomUniform(minval=0., maxval=1.)
 		# self.delta_omegas = self.add_weight(shape=(Nomegas,), initializer=initializer(shape=(Nomegas,)), trainable=True, name="delta_omegas")
@@ -73,23 +75,20 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 
 
 	def reconstruct_function_at(self,xpred):
-		delta_omegas = self.get_delta_omegas()
-		delta_statespace = self.get_delta_statespace()
 		self.inverse_fourier_toolbox.update_integration_parameters(	omega_locations=self.get_omegas_weights(),
 																	dw_voxel_vec=self.get_delta_omegas(),
 																	dX_voxel_vec=self.get_delta_statespace())
 		fx_reconstructed = self.inverse_fourier_toolbox.get_fx_with_variable_integration_step(xpred) # [Npoints, 1]
 		return fx_reconstructed
 
-	def loss_reconstruction_fun(self):
+	def loss_reconstruction_fun(self,lengthscale_loss):
 
-		sigma_noise_stddev = 0.5
 		fx_reconstructed = self.reconstruct_function_at(xpred=self.Xtest)
-		loss_val = tf.reduce_mean(0.5*((self.Ytest - fx_reconstructed)/sigma_noise_stddev)**2,axis=0,keepdims=True) # [1, 1]
+		loss_val = tf.reduce_mean(((self.Ytest - fx_reconstructed)/lengthscale_loss)**2,axis=0,keepdims=True) # [1, 1]
 
 		return loss_val
 
-	def train(self,Nepochs,learning_rate,stop_loss_val,print_every=100):
+	def train(self,Nepochs,learning_rate,stop_loss_val,lengthscale_loss,print_every=100):
 
 		optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
@@ -102,7 +101,10 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 		plotting_dict = dict(plotting=False)
 		# print_every = 100
 		self.loss_vec = np.zeros(Nepochs)
+		time_elapsed_vec = np.zeros(Nepochs)
 		while epoch < Nepochs and not done:
+
+			time_start = time.time()
 
 			if (epoch+1) % print_every == 0:
 				logger.info("="*len(str_banner))
@@ -111,7 +113,7 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 				logger.info("="*len(str_banner))
 
 			with tf.GradientTape() as tape:
-				loss_value = self.loss_reconstruction_fun()
+				loss_value = self.loss_reconstruction_fun(lengthscale_loss)
 
 			grads = tape.gradient(loss_value, self.trainable_weights)
 			optimizer.apply_gradients(zip(grads, self.trainable_weights))
@@ -134,7 +136,20 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 			# Register values:
 			self.loss_vec[epoch] = tf.squeeze(loss_value)
 			
+			time_elapsed_vec[epoch] = time.time() - time_start
+
 			epoch += 1
+
+			# Report time:
+			time_per_epoch_avg = np.mean(time_elapsed_vec[0:epoch])
+			if epoch % print_every == 0:
+				logger.info("    * Elapsed time per epoch: {0:.2f} sec.".format(time_per_epoch_avg))
+				remaining_time = time_per_epoch_avg*(Nepochs-epoch)
+				if remaining_time > 60.:
+					logger.info("    * Remaining time: {1:.2f} min.".format(Nepochs,remaining_time/60.))
+				else:
+					logger.info("    * Remaining time: {1:.2f} sec.".format(Nepochs,remaining_time))
+
 
 		if done == True:
 			logger.info(" * Training finished because loss_value = {0:f} (<= {1:f})".format(float(loss_value),float(stop_loss_val)))

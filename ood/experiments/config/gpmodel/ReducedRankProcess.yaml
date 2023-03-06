@@ -17,10 +17,15 @@ hyperpars:
   # prior_mean_factor: 1.0
   # noise_std_process: 0.15
 
-  # Kink:
-  prior_variance: 0.1
+  # # Kink:
+  # prior_variance: 0.1
+  # prior_mean_factor: 1.0
+  # noise_std_process: 0.15
+
+  # Kink/Parabola many systems in one:
+  prior_variance: 2.0
   prior_mean_factor: 1.0
-  noise_std_process: 0.15
+  noise_std_process: 0.1
 
 
   weights_features:

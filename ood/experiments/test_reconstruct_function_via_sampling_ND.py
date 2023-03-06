@@ -56,31 +56,13 @@ def reconstruct(cfg):
 	dim_in = dim_x + dim_u
 	dim_out = dim_x
 
-	# integration_method = "integrate_with_regular_grid"
-	# integration_method = "integrate_with_irregular_grid"
-	# integration_method = "integrate_with_bayesian_quadrature"
-	integration_method = "integrate_with_data"
+	spectral_density_list = [None]*dim_out
+	for jj in range(dim_out):
+		spectral_density_list[jj] = DubinsCarSpectralDensity(cfg=cfg.spectral_density.dubinscar,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",use_nominal_model=True,Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
 
-	if integration_method == "integrate_with_regular_grid":
-		spectral_density = DubinsCarSpectralDensity(cfg.spectral_density.dubinscar,cfg.sampler.hmc,dim=dim_in,integration_method=integration_method,use_nominal_model=True,Xtrain=None,Ytrain=None)
-
-		Xtrain_backup = tf.identity(Xtrain)
-		Ytrain_backup = tf.identity(Ytrain)
-
-		Xtrain = tf.identity(spectral_density.xdata)
-		Ytrain = tf.identity(spectral_density.fdata)
-
-		# Testing dataset (we use the training dataset)
-		xpred_testing = spectral_density.xdata
-		fx_true_testing = spectral_density.fdata
-
-	elif integration_method == "integrate_with_data":
-		spectral_density = DubinsCarSpectralDensity(cfg.spectral_density.dubinscar,cfg.sampler.hmc,dim=dim_in,integration_method=integration_method,use_nominal_model=True,Xtrain=Xtrain,Ytrain=Ytrain)
-
-		# Testing dataset (we use the training dataset)
-		xpred_testing = tf.identity(Xtrain)
-		fx_true_testing = tf.identity(Ytrain)
-
+	# Testing dataset (we use the training dataset)
+	xpred_testing = tf.identity(Xtrain)
+	fx_true_testing = tf.identity(Ytrain)
 
 	# # Discrete grid:
 	# # L = 200.0; Ndiv = 5 # 5**5=3125 # works
@@ -94,12 +76,18 @@ def reconstruct(cfg):
 	# # _, _, omegas_weights = spectral_density.get_Wpoints_discrete(L,Ndiv,normalize_density_numerically=False,reshape_for_plotting=False)
 	# Nsamples_omega = omegas_weights.shape[0]
 
-	omegas_weights = None
-	# Nsamples_omega = 20
-	# Nepochs = 10
-	Nsamples_omega = 1000
-	omega_lim = 1.0
-	Nepochs = 200
+
+	xmax_testing = tf.reduce_max(Xtrain)
+	xmin_testing = tf.reduce_min(Xtrain)
+	Ndiv_testing = Xtrain.shape[0]
+	# delta_statespace = (xmax_testing-xmin_testing)**dim_in / Ndiv_testing
+	delta_statespace = 1.0 / Ndiv_testing
+
+	Nsamples_omega = 2000
+	omega_lim = 3.0
+	Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
+
+	Nepochs = 100
 	extent_plot_statespace = [xpred_testing[0,0],xpred_testing[-1,0],xpred_testing[0,1],xpred_testing[-1,1]] #  scalars (left, right, bottom, top)
 	fx_optimized_omegas_and_voxels = np.zeros((xpred_testing.shape[0],dim_out))
 	omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,dim_in))
@@ -107,79 +95,42 @@ def reconstruct(cfg):
 	delta_statespace_trainedNN = np.zeros((dim_out,Xtrain.shape[0],1))
 
 	loss_reconstruction_evolution = np.zeros((dim_out,Nepochs))
+	spectral_density_optimized_list = [None]*dim_out
+	# pdb.set_trace()
 	for jj in range(dim_out):
 
 		logger.info("Reconstruction for channel {0:d} / {1:d} ...".format(jj+1,dim_out))
 
-		spectral_density.update_fdata(fdata=fx_true_testing[:,jj:jj+1])
-		inverse_fourier_toolbox_channel = InverseFourierTransformKernelToolbox(spectral_density=spectral_density,dim=dim_in,dim_out_ind=None)
+		inverse_fourier_toolbox_channel = InverseFourierTransformKernelToolbox(spectral_density=spectral_density_list[jj],dim=dim_in)
 
-		reconstructor_fx_deltas_and_omegas = ReconstructFunctionFromSpectralDensity(dim_in=dim_in,omega_lim=omega_lim,Nomegas=Nsamples_omega,
+		reconstructor_fx_deltas_and_omegas = ReconstructFunctionFromSpectralDensity(dim_in=dim_in,dw_voxel_init=Dw_coarse,dX_voxel_init=delta_statespace,
+																					omega_lim=omega_lim,Nomegas=Nsamples_omega,
 																					inverse_fourier_toolbox=inverse_fourier_toolbox_channel,
-																					Xtrain=xpred_testing,Ytrain=fx_true_testing[:,jj:jj+1],
-																					omegas_weights=omegas_weights)
-		reconstructor_fx_deltas_and_omegas.train(Nepochs=Nepochs,learning_rate=1e-1,stop_loss_val=0.0001,print_every=10)
+																					Xtest=xpred_testing,Ytest=fx_true_testing[:,jj:jj+1])
+
+		learning_rate = 1e-1
+		stop_loss_val = 1./fx_true_testing.shape[0]
+		logger.info("stop_loss_val = 1/{0:d} = {1:f}".format(fx_true_testing.shape[0],stop_loss_val))
+		lengthscale_loss = 0.01
+		logger.info("lengthscale_loss = {0:f}".format(lengthscale_loss))
+		reconstructor_fx_deltas_and_omegas.train(Nepochs=Nepochs,learning_rate=learning_rate,stop_loss_val=stop_loss_val,lengthscale_loss=lengthscale_loss,print_every=10)
+
+
+		spectral_density_optimized_list[jj] = reconstructor_fx_deltas_and_omegas.update_internal_spectral_density_parameters()
+		Sw_coarse_reconstr = reconstructor_fx_deltas_and_omegas.inverse_fourier_toolbox.spectral_values
+		phiw_coarse_reconstr = reconstructor_fx_deltas_and_omegas.inverse_fourier_toolbox.varphi_values
+
 
 		# Collect trained variables for each channel:
 		omegas_trainedNN[jj,...] = reconstructor_fx_deltas_and_omegas.get_omegas_weights()
-		delta_omegas_trainedNN[jj,:,0] = reconstructor_fx_deltas_and_omegas.get_delta_omegas(reconstructor_fx_deltas_and_omegas.delta_omegas_pre_activation) # [Nomegas,]
-		delta_statespace_trainedNN[jj,...] = reconstructor_fx_deltas_and_omegas.get_delta_statespace(reconstructor_fx_deltas_and_omegas.delta_statespace_preactivation) # [Nxpoints,1]
+		delta_omegas_trainedNN[jj,...] = reconstructor_fx_deltas_and_omegas.get_delta_omegas() # [Nomegas,]
+		delta_statespace_trainedNN[jj,...] = reconstructor_fx_deltas_and_omegas.get_delta_statespace() # [Nxpoints,1]
 
 		# Keep track of the loss evolution:
 		loss_reconstruction_evolution[jj,...] = reconstructor_fx_deltas_and_omegas.get_loss_history()
 		
 		# Reconstructed f(xt) at training locations:
-		if integration_method == "integrate_with_regular_grid":
-			fx_optimized_omegas_and_voxels[:,jj:jj+1] = reconstructor_fx_deltas_and_omegas.reconstruct_function_at(xpred=Xtrain_backup)
-		else:
-			fx_optimized_omegas_and_voxels[:,jj:jj+1] = reconstructor_fx_deltas_and_omegas.reconstruct_function_at(xpred=xpred_testing)
-
-
-
-
-
-
-
-
-		raise ValueError("Maybe we need more data???????????????????????????????")
-
-		raise ValueError("Make sure # which_features: "RRPDiscreteCosineFeaturesVariableIntegrationStep"")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+		fx_optimized_omegas_and_voxels[:,jj:jj+1] = reconstructor_fx_deltas_and_omegas.reconstruct_function_at(xpred=xpred_testing)
 
 
 	# Save relevant quantities:
@@ -196,6 +147,8 @@ def reconstruct(cfg):
 		varphi_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
 
 		for jj in range(dim_out):
+
+			raise NotImplementedError("Many of the functionalities here are not implmetnesd")
 
 			# In order to evaluate the spectral density and angle we need the correct data channel and the voxels:
 			spectral_density.update_fdata(fdata=fx_true_testing[:,jj:jj+1])
@@ -232,17 +185,17 @@ def reconstruct(cfg):
 	extent_plot_omegas = [omegapred_analysis[0,0],omegapred_analysis[-1,0],omegapred_analysis[0,1],omegapred_analysis[-1,1]] #  scalars (left, right, bottom, top)
 	for jj in range(dim_out):
 		
-		spectral_density.update_fdata(fdata=fx_true_testing[:,jj:jj+1])
-		spectral_density.update_dX_voxels(dX_new=delta_statespace_trainedNN[jj,...])
+		# spectral_density.update_fdata(fdata=fx_true_testing[:,jj:jj+1])
+		# spectral_density.update_dX_voxels(dX_new=delta_statespace_trainedNN[jj,...])
 
 		# Spectral density and angle:
-		Sw_vec, phiw_vec = spectral_density.unnormalized_density(omegapred_analysis_fist_two_dims)
+		Sw_vec, phiw_vec = spectral_density_optimized_list[jj].unnormalized_density(omegapred_analysis_fist_two_dims)
 
 		# Integrand:
-		inverse_fourier_toolbox_channel = InverseFourierTransformKernelToolbox(spectral_density=spectral_density,dim=dim_in,dim_out_ind=None)
-		inverse_fourier_toolbox_channel.update_spectral_density_and_angle(omegapred=omegapred_analysis_fist_two_dims,Dw=None,dX=None)
-		fx_integrand_unit_voxels_jj = inverse_fourier_toolbox_channel.get_fx_integrand_variable_voxels(xpred=Xtrain,Dw_vec=1.0) # We set Dw_vec=1 because we just wanna see the integrand
-		fx_integrand_averaged_states_jj = np.mean(fx_integrand_unit_voxels_jj,axis=0)
+		# inverse_fourier_toolbox_channel = InverseFourierTransformKernelToolbox(spectral_density=spectral_density,dim=dim_in,dim_out_ind=None)
+		# inverse_fourier_toolbox_channel.update_spectral_density_and_angle(omegapred=omegapred_analysis_fist_two_dims,Dw=None,dX=None)
+		# fx_integrand_unit_voxels_jj = inverse_fourier_toolbox_channel.get_fx_integrand_variable_voxels(xpred=Xtrain,Dw_vec=1.0) # We set Dw_vec=1 because we just wanna see the integrand
+		# fx_integrand_averaged_states_jj = np.mean(fx_integrand_unit_voxels_jj,axis=0)
 
 
 		# Spectral density:
@@ -253,6 +206,10 @@ def reconstruct(cfg):
 		hdl_splots_omegas[jj,0].set_title(r"${0:s}$".format(my_title),fontsize=fontsize_labels)
 		if jj == dim_out-1: hdl_splots_omegas[jj,0].set_xlabel(r"$\omega_1$",fontsize=fontsize_labels)
 		hdl_splots_omegas[jj,0].set_ylabel(r"$\omega_2$",fontsize=fontsize_labels)
+		hdl_splots_omegas[jj,0].set_xlim([-omega_lim,omega_lim])
+		hdl_splots_omegas[jj,0].set_ylim([-omega_lim,omega_lim])
+		hdl_splots_omegas[jj,0].set_xticks([-omega_lim,0,omega_lim])
+		hdl_splots_omegas[jj,0].set_yticks([-omega_lim,0,omega_lim])
 
 
 		# Varphi:
@@ -264,15 +221,22 @@ def reconstruct(cfg):
 			hdl_splots_omegas[jj,1].set_title(r"${0:s}$".format(my_title),fontsize=fontsize_labels)
 		else:
 			for jj in range(dim_out): hdl_splots_omegas[jj,1].set_xticks([],[]); hdl_splots_omegas[jj,1].set_yticks([],[])
+		hdl_splots_omegas[jj,1].set_xlim([-omega_lim,omega_lim])
+		hdl_splots_omegas[jj,1].set_ylim([-omega_lim,omega_lim])
+		hdl_splots_omegas[jj,1].set_xticks([-omega_lim,0,omega_lim])
+		hdl_splots_omegas[jj,1].set_yticks([-omega_lim,0,omega_lim])
+
 
 
 		# Plotting the integrand (without the voxels, obviously):
-		fx_integrand_averaged_states_jj_plotting = np.reshape(fx_integrand_averaged_states_jj,(Ndiv_omega_for_analysis,Ndiv_omega_for_analysis),order="F")
-		hdl_splots_omegas[jj,2].imshow(fx_integrand_averaged_states_jj_plotting,extent=extent_plot_omegas,origin="lower",cmap=plt.get_cmap(COLOR_MAP),vmin=fx_integrand_averaged_states_jj_plotting.min(),vmax=fx_integrand_averaged_states_jj_plotting.max(),interpolation='nearest')
+		# fx_integrand_averaged_states_jj_plotting = np.reshape(fx_integrand_averaged_states_jj,(Ndiv_omega_for_analysis,Ndiv_omega_for_analysis),order="F")
+		# hdl_splots_omegas[jj,2].imshow(fx_integrand_averaged_states_jj_plotting,extent=extent_plot_omegas,origin="lower",cmap=plt.get_cmap(COLOR_MAP),vmin=fx_integrand_averaged_states_jj_plotting.min(),vmax=fx_integrand_averaged_states_jj_plotting.max(),interpolation='nearest')
 		my_title = "(1/T)\sum_t g_{0:d}(x_t;\omega)".format(jj+1)
 		hdl_splots_omegas[jj,2].set_title(r"${0:s}$".format(my_title),fontsize=fontsize_labels)
 		hdl_splots_omegas[jj,2].set_xlim([-omega_lim,omega_lim])
 		hdl_splots_omegas[jj,2].set_ylim([-omega_lim,omega_lim])
+		hdl_splots_omegas[jj,2].set_xticks([-omega_lim,0,omega_lim])
+		hdl_splots_omegas[jj,2].set_yticks([-omega_lim,0,omega_lim])
 
 		# Add the resulting omegas:
 		hdl_splots_omegas[jj,2].plot(omegas_trainedNN[jj,:,0],omegas_trainedNN[jj,:,1],marker=".",color="indigo",markersize=3,linestyle="None")
@@ -282,9 +246,11 @@ def reconstruct(cfg):
 		if jj == dim_out-1: hdl_splots_omegas[jj,2].set_xlabel(r"$\omega_1$",fontsize=fontsize_labels)
 
 
+	# plt.show(block=True)
+
 
 	plot_state_transition_reconstruction = True
-	if plot_state_transition_reconstruction and integration_method == "integrate_with_data":
+	if plot_state_transition_reconstruction:
 		hdl_fig, hdl_splots_next_state = plt.subplots(dim_out,1,figsize=(16,14),sharex=False,sharey=False)
 		hdl_fig.suptitle(r"State transition - Reconstructed; $x_{t+1,d} = f_d(x_t)$",fontsize=fontsize_labels)
 		hdl_splots_next_state = np.reshape(hdl_splots_next_state,(-1,1))
@@ -320,7 +286,7 @@ def reconstruct(cfg):
 		lgnd.legendHandles[0]._legmarker.set_markersize(20)
 		lgnd.legendHandles[1]._legmarker.set_markersize(20)
 
-		# plt.show(block=True)
+	# plt.show(block=True)
 
 
 
@@ -349,7 +315,6 @@ def reconstruct(cfg):
 
 	# Trajectories:
 	plot_state_trajectories_reconstruction = True
-	if integration_method == "integrate_with_regular_grid": fx_true_testing = Ytrain_backup;
 	if plot_state_trajectories_reconstruction:
 		hdl_fig, hdl_splots_statespace = plt.subplots(1,1,figsize=(14,10),sharex=True,sharey=True)
 		hdl_fig.suptitle(r"Reconstructed trajectories $(x_{t,1},x_{t,2})$",fontsize=fontsize_labels)

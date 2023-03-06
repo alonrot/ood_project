@@ -94,7 +94,7 @@ def train_test_parabola(cfg: dict, block_plot: bool, which_kernel: str, which_no
 	xpred_training_cntxt = tf.convert_to_tensor(np.concatenate([xpred_training,theta_cntxt_vec],axis=1),dtype=tf.float32)
 
 	if which_kernel == "parabola":
-		kernel_name_plot_label = "Elbow"
+		kernel_name_plot_label = "Parabola"
 		use_nominal_model = True
 		integration_method = "integrate_with_data"
 		spectral_density = ParaboloidSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim_in=dim_in_cntxt,integration_method=integration_method,Xtrain=xpred_training_cntxt,Ytrain=fx_true_training)
@@ -129,15 +129,15 @@ def train_test_parabola(cfg: dict, block_plot: bool, which_kernel: str, which_no
 	xmin_testing = xmin_training
 	Ndiv_testing = xpred_testing_cntxt.shape[0]
 	delta_statespace = (xmax_testing-xmin_testing)**dim_in / Ndiv_testing
-	delta_statespace_vec = delta_statespace * np.ones((Ndiv_testing,1))
+	# delta_statespace_vec = delta_statespace * np.ones((Ndiv_testing,1))
 
 
 	Nomegas_coarse = 301
 	omega_lim_coarse = 3.0
 	omegapred_coarse = CommonUtils.create_Ndim_grid(xmin=-omega_lim_coarse,xmax=omega_lim_coarse,Ndiv=Nomegas_coarse,dim=dim_in_cntxt) # [Ndiv**dim_in,dim_in]
 	Dw_coarse =  (2.*omega_lim_coarse)**dim_in_cntxt / omegapred_coarse.shape[0]
-	Dw_coarse = 10.0*Dw_coarse
-	raise NotImplementedError("Do a line search to find the best Dw_coarse")
+	# Dw_coarse = 10.0*Dw_coarse
+	# raise NotImplementedError("Do a line search to find the best Dw_coarse")
 	# The training is very sensitive to how this parameter is initialized. It's worth doing a line search on it first.
 	Dw_coarse_vec = Dw_coarse * np.ones((Nomegas_coarse,1))
 
@@ -330,12 +330,12 @@ def train_test_parabola(cfg: dict, block_plot: bool, which_kernel: str, which_no
 		hdl_fig, hdl_splots = plt.subplots(1,2,figsize=(16,8),sharex=False)
 
 		# if which_nonlin_sys == "true":
-		# 	hdl_fig.suptitle(r"Elbow dynamical system $x_{t+1} = f(x_t;\theta_{nom})$ "+"| Kernel: {0}".format(kernel_name_plot_label),fontsize=fontsize_labels)
+		# 	hdl_fig.suptitle(r"Parabola dynamical system $x_{t+1} = f(x_t;\theta_{nom})$ "+"| Kernel: {0}".format(kernel_name_plot_label),fontsize=fontsize_labels)
 		# elif which_nonlin_sys == "wrong":
-		# 	hdl_fig.suptitle(r"Elbow dynamical system $x_{t+1} = f(x_t;\theta_{rand})$ "+"| Kernel: {0}".format(kernel_name_plot_label),fontsize=fontsize_labels)
+		# 	hdl_fig.suptitle(r"Parabola dynamical system $x_{t+1} = f(x_t;\theta_{rand})$ "+"| Kernel: {0}".format(kernel_name_plot_label),fontsize=fontsize_labels)
 		# elif which_nonlin_sys == "sampled":
-		# 	hdl_fig.suptitle(r"Elbow dynamical system $x_{t+1} = f(x_t;\theta_{rand})$ "+"| Kernel: {0}".format(kernel_name_plot_label),fontsize=fontsize_labels)
-		hdl_fig.suptitle(r"Elbow dynamical system $x_{t+1} = f(x_t;\theta)$, $\theta \sim p(\theta | Y,X)$ "+"| Kernel: {0}".format(kernel_name_plot_label),fontsize=fontsize_labels)
+		# 	hdl_fig.suptitle(r"Parabola dynamical system $x_{t+1} = f(x_t;\theta_{rand})$ "+"| Kernel: {0}".format(kernel_name_plot_label),fontsize=fontsize_labels)
+		hdl_fig.suptitle(r"Parabola dynamical system $x_{t+1} = f(x_t;\theta)$, $\theta \sim p(\theta | Y,X)$ "+"| Kernel: {0}".format(kernel_name_plot_label),fontsize=fontsize_labels)
 
 
 	# Prepare ESS:

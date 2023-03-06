@@ -120,14 +120,14 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 	xmin_testing = xmin_training
 	Ndiv_testing = xpred_testing.shape[0]
 	delta_statespace = (xmax_testing-xmin_testing)**dim_in / Ndiv_testing
-	delta_statespace_vec = delta_statespace * np.ones((Ndiv_testing,1))
+	# delta_statespace_vec = delta_statespace * np.ones((Ndiv_testing,1))
 
 
 	Nomegas_coarse = 31
 	omega_lim_coarse = 3.0
 	omegapred_coarse = CommonUtils.create_Ndim_grid(xmin=-omega_lim_coarse,xmax=omega_lim_coarse,Ndiv=Nomegas_coarse,dim=dim_in) # [Ndiv**dim_in,dim_in]
 	Dw_coarse =  (2.*omega_lim_coarse)**dim_in / omegapred_coarse.shape[0]
-	Dw_coarse_vec = Dw_coarse * np.ones((Nomegas_coarse,1))
+	# Dw_coarse_vec = Dw_coarse * np.ones((Nomegas_coarse,1))
 
 
 
@@ -140,7 +140,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 																inverse_fourier_toolbox=inverse_fourier_toolbox,
 																Xtest=xpred_testing,Ytest=fx_true_testing)
 
-	Nepochs = 1500
+	Nepochs = 6000
 	reconstructor_fx.train(Nepochs=Nepochs,learning_rate=1e-2,stop_loss_val=0.001)
 	fx_optimized_voxels_coarse = reconstructor_fx.reconstruct_function_at(xpred=xpred_testing)
 	spectral_density_optimized = reconstructor_fx.update_internal_spectral_density_parameters()

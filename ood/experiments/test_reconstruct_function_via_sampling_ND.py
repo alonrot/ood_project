@@ -37,8 +37,8 @@ def reconstruct(cfg):
 
 	savefig = True
 
-	# using_hybridrobotics = False
-	using_hybridrobotics = True
+	using_hybridrobotics = False
+	# using_hybridrobotics = True
 
 	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
 	if using_hybridrobotics:

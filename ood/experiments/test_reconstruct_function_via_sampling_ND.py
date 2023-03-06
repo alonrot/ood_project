@@ -88,7 +88,7 @@ def reconstruct(cfg):
 	# delta_statespace = (xmax_testing-xmin_testing)**dim_in / Ndiv_testing
 	delta_statespace = 1.0 / Ndiv_testing
 
-	Nsamples_omega = 1000
+	Nsamples_omega = 2000
 	omega_lim = 3.0
 	Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 	# Dw_coarse = 1.0 / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
@@ -101,10 +101,10 @@ def reconstruct(cfg):
 	delta_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
 	delta_statespace_trainedNN = np.zeros((dim_out,Xtrain.shape[0],1))
 
-	Nepochs = 11
-	learning_rate = 1e-1
+	Nepochs = 4000
+	learning_rate = 1e-2
 	# stop_loss_val = 1./fx_true_testing.shape[0]
-	stop_loss_val = 1.0
+	stop_loss_val = 0.01
 	lengthscale_loss = 0.01
 	loss_reconstruction_evolution = np.zeros((dim_out,Nepochs))
 	spectral_density_optimized_list = [None]*dim_out

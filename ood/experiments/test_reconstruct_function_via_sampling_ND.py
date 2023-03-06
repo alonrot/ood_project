@@ -37,8 +37,12 @@ def reconstruct(cfg):
 
 	savefig = True
 
-	# path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
-	path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
+	# using_hybridrobotics = False
+	using_hybridrobotics = True
+
+	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
+	if using_hybridrobotics:
+		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
 
 	"""
 	Get training dataset
@@ -88,7 +92,12 @@ def reconstruct(cfg):
 	# delta_statespace = (xmax_testing-xmin_testing)**dim_in / Ndiv_testing
 	delta_statespace = 1.0 / Ndiv_testing
 
+	Nepochs = 4000
 	Nsamples_omega = 2000
+	if using_hybridrobotics:
+		Nepochs = 4500
+		Nsamples_omega = 1500
+	
 	omega_lim = 3.0
 	Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 	# Dw_coarse = 1.0 / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
@@ -101,7 +110,6 @@ def reconstruct(cfg):
 	delta_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
 	delta_statespace_trainedNN = np.zeros((dim_out,Xtrain.shape[0],1))
 
-	Nepochs = 4000
 	learning_rate = 1e-2
 	# stop_loss_val = 1./fx_true_testing.shape[0]
 	stop_loss_val = 0.01
@@ -172,6 +180,7 @@ def reconstruct(cfg):
 	"""
 
 	Ndiv_omega_for_analysis = 71
+	if using_hybridrobotics: Ndiv_omega_for_analysis = 121
 	omegapred_analysis = CommonUtils.create_Ndim_grid(xmin=-omega_lim,xmax=omega_lim,Ndiv=Ndiv_omega_for_analysis,dim=2) # [Ndiv**dim_in,dim_in]
 
 	omegapred_analysis_fist_two_dims = tf.concat([omegapred_analysis,tf.zeros((omegapred_analysis.shape[0],3))],axis=1)

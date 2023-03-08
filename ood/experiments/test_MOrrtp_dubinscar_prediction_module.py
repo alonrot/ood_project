@@ -1,7 +1,6 @@
 import tensorflow as tf
 # import tensorflow.compat.v2 as tf
 import tensorflow_probability as tfp
-import pickle
 import gpflow
 import pdb
 import math
@@ -47,6 +46,25 @@ matplotlib.rc('font',**{'family':'serif','serif':['Computer Modern Roman']})
 plt.rc('legend',fontsize=fontsize_labels+2)
 
 
+def alter_dynamics_flag_time_based(tt,Nsteps):
+
+	# Time-based:
+	flag_alter = False
+	if tt < Nsteps/2:
+		flag_alter = True
+
+	return flag_alter
+
+def alter_dynamics_flag_state_based(state_curr):
+
+	flag_alter = False
+	if np.any(abs(state_curr[0,0:2]) > 2.0):
+		flag_alter = True
+
+	return flag_alter
+
+
+
 def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use_nominal_model_for_spectral_density=True):
 	"""
 	<<< Initialize GP model >>>
@@ -54,17 +72,17 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use
 	
 	# dim_y = dim_x
 
-	print("Initializing Spectral density ...")
-	if which_kernel == "vanderpol":
-		spectral_density = VanDerPolSpectralDensity(cfg.spectral_density.vanderpol,cfg.sampler.hmc,dim=dim_X)
-	elif which_kernel == "matern":
-		spectral_density = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_X)
-	elif which_kernel == "dubinscar":
-		# integration_method = "integrate_with_regular_grid"
-		integration_method = "integrate_with_data"
-		spectral_density = DubinsCarSpectralDensity(cfg.spectral_density.dubinscar,cfg.sampler.hmc,dim=dim_X,integration_method=integration_method,use_nominal_model=use_nominal_model_for_spectral_density,Xtrain=Xtrain,Ytrain=Ytrain)
-	else:
-		raise ValueError("Possibilities: [vanderpol,matern,dubinscar]")
+	# print("Initializing Spectral density ...")
+	# if which_kernel == "vanderpol":
+	# 	spectral_density = VanDerPolSpectralDensity(cfg.spectral_density.vanderpol,cfg.sampler.hmc,dim=dim_X)
+	# elif which_kernel == "matern":
+	# 	spectral_density = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_X)
+	# elif which_kernel == "dubinscar":
+	# 	# integration_method = "integrate_with_regular_grid"
+	# 	integration_method = "integrate_with_data"
+	# 	spectral_density = DubinsCarSpectralDensity(cfg.spectral_density.dubinscar,cfg.sampler.hmc,dim=dim_X,integration_method=integration_method,use_nominal_model=use_nominal_model_for_spectral_density,Xtrain=Xtrain,Ytrain=Ytrain)
+	# else:
+	# 	raise ValueError("Possibilities: [vanderpol,matern,dubinscar]")
 
 
 	# Regular grid:
@@ -75,32 +93,36 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use
 	# spectral_density.update_Wpoints_regular(omega_min,omega_max,Ndiv)
 
 
-	# Discrete grid:
-	L = 200.0; Ndiv = 5 # 5**5=3125 # works
-	# L = 100.0; Ndiv = 3 # 3**5=243 # reasonable for being just Ndiv=3
-	# L = 50.0; Ndiv = 3 # 3**5=243 # reasonable for being just Ndiv=3
-	# L = 50.0; Ndiv = 13 # 3**5=243 # reasonable for being just Ndiv=3
-	# L = 10.0; Ndiv = 5 # 5**5=3125
-	# L = 10.0; Ndiv = 7 # 7**5=16807
-	# L = 30.0
-	# Ndiv = 61
-	cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_X
-	spectral_density.update_Wpoints_discrete(L,Ndiv,normalize_density_numerically=False,reshape_for_plotting=False)
-
-	raise ValueError("Make sure # which_features: RRPDiscreteCosineFeatures")
-
+	# # Discrete grid:
+	# L = 200.0; Ndiv = 5 # 5**5=3125 # works
+	# # L = 100.0; Ndiv = 3 # 3**5=243 # reasonable for being just Ndiv=3
+	# # L = 50.0; Ndiv = 3 # 3**5=243 # reasonable for being just Ndiv=3
+	# # L = 50.0; Ndiv = 13 # 3**5=243 # reasonable for being just Ndiv=3
+	# # L = 10.0; Ndiv = 5 # 5**5=3125
+	# # L = 10.0; Ndiv = 7 # 7**5=16807
+	# # L = 30.0
+	# # Ndiv = 61
+	# cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_X
+	# spectral_density.update_Wpoints_discrete(L,Ndiv,normalize_density_numerically=False,reshape_for_plotting=False)
 
 
 
 	# We should be able to do 1500 with wlim maybe 1.0 or 2.0, and tune the noise and variance parameters by training the model -> doesn't work
 
 
-
-	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid_omegalim1p0_omegas_within_lims.pickle"
-	# # path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid_omegalim0p5.pickle"
-	# # path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid.pickle"
-	# # path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters.pickle"
-	# spectral_density.update_Wsamples_from_file(path2save)
+	# Spectral density:
+	dim_in = dim_X
+	dim_out = Ytrain.shape[1]
+	spectral_density_list = [None]*dim_out
+	path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubins_car_reconstruction/from_dawkins/learning_data_Nepochs4500.pickle"
+	# path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid_omegalim1p0_omegas_within_lims.pickle"
+	# path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid_omegalim0p5.pickle"
+	# path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid.pickle"
+	# path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters.pickle"
+	for jj in range(dim_out):
+		spectral_density_list[jj] = DubinsCarSpectralDensity(cfg=cfg.spectral_density.dubinscar,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",use_nominal_model=True,Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
+		spectral_density_list[jj].update_Wsamples_from_file(path2data=path2load,ind_out=jj)
+		# spectral_density_list[jj].update_Wsamples_from_file(path2load)
 
 
 	# # Randomly sampled uniform grid:
@@ -112,7 +134,8 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use
 	
 
 	print("Initializing GP model ...")
-	rrtp_MO = MultiObjectiveReducedRankProcess(dim_X,cfg,spectral_density,Xtrain,Ytrain)
+	rrtp_MO = MultiObjectiveReducedRankProcess(dim_X,cfg,spectral_density_list,Xtrain,Ytrain)
+	# rrtp_MO = MultiObjectiveReducedRankProcess(dim_X,cfg,spectral_density,Xtrain,Ytrain)
 	# rrtp_MO.train_model()
 
 	return rrtp_MO
@@ -423,11 +446,11 @@ def merge_data(path2data_list):
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg: dict):
 
-	my_seed = 4
+	my_seed = 12
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
-	get_training_data_from_waypoints(save_data_dict=None,use_nominal_model=True)
+	# get_training_data_from_waypoints(save_data_dict=None,use_nominal_model=True)
 
 	merge_existing_data = False
 	if merge_existing_data:
@@ -488,40 +511,34 @@ def main(cfg: dict):
 	# pdb.set_trace()
 	rrtp_MO = initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use_nominal_model_for_spectral_density=True)
 	
+	# Trajectory selector:
+	Ntrajs_for_sel = Xtrain.shape[0]//Nsteps
+	Xtrain_for_sel = tf.reshape(Xtrain,(Ntrajs_for_sel,Nsteps,dim_X))
+	Ytrain_for_sel = tf.reshape(Ytrain,(Ntrajs_for_sel,Nsteps,dim_x))
+	ind_traj_selected = np.random.randint(low=0,high=Ntrajs_for_sel)
+	zu_vec = Xtrain_for_sel[ind_traj_selected,...]
+	zu_next_vec = Ytrain_for_sel[ind_traj_selected,...]
+	z_vec = Xtrain_for_sel[ind_traj_selected,:,0:dim_x].numpy()
+	u_vec = Xtrain_for_sel[ind_traj_selected,:,dim_x::].numpy()
 
-	# Prediction, to see:
 
-	# z_vec = Xtrain[-Nsteps::,0:3].numpy()
-	# u_vec = Xtrain[-Nsteps::,3::].numpy()
-
-	# z_vec_tf = tf.convert_to_tensor(value=z_vec,dtype=tf.float32)
-	# u_vec_tf = tf.convert_to_tensor(value=u_vec,dtype=tf.float32)
-
-	zu_vec = Xtrain[-Nsteps::,...]
-	zu_next_vec = Ytrain[-Nsteps::,...]
+	# zu_vec = Xtrain[-Nsteps::,...]
+	# zu_next_vec = Ytrain[-Nsteps::,...]
 
 	MO_mean_pred, MO_std_pred = rrtp_MO.predict_at_locations(zu_vec)
 
 
 	hdl_fig_pred, hdl_splots_pred = plt.subplots(1,1,figsize=(12,8),sharex=True)
 	hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
-	hdl_splots_pred.plot(zu_vec[:,0],zu_vec[:,1],marker=".",linestyle="-",color="grey",lw=1.0,markersize=5,label=r"Real traj - Input",alpha=0.3)
-	hdl_splots_pred.plot(zu_next_vec[:,0],zu_next_vec[:,1],marker=".",linestyle="-",color="navy",lw=1.0,markersize=5,label=r"Real traj - Next state",alpha=0.3)
-	hdl_splots_pred.plot(MO_mean_pred[:,0],MO_mean_pred[:,1],marker=".",linestyle="-",color="navy",lw=1.0,markersize=5,label=r"Predicted traj - Next dynamics",alpha=0.7)
-
+	hdl_splots_pred.plot(zu_vec[:,0],zu_vec[:,1],linestyle="-",color="grey",lw=2.0,label=r"Real traj - Input",alpha=0.3)
+	hdl_splots_pred.plot(zu_next_vec[:,0],zu_next_vec[:,1],linestyle="-",color="navy",lw=2.0,label=r"Real traj - Next state",alpha=0.3)
+	hdl_splots_pred.plot(MO_mean_pred[:,0],MO_mean_pred[:,1],linestyle="-",color="navy",lw=2.0,label=r"Predicted traj - Next dynamics",alpha=0.7)
 
 
 	plt.show(block=False)
 	plt.pause(1.)
-	pdb.set_trace()
-
-
-
-
-
-
-
 	# pdb.set_trace()
+
 
 	# # New reference trajectory, for the true system to follow
 	# ref_pars = dict()
@@ -540,13 +557,15 @@ def main(cfg: dict):
 	# z_vec, u_vec, t_vec = rollout_with_finitie_horizon_LQR(x0_mod,deltaT,T,Nsteps,ref_xt_vec,ref_ut_vec,use_nominal_model=True)
 	# # z_vec: [Nsteps,dim_out]
 	# # u_vec: [Nsteps,dim_in]
-	
 
-	# Take the last trajectory as the good one:
-	# pdb.set_trace()
-	# Nsteps = 1000
-	z_vec = Xtrain[-Nsteps::,0:3].numpy()
-	u_vec = Xtrain[-Nsteps::,3::].numpy()
+
+	# # Take the last trajectory as the good one:
+	# # pdb.set_trace()
+	# # Nsteps = 1000
+	# z_vec = Xtrain[-Nsteps::,].numpy()
+	# u_vec = Xtrain[-Nsteps::,dim_x::].numpy()
+
+
 	
 
 	# Generate control sequence (u_vec) using the right nominal model, but then apply it to the changed dynamics.
@@ -554,9 +573,18 @@ def main(cfg: dict):
 	z_vec_changed_dyn[0,:] = z_vec[0,:]
 	for tt in range(Nsteps-1):
 
-		use_nominal_model = tt > Nsteps/2
+		# use_nominal_model = alter_dynamics_flag_time_based(tt=tt,Nsteps=Nsteps)
+		use_nominal_model = alter_dynamics_flag_state_based(state_curr=z_vec_changed_dyn[tt:tt+1,:])
 		# use_nominal_model = True
-		z_vec_changed_dyn[tt+1:tt+2,:] = dyn_sys_true(state_vec=z_vec_changed_dyn[tt:tt+1,:],control_vec=u_vec[tt:tt+1,:],use_nominal_model=use_nominal_model)
+		# z_vec_changed_dyn[tt+1:tt+2,:] = dyn_sys_true(state_vec=z_vec_changed_dyn[tt:tt+1,:],control_vec=u_vec[tt:tt+1,:],use_nominal_model=use_nominal_model)
+
+		# When using low-pass filter:
+		# if tt > 0: control_vec_prev = u_vec[tt-1:tt,:]
+		# if tt == 0: control_vec_prev = None
+		# z_vec_changed_dyn[tt+1:tt+2,:] = dyn_sys_true(state_vec=z_vec_changed_dyn[tt:tt+1,:],control_vec=u_vec[tt:tt+1,:],use_nominal_model=use_nominal_model,control_vec_prev=control_vec_prev)
+		
+		# When using disturbance:
+		z_vec_changed_dyn[tt+1:tt+2,:] = dyn_sys_true(state_vec=z_vec_changed_dyn[tt:tt+1,:],control_vec=u_vec[tt:tt+1,:],use_nominal_model=use_nominal_model,control_vec_prev=None)
 
 
 		"""
@@ -573,48 +601,18 @@ def main(cfg: dict):
 		IMORTANT NOTE: With this approach we can only do model ANALYSIS. We can identify which one is the right model. But we can't do control at all, unless we do stochastic MPC.
 			1) At time t, we compare the observations from times [t-H,t-H+1,...,t] with the predictions we did starting from time t-H. For the same control sequence, different models will predict different trajectories. If one of them coincides with the observed one, with a low lsot, then that's our model. Otheriwse, we need to 
 			collect data and re-condition. But even when we have the model in our stack, the question is, how the hell do we give to the robot a new control sequence that it can follow? We have one that the robot is using to traverse a room. But in the middle of the room, the friction changes. Then that control
-			sequence is no longer valid. Imagine this is a real scenario. Where do we get a new control sequence from? If one of the models is correct, then, I guess, one possiblity is using stochastic MPC, no? I can actually do non-linear MPC by locally linearizing, subject to some disturbance. Remember that we can
+			sequence is no longer valid. Imagine this is a real scenario. Where do we get a new control sequence from? If one of the models is correct, then, we take the closest one and do safe stochastic MPC. We can do non-linear MPC by locally linearizing, subject to some disturbance. Remember that we can
 			linearize our model at cost O(1) because all it takes is to compute the derivatives of the features. Then, we can decompose matrix A in something deterministic (the mean) and a stochastic component (a random disturbabce) and just use standard stcohastc MPC tools.
 		"""
 
 
-	# pdb.set_trace()
-
-
-	# At every x_t, predict x_{t:t+H} states. 
-	# Compare those predictions with the observed y_{t:t+H}. 
-	# Compute OOD. 
-	# Repeat for time t+H+1
-	Nhorizon = 20
-	Nrollouts = 5
-	# x0 = np.random.rand(1,dim_x)
-
-	train = True
-	# log_noise_std_per_dim = tf.constant([-2.4124577,-2.2396216,-2.4339094]) # 50 iters
-	# log_prior_variance_per_dim = tf.constant([0.1828889,2.7030554,0.9408228]) # 50 iters
-
-	# log_noise_std_per_dim = tf.constant([-3.9496725, -2.8052473, -4.253263]) # 115 iters
-	# log_prior_variance_per_dim = tf.constant([-4.871695, 6.299472, -4.5974174]) # 115 iters
-
-	# # Weights: wrong, using matern kernel ... 88 iterations
-	# weights_list = []
-	# weights_list += [dict(log_noise_std=-1.055355,log_prior_variance=-1.9315833,log_prior_mean_factor=6.438162)]
-	# weights_list += [dict(log_noise_std=-1.589952,log_prior_variance=-1.0690501,log_prior_mean_factor=6.441733)]
-	# weights_list += [dict(log_noise_std=+0.367157,log_prior_variance=+5.218601,log_prior_mean_factor=-1.8352405)]
-
-	# # Weights: 85 iterations (with assign_weights_v1())
-	# weights_list = []
-	# weights_list += [dict(log_noise_std=-3.2072575,	log_prior_variance=-2.3769002,	log_prior_mean_factor=-2.1808307e-06)]
-	# weights_list += [dict(log_noise_std=-3.375641,	log_prior_variance=5.378116,	log_prior_mean_factor=3.5671384e-08)]
-	# weights_list += [dict(log_noise_std=-3.5728772,	log_prior_variance=-1.7348373,	log_prior_mean_factor=-1.6369743e-06)]
-
-	# Weights:
 
 	# Prepare the training and its loss; the latter compares the true trajectory with the predicted one, in chunks.
-	# learning_rate = 5e-2
 	learning_rate = 1e-1
 	epochs = 5
-	# epochs = 2
+	Nhorizon = 10
+	Nrollouts = 20
+	train = False
 	stop_loss_val = -1000.
 	scale_loss_entropy = 0.1
 	scale_prior_regularizer = 0.1
@@ -626,9 +624,9 @@ def main(cfg: dict):
 	# compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "altered_model"
 	assert compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to in ["nominal_model","altered_model"]
 	if compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to == "nominal_model":
-		z_vec_real = z_vec_tf
+		z_vec_real = z_vec_tf # [Nsteps,dim_out]
 	if compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to == "altered_model":
-		z_vec_real = z_vec_changed_dyn_tf
+		z_vec_real = z_vec_changed_dyn_tf # [Nsteps,dim_out]
 	rrtp_MO.update_dataset_predictive_loss(	z_vec_real=z_vec_real,u_traj_real=u_vec_tf,Nhorizon=Nhorizon,
 											learning_rate=learning_rate,epochs=epochs,stop_loss_val=stop_loss_val,
 											scale_loss_entropy=scale_loss_entropy,scale_prior_regularizer=scale_prior_regularizer,
@@ -636,22 +634,179 @@ def main(cfg: dict):
 
 	# plt.show(block=True)
 
-	# Before training to predict:
-	plotting_dict = dict(plotting=True,block_plot=False,title_fig="Predictions || Dummy",ref_xt_vec=None,z_vec=None,z_vec_changed_dyn=None)
-	plotting_dict["title_fig"] = "Predictions || Using posterior, after training one-step ahead"
-	plotting_dict["ref_xt_vec"] = ref_xt_vec
-	plotting_dict["z_vec"] = z_vec
-	plotting_dict["z_vec_changed_dyn"] = z_vec_changed_dyn
-	# plotting_dict["z_vec_changed_dyn"] = None
-	# rrtp_MO.set_dbg_flag(True)
-	loss_val = rrtp_MO.get_negative_log_evidence_predictive_full_trajs_in_batch(update_features=False,plotting_dict=plotting_dict,Nrollouts=Nrollouts)
-	logger.info("loss_total (before training): {0:f}".format(loss_val))
+	# # Before training to predict:
+	# plotting_dict = dict(plotting=True,block_plot=False,title_fig="Predictions || Dummy",ref_xt_vec=None,z_vec=None,z_vec_changed_dyn=None)
+	# plotting_dict["title_fig"] = "Predictions || Using posterior, after training one-step ahead"
+	# plotting_dict["ref_xt_vec"] = ref_xt_vec
+	# plotting_dict["z_vec"] = z_vec
+	# plotting_dict["z_vec_changed_dyn"] = z_vec_changed_dyn
+	# # plotting_dict["z_vec_changed_dyn"] = None
+	# # rrtp_MO.set_dbg_flag(True)
+	# loss_val, x_traj_pred_chunks = rrtp_MO.get_negative_log_evidence_predictive_full_trajs_in_batch(update_features=False,plotting_dict=plotting_dict,Nrollouts=Nrollouts)
+	# # x_traj_pred_chunks: [Nchunks,Nrollouts,Nhorizon,dim_X]
+	# logger.info("loss_total (before training): {0:f}".format(loss_val))
 
-	# plt.show(block=True)
+	# # plt.show(block=True)
+
+
+	# Visualize samples:
+	plotting_visualize_samples = False
+	if plotting_visualize_samples:
+		plt_pause_sec = 1.0
+		plt_samples_ylabels = [r"$x_1$",r"$x_2$",r"$\theta$"]
+		hdl_fig_pred_sampling, hdl_splots_sampling = plt.subplots(dim_x,1,figsize=(12,8),sharex=True)
+		Nchunks = Nsteps//Nhorizon
+		z_vec_real_in_chunks = np.reshape(z_vec_real,(Nchunks,Nhorizon,dim_x)) # z_vec_real: [Nsteps,dim_out] || z_vec_real_in_chunks: [Nchunks,Nhorizon,dim_out]
+		hdl_fig_pred_sampling.suptitle("Sampling trajectories ...", fontsize=16)
+		time_steps = np.arange(1,z_vec_real_in_chunks.shape[1]+1)
+		hdl_splots_sampling[-1].set_xlabel(r"Horizon time steps")
+		for ii in range(Nchunks):
+
+			for dd in range(dim_x):
+				hdl_splots_sampling[dd].cla()
+				hdl_splots_sampling[dd].plot(time_steps,z_vec_real_in_chunks[ii,:,dd],linestyle="-",color="navy",lw=2.0,label=r"Real traj",alpha=0.8)
+				hdl_splots_sampling[dd].plot(time_steps,z_vec_real_in_chunks[ii,:,dd],linestyle="None",color="navy",marker=".",alpha=0.8,markersize=8)
+				hdl_splots_sampling[dd].set_ylabel(plt_samples_ylabels[dd],fontsize=fontsize_labels)
+				for ss in range(Nrollouts):
+					hdl_splots_sampling[dd].plot(time_steps,x_traj_pred_chunks[ii,ss,:,dd],linestyle="-",color="navy",lw=1.0,label=r"Sampled trajs",alpha=0.2)
+
+			plt.show(block=False)
+			plt.pause(plt_pause_sec)
+
+		plt.show(block=True)
+
+
+	# Receding horizon predictions:
+	plotting_receding_horizon_predictions = True
+	savedata = True
+	# recompute = True
+	recompute = False
+	path2save_receding_horizon = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubins_car_receding"
+	file_name = "trajs_ind_traj_{0:d}.pickle".format(ind_traj_selected)
+	if plotting_receding_horizon_predictions and recompute:
+		Nhorizon_rec = 50
+		Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
+		loss_val_per_step = np.zeros(Nsteps_tot)
+		x_traj_pred_all_vec = np.zeros((Nsteps_tot,Nrollouts,Nhorizon_rec,dim_x))
+		for tt in range(Nsteps_tot):
+
+			x_traj_real_applied = z_vec_real[tt:tt+Nhorizon_rec,:]
+			x_traj_real_applied_tf = tf.reshape(x_traj_real_applied,(1,Nhorizon_rec,dim_x))
+			u_applied_tf = u_vec_tf[tt:tt+Nhorizon_rec,:]
+			str_progress_bar = "Prediction with horizon = {0:d}; tt: {1:d} / {2:d} | ".format(Nhorizon_rec,tt+1,Nsteps_tot)
+			loss_val_per_step[tt], x_traj_pred, y_traj_pred = rrtp_MO._get_negative_log_evidence_and_predictive_trajectory_chunk(x_traj_real_applied_tf,u_applied_tf,Nsamples=1,
+																												Nrollouts=Nrollouts,str_progress_bar=str_progress_bar,from_prior=False,
+																												scale_loss_entropy=scale_loss_entropy,
+																												scale_prior_regularizer=scale_prior_regularizer,
+																												sample_fx_once=True)
+			x_traj_pred_all_vec[tt,...] = np.concatenate([x_traj_pred,y_traj_pred[:,-1::,:]],axis=1) # [Nsteps_tot,Nrollouts,Nhorizon_rec,self.dim_out]
+
+
+		if savedata:
+			data2save = dict(x_traj_pred_all_vec=x_traj_pred_all_vec,u_vec_tf=u_vec_tf,z_vec_real=z_vec_real,z_vec_tf=z_vec_tf,z_vec_changed_dyn_tf=z_vec_changed_dyn_tf,loss_val_per_step=loss_val_per_step)
+			path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)
+			logger.info("Saving at {0:s} ...".format(path2save_full))
+			file = open(path2save_full, 'wb')
+			pickle.dump(data2save,file)
+			file.close()
+			return
+
+
+	elif plotting_receding_horizon_predictions:
+
+		# file_name = "trajs_ind_traj_46.pickle"
+		# file_name = "trajs_ind_traj_47.pickle"
+		# file_name = "trajs_ind_traj_78.pickle"
+		# file_name = "trajs_ind_traj_67.pickle" # Models sampled as they should
+		# file_name = "trajs_ind_traj_54.pickle"
+		# file_name = "trajs_ind_traj_9.pickle" # Using low pass filter as change in dynamics
+		# file_name = "trajs_ind_traj_25.pickle" # Using disturbance, but now distance-based dynamics alteration
+		file_name = "trajs_ind_traj_75.pickle" # Nominal model, horizon=50
+
+
+
+		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)
+		file = open(path2save_full, 'rb')
+		data_dict = pickle.load(file)
+		file.close()
+
+		x_traj_pred_all_vec = data_dict["x_traj_pred_all_vec"] # [Nsteps_tot,Nrollouts,Nhorizon_rec,dim_x]
+		z_vec_tf = data_dict["z_vec_tf"]
+		z_vec_changed_dyn_tf = data_dict["z_vec_changed_dyn_tf"]
+		z_vec_real = data_dict["z_vec_real"]
+		loss_val_per_step = data_dict["loss_val_per_step"]
+
+		Nsteps_tot = x_traj_pred_all_vec.shape[0]
+		Nrollouts = x_traj_pred_all_vec.shape[1]
+		time_steps = np.arange(1,Nsteps_tot+1)
+		list_xticks_loss = list(range(0,Nsteps_tot+1,40)); list_xticks_loss[0] = 1
+		thres_OoD = 10.0
+		loss_min = np.amin(loss_val_per_step)
+
+		def is_OoD_loss_based(loss_val_current,loss_thres):
+			return loss_val_current > loss_thres
+
+		hdl_fig_pred_sampling_rec, hdl_splots_sampling_rec = plt.subplots(1,2,figsize=(17,7),sharex=False)
+		# hdl_fig_pred_sampling_rec.suptitle("Simulated trajectory predictions ...", fontsize=fontsize_labels)
+		# hdl_splots_sampling_rec[0].plot(z_vec_real[0:tt+1,0],z_vec_real[0:tt+1,1],linestyle="-",color="navy",lw=2.0,label="Real traj - nominal dynamics",alpha=0.3)
+		hdl_splots_sampling_rec[0].plot(z_vec_tf[:,0],z_vec_tf[:,1],linestyle="-",color="navy",lw=2.0,label="With nominal dynamics",alpha=0.7)
+		hdl_splots_sampling_rec[0].plot(z_vec_changed_dyn_tf[:,0],z_vec_changed_dyn_tf[:,1],linestyle="-",color="navy",lw=2.0,label="With changed dynamics",alpha=0.15)
+		hdl_plt_dubins_real, = hdl_splots_sampling_rec[0].plot(z_vec_real[tt,0],z_vec_real[tt,1],marker="*",markersize=14,color="darkgreen",label="Dubins car")
+		# hdl_splots_sampling_rec[0].set_xlim([-6.0,5.0])
+		# hdl_splots_sampling_rec[0].set_ylim([-3.5,1.5])
+		hdl_splots_sampling_rec[0].set_title("Dubins car", fontsize=fontsize_labels)
+		hdl_splots_sampling_rec[0].set_xlabel(r"$x_1$", fontsize=fontsize_labels)
+		hdl_splots_sampling_rec[0].set_ylabel(r"$x_2$", fontsize=fontsize_labels)
+		hdl_plt_predictions_list = []
+		for ss in range(Nrollouts):
+			hdl_plt_predictions_list += hdl_splots_sampling_rec[0].plot(x_traj_pred_all_vec[0,ss,:,0],x_traj_pred_all_vec[0,ss,:,1],linestyle="-",color="darkorange",lw=0.5,label="Sampled trajs",alpha=0.5)
+
+		# Loss evolution:
+		hdl_plt_artist_loss_title = hdl_splots_sampling_rec[1].set_title("Prediction loss", fontsize=fontsize_labels)
+		hdl_plt_artist_loss, = hdl_splots_sampling_rec[1].plot(time_steps[0:1],loss_val_per_step[0:1],linestyle="-",color="darkorange",lw=2.0,alpha=0.8)
+		hdl_splots_sampling_rec[1].set_xlim([1,Nsteps_tot+1])
+		hdl_splots_sampling_rec[1].set_xticks(list_xticks_loss)
+		hdl_splots_sampling_rec[1].set_xlabel("Time step", fontsize=fontsize_labels)
+		hdl_splots_sampling_rec[1].set_ylim([loss_min,thres_OoD*3.])
+		hdl_splots_sampling_rec[1].axhline(y=thres_OoD,color="palegoldenrod",lw=2.0,linestyle='-')
+		
+		plt.show(block=False)
+		plt.pause(0.5)
+		plt_pause_sec = 0.01
+		
+
+		for tt in range(Nsteps_tot):
+
+			is_OoD = is_OoD_loss_based(loss_val_per_step[tt],thres_OoD)
+
+			hdl_plt_dubins_real.set_markerfacecolor("red" if is_OoD else "green")
+			hdl_plt_dubins_real.set_markeredgecolor("red" if is_OoD else "green")
+
+			hdl_plt_dubins_real.set_xdata(z_vec_real[tt,0])
+			hdl_plt_dubins_real.set_ydata(z_vec_real[tt,1])
+			
+			for ss in range(Nrollouts):
+				hdl_plt_predictions_list[ss].set_xdata(x_traj_pred_all_vec[tt,ss,:,0])
+				hdl_plt_predictions_list[ss].set_ydata(x_traj_pred_all_vec[tt,ss,:,1])
+				# hdl_splots_sampling_rec[0].plot(x_traj_pred_all_vec[tt,ss,:,0],x_traj_pred_all_vec[tt,ss,:,1],linestyle="-",color="crimson",lw=0.5,label="Sampled trajs",alpha=0.3)
+
+			hdl_plt_artist_loss.set_xdata(time_steps[0:tt+1])
+			hdl_plt_artist_loss.set_ydata(loss_val_per_step[0:tt+1])
+			# hdl_splots_sampling_rec[1].set_ylim([loss_min,np.amax(loss_val_per_step[0:tt+1])*1.1])
+			# hdl_splots_sampling_rec[1].set_title("Prediction loss; {0:s}".format("OoD = {0:s}".format(str(is_OoD))), fontsize=fontsize_labels)
+			hdl_plt_artist_loss_title.set_text("Prediction loss | OoD = {0:s}".format(str(is_OoD)))
+			hdl_plt_artist_loss_title.set_color("red" if is_OoD else "green")
+			
+
+			plt.show(block=False)
+			plt.pause(plt_pause_sec)
+
+		plt.show(block=True)
+
 
 	# Before conditioning (prior):
 	plotting_dict["title_fig"] = "Predictions || Using prior, no training"
-	loss_val = rrtp_MO.get_negative_log_evidence_predictive_full_trajs_in_batch(update_features=False,plotting_dict=plotting_dict,Nrollouts=Nrollouts,from_prior=True)
+	loss_val, = rrtp_MO.get_negative_log_evidence_predictive_full_trajs_in_batch(update_features=False,plotting_dict=plotting_dict,Nrollouts=Nrollouts,from_prior=True)
 	logger.info("loss_total (before conditioning; prior): {0:f}".format(loss_val))
 
 	# plt.show(block=True)
@@ -666,7 +821,7 @@ def main(cfg: dict):
 
 	# After training to predict:
 	plotting_dict["title_fig"] = "Predictions || Using posterior after training H-step ahead)"
-	loss_val = rrtp_MO.get_negative_log_evidence_predictive_full_trajs_in_batch(update_features=True,plotting_dict=plotting_dict,Nrollouts=Nrollouts)
+	loss_val, = rrtp_MO.get_negative_log_evidence_predictive_full_trajs_in_batch(update_features=True,plotting_dict=plotting_dict,Nrollouts=Nrollouts)
 	logger.info("loss_total (after training): {0:f}".format(loss_val))
 
 	plt.show(block=True)

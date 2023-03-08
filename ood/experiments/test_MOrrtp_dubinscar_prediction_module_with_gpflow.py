@@ -27,7 +27,7 @@ from test_dubin_car import get_sequence_of_feedback_gains_finite_horizon_LQR, ro
 
 dyn_sys_true = DubinsCarSpectralDensity._controlled_dubinscar_dynamics
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup # pip install beautifulsoup4
 
 markersize_x0 = 10
 markersize_trajs = 0.4
@@ -65,6 +65,13 @@ def alter_dynamics_flag_state_based(state_curr):
 
 @hydra.main(config_path="./config",config_name="config")
 def main_train_model(cfg: dict):
+
+	# using_hybridrobotics = False
+	using_hybridrobotics = True
+
+	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
+	if using_hybridrobotics:
+		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
 
 	my_seed = 12
 	np.random.seed(seed=my_seed)
@@ -168,7 +175,7 @@ def main_train_model(cfg: dict):
 	)
 
 	# Save model:
-	path2save_model = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubins_car_receding_gpflow"
+	path2save_model = path2project+"/dubins_car_receding_gpflow"
 	model_name = "model_{0:d}".format(my_seed)
 	path2save_model_full = "{0:s}/{1:s}".format(path2save_model,model_name)
 	logger.info("Saving model at {0:s} ...".format(path2save_model_full))
@@ -178,12 +185,20 @@ def main_train_model(cfg: dict):
 @hydra.main(config_path="./config",config_name="config")
 def main_test_model(cfg: dict):
 
+	using_hybridrobotics = False
+	# using_hybridrobotics = True
+
+	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
+	if using_hybridrobotics:
+		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
+
+
 	my_seed = 12
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
 	# Get training data:
-	path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_nominal_model_waypoints_lighter_many_trajs_for_searching_wlim.pickle"
+	path2data = path2project+"/dubinscar_data_nominal_model_waypoints_lighter_many_trajs_for_searching_wlim.pickle"
 
 	logger.info("Loading {0:s} ...".format(path2data))
 	file = open(path2data, 'rb')
@@ -200,7 +215,7 @@ def main_test_model(cfg: dict):
 	dim_X = dim_x + dim_u
 
 	# Load model:
-	path2save_model = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubins_car_receding_gpflow"
+	path2save_model = path2project+"/dubins_car_receding_gpflow"
 	model_name = "model_{0:d}".format(my_seed)
 	path2save_model_full = "{0:s}/{1:s}".format(path2save_model,model_name)
 	logger.info("Loading model from {0:s} ...".format(path2save_model))
@@ -272,7 +287,7 @@ def main_test_model(cfg: dict):
 	savedata = True
 	# recompute = True
 	recompute = False
-	path2save_receding_horizon = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubins_car_receding_gpflow"
+	path2save_receding_horizon = path2project+"/dubins_car_receding_gpflow"
 	file_name = "trajs_ind_traj_{0:d}.pickle".format(ind_traj_selected)
 	if plotting_receding_horizon_predictions and recompute:
 		Nhorizon_rec = 50
@@ -388,9 +403,9 @@ def main_test_model(cfg: dict):
 
 if __name__ == "__main__":
 
-	# main_train_model()
+	main_train_model()
 
-	main_test_model()
+	# main_test_model()
 
 
 

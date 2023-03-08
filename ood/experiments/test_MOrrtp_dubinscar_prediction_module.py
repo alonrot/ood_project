@@ -716,12 +716,12 @@ def main(cfg: dict):
 
 		# file_name = "trajs_ind_traj_46.pickle"
 		# file_name = "trajs_ind_traj_47.pickle"
-		# file_name = "trajs_ind_traj_78.pickle"
-		# file_name = "trajs_ind_traj_67.pickle" # Models sampled as they should
-		# file_name = "trajs_ind_traj_54.pickle"
+		# file_name = "trajs_ind_traj_78.pickle" # multiplicative factor in control inputs
+		# file_name = "trajs_ind_traj_67.pickle" # Models sampled as they should; multiplicative factor in control inputs
+		# file_name = "trajs_ind_traj_54.pickle" # 
 		# file_name = "trajs_ind_traj_9.pickle" # Using low pass filter as change in dynamics
-		# file_name = "trajs_ind_traj_25.pickle" # Using disturbance, but now distance-based dynamics alteration
-		file_name = "trajs_ind_traj_75.pickle" # Nominal model, horizon=50
+		file_name = "trajs_ind_traj_25.pickle" # Using disturbance, but now distance-based dynamics alteration
+		# file_name = "trajs_ind_traj_75.pickle" # Nominal model, horizon=50
 
 
 
@@ -841,61 +841,6 @@ def assign_weights_v1(rrtp_MO,weights_list):
 
 def assign_weights_v2(rrtp_MO,weights_list):
 	raise NotImplementedError("assign_weights_v2")
-
-def deprecated():
-
-	
-	x_traj_real_list = []
-	x_traj_pred_list = []
-	hdl_fig_pred, hdl_splots_pred = plt.subplots(1,1,figsize=(12,8),sharex=True)
-	hdl_splots_pred.set_xlabel(r"$x_1$"); hdl_splots_pred.set_ylabel(r"$x_2$")
-	loss_val_vec = np.zeros(Nsteps//Nhorizon)
-	for ii in range(Nsteps//Nhorizon):
-
-		logger.info("Iteration {0:d}".format(ii+1))
-
-		# Extract chunk of real trajectory, to compare the predictions with:
-		x_traj_real = z_vec[ii*Nhorizon:(ii+1)*Nhorizon,:]
-		x_traj_real_list += [x_traj_real]
-
-		u_applied = u_vec[ii*Nhorizon:(ii+1)*Nhorizon,:]
-
-		# Negative log evidence (numpy/tensorflow selected inside)
-		x_traj_real_applied = np.reshape(x_traj_real,(1,Nhorizon,Ytrain.shape[1]))
-		x_traj_real_applied_tf = tf.convert_to_tensor(value=x_traj_real_applied,dtype=tf.float32) # [Npoints,self.dim_in], with Npoints=1
-		u_applied_tf = tf.convert_to_tensor(value=u_applied,dtype=tf.float32) # [Npoints,self.dim_in], with Npoints=1
-		loss_per_dim, x_traj_pred, y_traj_pred = rrtp_MO.get_negative_log_evidence_predictive(x_traj_real_applied_tf,u_applied_tf,Nsamples=1,Nrollouts=15,update_features=False)
-		x_traj_pred_list += [x_traj_pred] # x_traj_pred: [Nrollouts,traj_length-1,self.dim_out]
-		loss_val = tf.math.reduce_sum(loss_per_dim)
-		logger.info("loss_val: {0:f}".format(loss_val))
-		loss_val_vec[ii] = loss_val
-		# print("x_traj_pred:",str(x_traj_pred))
-
-		# # Roll-outs tensorflow:
-		# x0_tf = tf.convert_to_tensor(value=x_traj_real[0:1,:],dtype=tf.float32) # [Npoints,self.dim_in], with Npoints=1
-		# u_applied_tf = tf.convert_to_tensor(value=u_applied,dtype=tf.float32) # [Npoints,self.dim_in], with Npoints=1
-		# x_traj_pred, _ = rrtp_MO.sample_state_space_from_prior_recursively_tf(x0=x0_tf,Nsamples=1,Nrollouts=15,u_traj=u_applied_tf,traj_length=-1,sort=False,plotting=False)
-		# x_traj_pred_list += [x_traj_pred] # x_traj_pred: [Nrollouts,traj_length-1,self.dim_out]
-		# print("x_traj_pred:",str(x_traj_pred))
-
-		# # Roll-outs numpy:
-		# x0_in = x_traj_real[0:1,:]
-		# x_traj_pred, _ = rrtp_MO.sample_state_space_from_prior_recursively(x0=x0_in,Nsamples=Nsamples,Nrollouts=Nrollouts,u_traj=u_applied,traj_length=-1,sort=False,plotting=False)
-		# x_traj_pred_list += [x_traj_pred] # x_traj_pred: [Nrollouts,traj_length-1,self.dim_out]
-		# print("x_traj_pred:",str(x_traj_pred))
-
-		# Plot stuff:
-		hdl_splots_pred.plot(x_traj_real[:,0],x_traj_real[:,1],marker=".",linestyle="-",color="r",lw=1)
-		# for ss in range(x_traj_pred.shape[2]):
-		# 	hdl_splots_pred.plot(x_traj_pred[:,0,ss],x_traj_pred[:,1,ss],marker=".",linestyle="-",color="grey",lw=0.5)
-		for ss in range(x_traj_pred.shape[0]):
-			hdl_splots_pred.plot(x_traj_pred[ss,:,0],x_traj_pred[ss,:,1],marker=".",linestyle="-",color="grey",lw=0.5)
-
-
-	logger.info("loss_val_vec: {0:s}".format(str(loss_val_vec)))
-	logger.info("loss_total: {0:f}".format(np.sum(loss_val_vec)))
-
-	plt.show(block=True)
 
 if __name__ == "__main__":
 

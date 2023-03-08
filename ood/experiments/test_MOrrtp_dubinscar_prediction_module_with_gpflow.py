@@ -78,7 +78,7 @@ def main_train_model(cfg: dict):
 	tf.random.set_seed(seed=my_seed)
 
 	# Get training data:
-	path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_nominal_model_waypoints_lighter_many_trajs_for_searching_wlim.pickle"
+	path2data = path2project+"/dubinscar_data_nominal_model_waypoints_lighter_many_trajs_for_searching_wlim.pickle"
 
 	logger.info("Loading {0:s} ...".format(path2data))
 	file = open(path2data, 'rb')

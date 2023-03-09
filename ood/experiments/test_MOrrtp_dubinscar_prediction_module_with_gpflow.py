@@ -127,8 +127,8 @@ def main_train_model(cfg: dict):
 
 
 	# Create list of kernels for each output
-	# kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
-	kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) for _ in range(P)]
+	kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
+	# kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) for _ in range(P)]
 	
 	# Create multi-output kernel from kernel list:
 	use_coregionalization = True
@@ -209,7 +209,7 @@ def main_test_model(cfg: dict):
 	if using_hybridrobotics:
 		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
 
-	my_seed = 13
+	my_seed = 14
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -232,8 +232,8 @@ def main_test_model(cfg: dict):
 
 	# Load model:
 	path2save_model = path2project+"/dubins_car_receding_gpflow/from_hybridrobotics"
-	ind_which_model = 12
-	model_name = "model_{0:d}".format(ind_which_model)
+	# model_name = "model_12" # No coregionalization, adding linear kernel
+	model_name = "model_13_coregionalization_True" # not adding linear kernel; optimizaiton finished prematurely
 	path2save_model_full = "{0:s}/{1:s}".format(path2save_model,model_name)
 	logger.info("Loading model from {0:s} ...".format(path2save_model))
 	loaded_model = tf.saved_model.load(path2save_model_full)
@@ -241,9 +241,8 @@ def main_test_model(cfg: dict):
 
 	print_summary(loaded_model)
 
-
-	pdb.set_trace()
-
+	Zinduced = loaded_model.get_induced_pointsZ_list()
+	print(Zinduced)
 
 	# Trajectory selector:
 	Ntrajs_for_sel = Xtrain.shape[0]//Nsteps
@@ -357,7 +356,8 @@ def main_test_model(cfg: dict):
 	elif plotting_receding_horizon_predictions:
 
 		# file_name = "trajs_ind_traj_75.pickle" # Using trajectory from nominal model; trained GPflow model: model_12
-		file_name = "trajs_ind_traj_48.pickle" # Using trajectory from altered model; trained GPflow model: model_12
+		# file_name = "trajs_ind_traj_48.pickle" # Using trajectory from altered model; trained GPflow model: model_12
+		file_name = "trajs_ind_traj_12.pickle" # Using coregionalization and trajectory from altered model; trained GPflow model: model_13_coregionalization_True
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)
 		file = open(path2save_full, 'rb')

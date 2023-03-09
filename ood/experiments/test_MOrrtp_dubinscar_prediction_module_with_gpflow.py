@@ -40,6 +40,8 @@ plt.rc('legend',fontsize=fontsize_labels+2)
 
 # GP flow:
 import gpflow as gpf
+gpf.config.set_default_float(np.float64)
+gpf.config.set_default_summary_fmt("github")
 from gpflow.ci_utils import reduce_in_tests
 from gpflow.utilities import print_summary
 
@@ -62,7 +64,6 @@ def alter_dynamics_flag_state_based(state_curr):
 	return flag_alter
 
 
-
 @hydra.main(config_path="./config",config_name="config")
 def main_train_model(cfg: dict):
 
@@ -73,7 +74,7 @@ def main_train_model(cfg: dict):
 	if using_hybridrobotics:
 		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
 
-	my_seed = 12
+	my_seed = 13
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -94,8 +95,7 @@ def main_train_model(cfg: dict):
 
 	dim_X = dim_x + dim_u
 
-	gpf.config.set_default_float(np.float64)
-	gpf.config.set_default_summary_fmt("notebook")
+	# Based on: https://gpflow.github.io/GPflow/develop/notebooks/advanced/multioutput.html#
 	np.random.seed(0)
 	MAXITER = reduce_in_tests(2000)
 
@@ -127,10 +127,16 @@ def main_train_model(cfg: dict):
 
 
 	# Create list of kernels for each output
-	kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)]
+	# kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
+	kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) for _ in range(P)]
 	
-	# Create multi-output kernel from kernel list
-	kernel = gpf.kernels.SeparateIndependent(kern_list)
+	# Create multi-output kernel from kernel list:
+	use_coregionalization = True
+	if use_coregionalization:
+		kernel = gpf.kernels.LinearCoregionalization(kern_list, W=np.random.randn(P, L))  # Notice that we initialise the mixing matrix W
+	else:
+		kernel = gpf.kernels.SeparateIndependent(kern_list)
+
 	
 	# initialization of inducing input locations, one set of locations per output
 	Zs = [Zinit.copy() for _ in range(P)]
@@ -148,8 +154,9 @@ def main_train_model(cfg: dict):
 
 	# pdb.set_trace()
 	
-	# MAXITER = 1
+	if not using_hybridrobotics: MAXITER = 1
 	optimize_model_with_scipy(model_gpflow)
+
 
 	# # MO_mean_pred, MO_std_pred = rrtp_MO.predict_at_locations(zu_vec)
 	# zu_vec_np = tf.cast(zu_vec,dtype=tf.float64).numpy()
@@ -168,15 +175,25 @@ def main_train_model(cfg: dict):
 
 	# plot_model(model_gpflow)
 
+	# Save function to predict:
 	model_gpflow.compiled_predict_f = tf.function(
 		lambda Xnew: model_gpflow.predict_f(Xnew, full_cov=False, full_output_cov=True),
 		# lambda xnew: model_gpflow.predict_f(xnew, full_cov=False, full_output_cov=True),
 		input_signature=[tf.TensorSpec(shape=[None, D], dtype=tf.float64)],
 	)
 
+
+	# Save inducing points:
+	model_gpflow.get_induced_pointsZ_list = tf.function(
+		lambda: tf.concat([ind_var.Z for ind_var in model_gpflow.inducing_variable.inducing_variable_list],axis=0),
+		input_signature=[],
+	)
+	# loaded_model.inducing_variable.inducing_variable_list[0].Z.numpy()
+
+
 	# Save model:
 	path2save_model = path2project+"/dubins_car_receding_gpflow"
-	model_name = "model_{0:d}".format(my_seed)
+	model_name = "model_{0:d}_coregionalization_{1:s}".format(my_seed,str(use_coregionalization))
 	path2save_model_full = "{0:s}/{1:s}".format(path2save_model,model_name)
 	logger.info("Saving model at {0:s} ...".format(path2save_model_full))
 	tf.saved_model.save(model_gpflow, path2save_model_full)
@@ -192,8 +209,7 @@ def main_test_model(cfg: dict):
 	if using_hybridrobotics:
 		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
 
-
-	my_seed = 12
+	my_seed = 13
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -215,12 +231,18 @@ def main_test_model(cfg: dict):
 	dim_X = dim_x + dim_u
 
 	# Load model:
-	path2save_model = path2project+"/dubins_car_receding_gpflow"
-	model_name = "model_{0:d}".format(my_seed)
+	path2save_model = path2project+"/dubins_car_receding_gpflow/from_hybridrobotics"
+	ind_which_model = 12
+	model_name = "model_{0:d}".format(ind_which_model)
 	path2save_model_full = "{0:s}/{1:s}".format(path2save_model,model_name)
 	logger.info("Loading model from {0:s} ...".format(path2save_model))
 	loaded_model = tf.saved_model.load(path2save_model_full)
 	logger.info("Done!")
+
+	print_summary(loaded_model)
+
+
+	pdb.set_trace()
 
 
 	# Trajectory selector:
@@ -233,19 +255,22 @@ def main_test_model(cfg: dict):
 	z_vec = Xtrain_for_sel[ind_traj_selected,:,0:dim_x].numpy()
 	u_vec = Xtrain_for_sel[ind_traj_selected,:,dim_x::].numpy()
 
-	zu_vec_np = tf.cast(zu_vec,dtype=tf.float64)
-	MO_mean_pred, var = loaded_model.compiled_predict_f(zu_vec_np)
 
 
-	hdl_fig_pred, hdl_splots_pred = plt.subplots(1,1,figsize=(12,8),sharex=True)
-	hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
-	hdl_splots_pred.plot(zu_vec[:,0],zu_vec[:,1],linestyle="-",color="grey",lw=2.0,label=r"Real traj - Input",alpha=0.3)
-	hdl_splots_pred.plot(zu_next_vec[:,0],zu_next_vec[:,1],linestyle="-",color="navy",lw=2.0,label=r"Real traj - Next state",alpha=0.3)
-	hdl_splots_pred.plot(MO_mean_pred[:,0],MO_mean_pred[:,1],linestyle="-",color="navy",lw=2.0,label=r"Predicted traj - Next dynamics",alpha=0.7)
+
+	# zu_vec_np = tf.cast(zu_vec,dtype=tf.float64)
+	# MO_mean_pred, var = loaded_model.compiled_predict_f(zu_vec_np)
+
+	# hdl_fig_pred, hdl_splots_pred = plt.subplots(1,1,figsize=(12,8),sharex=True)
+	# hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
+	# hdl_splots_pred.plot(zu_vec[:,0],zu_vec[:,1],linestyle="-",color="grey",lw=2.0,label=r"Real traj - Input",alpha=0.3)
+	# hdl_splots_pred.plot(zu_next_vec[:,0],zu_next_vec[:,1],linestyle="-",color="navy",lw=2.0,label=r"Real traj - Next state",alpha=0.3)
+	# hdl_splots_pred.plot(MO_mean_pred[:,0],MO_mean_pred[:,1],linestyle="-",color="navy",lw=2.0,label=r"Predicted traj - Next dynamics",alpha=0.7)
+
+	# plt.show(block=True)
+	# plt.pause(1.)
 
 
-	plt.show(block=True)
-	plt.pause(1.)
 
 
 	# Generate control sequence (u_vec) using the right nominal model, but then apply it to the changed dynamics.
@@ -253,7 +278,8 @@ def main_test_model(cfg: dict):
 	z_vec_changed_dyn[0,:] = z_vec[0,:]
 	for tt in range(Nsteps-1):
 
-		use_nominal_model = alter_dynamics_flag_state_based(state_curr=z_vec_changed_dyn[tt:tt+1,:])
+		use_nominal_model = alter_dynamics_flag_time_based(tt,Nsteps)
+		# use_nominal_model = alter_dynamics_flag_state_based(state_curr=z_vec_changed_dyn[tt:tt+1,:])
 		# use_nominal_model = True
 
 		# When using disturbance:
@@ -273,8 +299,8 @@ def main_test_model(cfg: dict):
 	z_vec_changed_dyn_tf = tf.convert_to_tensor(value=z_vec_changed_dyn,dtype=tf.float32)
 	u_vec_tf = tf.convert_to_tensor(value=u_vec,dtype=tf.float32)
 
-	compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "nominal_model"
-	# compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "altered_model"
+	# compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "nominal_model"
+	compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "altered_model"
 	assert compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to in ["nominal_model","altered_model"]
 	if compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to == "nominal_model":
 		z_vec_real = z_vec_tf # [Nsteps,dim_out]
@@ -290,23 +316,32 @@ def main_test_model(cfg: dict):
 	path2save_receding_horizon = path2project+"/dubins_car_receding_gpflow"
 	file_name = "trajs_ind_traj_{0:d}.pickle".format(ind_traj_selected)
 	if plotting_receding_horizon_predictions and recompute:
-		Nhorizon_rec = 50
+		Nhorizon_rec = 10
 		Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
 		loss_val_per_step = np.zeros(Nsteps_tot)
 		x_traj_pred_all_vec = np.zeros((Nsteps_tot,Nrollouts,Nhorizon_rec,dim_x))
 		for tt in range(Nsteps_tot):
+			noise_mat = np.random.randn(Nrollouts,dim_x)
 
 			x_traj_real_applied = z_vec_real[tt:tt+Nhorizon_rec,:]
 			x_traj_real_applied_tf = tf.reshape(x_traj_real_applied,(1,Nhorizon_rec,dim_x))
 			u_applied_tf = u_vec_tf[tt:tt+Nhorizon_rec,:]
-			str_progress_bar = "Prediction with horizon = {0:d}; tt: {1:d} / {2:d} | ".format(Nhorizon_rec,tt+1,Nsteps_tot)
-			loss_val_per_step[tt], x_traj_pred, y_traj_pred = rrtp_MO._get_negative_log_evidence_and_predictive_trajectory_chunk(x_traj_real_applied_tf,u_applied_tf,Nsamples=1,
-																												Nrollouts=Nrollouts,str_progress_bar=str_progress_bar,from_prior=False,
-																												scale_loss_entropy=scale_loss_entropy,
-																												scale_prior_regularizer=scale_prior_regularizer,
-																												sample_fx_once=True)
-			x_traj_pred_all_vec[tt,...] = np.concatenate([x_traj_pred,y_traj_pred[:,-1::,:]],axis=1) # [Nsteps_tot,Nrollouts,Nhorizon_rec,self.dim_out]
+			logger.info("Prediction with horizon = {0:d}; tt: {1:d} / {2:d} | ".format(Nhorizon_rec,tt+1,Nsteps_tot))
 
+			x0_tf = tf.cast(x_traj_real_applied_tf[0,0:1,:],dtype=tf.float64) # [Npoints,self.dim_in], with Npoints=1
+			u_applied_tf = tf.cast(u_applied_tf,dtype=tf.float64) # [Npoints,self.dim_in], with Npoints=1
+
+			for rr in range(Nrollouts):
+
+				x_traj_pred_all_vec[tt,rr,0:1,:] = x0_tf.numpy()
+				for ppp in range(Nhorizon_rec-1):
+
+					zu_vec_tf = tf.convert_to_tensor(np.concatenate((x_traj_pred_all_vec[tt,rr,ppp:ppp+1,:],u_applied_tf.numpy()[ppp:ppp+1,:]),axis=1),dtype=tf.float64)
+					MO_mean_pred, cov_full = loaded_model.compiled_predict_f(zu_vec_tf) # cov_full turns out to be alwys diagonal because tGPflow cannot handle full covariance
+
+					xnext = MO_mean_pred + np.sqrt(np.diag(cov_full[0,...]))*noise_mat[rr:rr+1,:] # [1,dim_x]
+
+					x_traj_pred_all_vec[tt,rr,ppp+1:ppp+2,:] = xnext
 
 		if savedata:
 			data2save = dict(x_traj_pred_all_vec=x_traj_pred_all_vec,u_vec_tf=u_vec_tf,z_vec_real=z_vec_real,z_vec_tf=z_vec_tf,z_vec_changed_dyn_tf=z_vec_changed_dyn_tf,loss_val_per_step=loss_val_per_step)
@@ -315,12 +350,14 @@ def main_test_model(cfg: dict):
 			file = open(path2save_full, 'wb')
 			pickle.dump(data2save,file)
 			file.close()
+			logger.info("Done!")
 			return
 
 
 	elif plotting_receding_horizon_predictions:
 
-		# file_name = "trajs_ind_traj_46.pickle"
+		# file_name = "trajs_ind_traj_75.pickle" # Using trajectory from nominal model; trained GPflow model: model_12
+		file_name = "trajs_ind_traj_48.pickle" # Using trajectory from altered model; trained GPflow model: model_12
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)
 		file = open(path2save_full, 'rb')

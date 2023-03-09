@@ -25,4 +25,6 @@ export PATH="/home/amarco/code_projects/latex_installation/bin/x86_64-linux:$PAT
 ### Copy data
 ```bash
 scp -r -P 4444 amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/dubins_car_reconstruction/\* /Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubins_car_reconstruction/from_dawkins/
+
+scp -r -P 4444 amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/dubins_car_receding_gpflow/\* /Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubins_car_receding_gpflow/from_hybridrobotics/
 ```

@@ -91,8 +91,8 @@ def reconstruct(cfg):
 
 	savefig = True
 
-	# using_hybridrobotics = False
-	using_hybridrobotics = True
+	using_hybridrobotics = False
+	# using_hybridrobotics = True
 
 	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
 	if using_hybridrobotics:
@@ -113,7 +113,7 @@ def reconstruct(cfg):
 
 		spectral_density_list = [None]*dim_out
 		for jj in range(dim_out):
-			spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.dubinscar,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
+			spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
 
 
 	# Testing dataset (we use the training dataset)

@@ -47,7 +47,8 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use
 	dim_in = dim_X
 	dim_out = Ytrain.shape[1]
 	spectral_density_list = [None]*dim_out
-	path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/learning_data_Nepochs4500.pickle"
+	# path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/learning_data_Nepochs4500.pickle" # mac
+	path2load = "/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/learning_data_Nepochs4500.pickle" # hybridrobotics
 	for jj in range(dim_out):
 		spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
 		spectral_density_list[jj].update_Wsamples_from_file(path2data=path2load,ind_out=jj)

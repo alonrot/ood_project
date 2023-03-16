@@ -33,6 +33,14 @@ matplotlib.rc('font',**{'family':'serif','serif':['Computer Modern Roman']})
 plt.rc('legend',fontsize=fontsize_labels//2)
 
 
+using_hybridrobotics = False
+# using_hybridrobotics = True
+
+path2folder = "dubins_car_reconstruction"
+# path2folder = "data_quadruped_experiments_03_13_2023"
+
+using_deltas = True
+# using_deltas = False
 
 def load_data_dubins_car(path2project):
 
@@ -53,6 +61,9 @@ def load_data_dubins_car(path2project):
 	dim_in = dim_x + dim_u
 	dim_out = dim_x
 
+	if using_deltas:
+		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
+		Ytrain = Ytrain_deltas
 
 	return Xtrain, Ytrain, dim_in, dim_out, Nsteps, Ntrajs, path2data
 
@@ -75,6 +86,10 @@ def load_quadruped_experiments_03_13_2023(path2project):
 	dim_in = dim_x + dim_u
 	dim_out = dim_x
 
+	if using_deltas:
+		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
+		Ytrain = Ytrain_deltas
+
 	Xtrain = tf.cast(Xtrain,dtype=tf.float32)
 	Ytrain = tf.cast(Ytrain,dtype=tf.float32)
 
@@ -86,13 +101,7 @@ def load_quadruped_experiments_03_13_2023(path2project):
 @hydra.main(config_path="./config",config_name="config")
 def reconstruct(cfg):
 
-	# path2folder = "dubins_car_reconstruction"
-	path2folder = "data_quadruped_experiments_03_13_2023"
-
 	savefig = True
-
-	using_hybridrobotics = False
-	# using_hybridrobotics = True
 
 	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
 	if using_hybridrobotics:
@@ -160,8 +169,8 @@ def reconstruct(cfg):
 	delta_statespace_trainedNN = np.zeros((dim_out,Xtrain.shape[0],1))
 
 	learning_rate = 1e-2
-	# stop_loss_val = 1./fx_true_testing.shape[0]
-	stop_loss_val = 0.01
+	stop_loss_val = 1./fx_true_testing.shape[0]
+	# stop_loss_val = 0.01
 	lengthscale_loss = 0.01
 	loss_reconstruction_evolution = np.zeros((dim_out,Nepochs))
 	spectral_density_optimized_list = [None]*dim_out
@@ -195,6 +204,9 @@ def reconstruct(cfg):
 		
 		# Reconstructed f(xt) at training locations:
 		fx_optimized_omegas_and_voxels[:,jj:jj+1] = reconstructor_fx_deltas_and_omegas.reconstruct_function_at(xpred=xpred_testing)
+
+		if using_deltas:
+			fx_optimized_omegas_and_voxels[:,jj:jj+1] += xpred_testing[:,jj:jj+1]
 
 
 	# Save relevant quantities:
@@ -318,6 +330,11 @@ def reconstruct(cfg):
 		hdl_splots_next_state = np.reshape(hdl_splots_next_state,(-1,1))
 		xpred_testing_for_transition_plot = xpred_testing.numpy()[0:1000,:]
 
+		if using_deltas:
+			fx_true_testing_plotting = fx_true_testing + xpred_testing[:,0:dim_out]
+		else:
+			fx_true_testing_plotting = fx_true_testing
+
 		for jj in range(dim_out):
 			ind_xt_sorted = np.argsort(xpred_testing_for_transition_plot[:,jj])
 			xt_sorted = xpred_testing_for_transition_plot[ind_xt_sorted,jj]
@@ -325,7 +342,8 @@ def reconstruct(cfg):
 			fx_optimized_omegas_and_voxels_sorted = fx_optimized_omegas_and_voxels[ind_xt_sorted,jj]
 			# hdl_splots_next_state[jj,0].plot(xt_sorted,fx_optimized_omegas_and_voxels_sorted,marker=".",markersize=3,linestyle="None",color="navy",alpha=0.3)
 
-			fx_true_testing_sorted = fx_true_testing.numpy()[ind_xt_sorted,jj]
+			# fx_true_testing_sorted = fx_true_testing.numpy()[ind_xt_sorted,jj]
+			fx_true_testing_sorted = fx_true_testing_plotting.numpy()[ind_xt_sorted,jj]
 			hdl_splots_next_state[jj,0].plot(xt_sorted,fx_true_testing_sorted,marker=".",markersize=3,linestyle="None",color="navy",alpha=0.3,label="True")
 			hdl_splots_next_state[jj,0].plot(xt_sorted,fx_optimized_omegas_and_voxels_sorted,marker=".",markersize=3,linestyle="None",color="crimson",alpha=0.3,label="Reconstructed")
 
@@ -398,6 +416,9 @@ def reconstruct(cfg):
 			hdl_splots_statespace.plot(fx_optimized_omegas_and_voxels_sliced[-1,0],fx_optimized_omegas_and_voxels_sliced[-1,1],color="black",marker="x",markersize=6,linestyle="None")
 
 			fx_true_testing_sliced = fx_true_testing[jj*Nsteps:(jj+1)*Nsteps,...]
+
+			if using_deltas:
+				fx_true_testing_sliced += xpred_testing[jj*Nsteps:(jj+1)*Nsteps,0:dim_out]
 
 			label_true = None
 			if jj == 0: label_true = "Training data"

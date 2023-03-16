@@ -27,15 +27,15 @@ hyperpars:
   # prior_mean_factor: 1.0
   # noise_std_process: 0.1
 
-  # # Dubins car:
-  # prior_variance: 1.0
-  # prior_mean_factor: 1.0
-  # noise_std_process: 0.05
-
-  # Quadruped car:
-  prior_variance: 0.5
+  # Dubins car:
+  prior_variance: 1.0
   prior_mean_factor: 1.0
-  noise_std_process: 0.01
+  noise_std_process: 0.05
+
+  # # Quadruped:
+  # prior_variance: 0.5
+  # prior_mean_factor: 1.0
+  # noise_std_process: 0.01
 
 
   weights_features:

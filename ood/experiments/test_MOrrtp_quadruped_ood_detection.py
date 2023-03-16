@@ -47,8 +47,8 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use
 	dim_in = dim_X
 	dim_out = Ytrain.shape[1]
 	spectral_density_list = [None]*dim_out
-	# path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/learning_data_Nepochs4500.pickle" # mac
-	path2load = "/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/learning_data_Nepochs4500.pickle" # hybridrobotics
+	path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/learning_data_Nepochs4500.pickle" # mac
+	# path2load = "/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/learning_data_Nepochs4500.pickle" # hybridrobotics
 	for jj in range(dim_out):
 		spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
 		spectral_density_list[jj].update_Wsamples_from_file(path2data=path2load,ind_out=jj)
@@ -75,12 +75,12 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg: dict):
 
-	my_seed = 14
+	my_seed = 13
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
-	# path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/joined_go1trajs.pickle" # mac
-	path2data = "/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/joined_go1trajs.pickle" # hybridrobotics
+	path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/joined_go1trajs.pickle" # mac
+	# path2data = "/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/joined_go1trajs.pickle" # hybridrobotics
 	logger.info("Loading {0:s} ...".format(path2data))
 	file = open(path2data, 'rb')
 	data_dict = pickle.load(file)
@@ -164,10 +164,10 @@ def main(cfg: dict):
 	# Receding horizon predictions:
 	plotting_receding_horizon_predictions = True
 	savedata = True
-	recompute = True
-	# recompute = False
-	# path2save_receding_horizon = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023" # mac
-	path2save_receding_horizon = "/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023" # hybridrobotics
+	# recompute = True
+	recompute = False
+	path2save_receding_horizon = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023" # mac
+	# path2save_receding_horizon = "/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023" # hybridrobotics
 	file_name = "trajs_ind_traj_{0:d}.pickle".format(my_seed)
 	if plotting_receding_horizon_predictions and recompute:
 		Nhorizon_rec = 15

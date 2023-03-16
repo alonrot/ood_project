@@ -27,8 +27,6 @@ from test_dubin_car import get_sequence_of_feedback_gains_finite_horizon_LQR, ro
 
 dyn_sys_true = DubinsCarSpectralDensity._controlled_dubinscar_dynamics
 
-from bs4 import BeautifulSoup # pip install beautifulsoup4
-
 markersize_x0 = 10
 markersize_trajs = 0.4
 fontsize_labels = 25

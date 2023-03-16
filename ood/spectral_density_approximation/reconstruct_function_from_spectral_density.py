@@ -122,8 +122,8 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 			optimizer.apply_gradients(zip(grads, self.trainable_weights))
 
 			if (epoch+1) % print_every == 0:
-				logger.info("    * Predictive loss (current): {0:.4f}".format(tf.squeeze(loss_value)))
-				logger.info("    * Predictive loss (best): {0:.4f}".format(tf.squeeze(loss_value_best)))
+				logger.info("    * Predictive loss (current): {0:.6f} [stopping loss: {1:.6f}]".format(tf.squeeze(loss_value),stop_loss_val))
+				logger.info("    * Predictive loss (best):    {0:.6f} [stopping loss: {1:.6f}]".format(tf.squeeze(loss_value_best),stop_loss_val))
 				# logger.info("    * Weights (current): {0:s}".format(self._weights2str(self.trainable_weights)))
 				# logger.info("    * Weights (best): {0:s}".format(self._weights2str(trainable_weights_best)))
 				# logger.info("    * Gradients (current): {0:s}".format(self._weights2str(grads)))

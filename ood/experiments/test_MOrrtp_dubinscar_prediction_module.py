@@ -36,6 +36,10 @@ dyn_sys_true = DubinsCarSpectralDensity._controlled_dubinscar_dynamics
 
 # tf.compat.v1.disable_eager_execution()
 
+
+using_deltas = True
+# using_deltas = False
+
 markersize_x0 = 10
 markersize_trajs = 0.4
 fontsize_labels = 25
@@ -50,7 +54,7 @@ def alter_dynamics_flag_time_based(tt,Nsteps):
 
 	# Time-based:
 	flag_alter = False
-	if tt < Nsteps/2:
+	if tt > Nsteps/2:
 		flag_alter = True
 
 	return flag_alter
@@ -65,7 +69,7 @@ def alter_dynamics_flag_state_based(state_curr):
 
 
 
-def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use_nominal_model_for_spectral_density=True):
+def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,path2project,use_nominal_model_for_spectral_density=True):
 	"""
 	<<< Initialize GP model >>>
 	"""
@@ -114,7 +118,8 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use
 	dim_in = dim_X
 	dim_out = Ytrain.shape[1]
 	spectral_density_list = [None]*dim_out
-	path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubins_car_reconstruction/from_dawkins/learning_data_Nepochs4500.pickle"
+	path2load = "{0:s}/dubins_car_reconstruction/from_hybridrobotics/learning_data_Nepochs4500.pickle".format(path2project)
+	# path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubins_car_reconstruction/from_dawkins/learning_data_Nepochs4500.pickle"
 	# path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid_omegalim1p0_omegas_within_lims.pickle"
 	# path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid_omegalim0p5.pickle"
 	# path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid.pickle"
@@ -134,7 +139,7 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use
 	
 
 	print("Initializing GP model ...")
-	rrtp_MO = MultiObjectiveReducedRankProcess(dim_X,cfg,spectral_density_list,Xtrain,Ytrain)
+	rrtp_MO = MultiObjectiveReducedRankProcess(dim_X,cfg,spectral_density_list,Xtrain,Ytrain,using_deltas=using_deltas)
 	# rrtp_MO = MultiObjectiveReducedRankProcess(dim_X,cfg,spectral_density,Xtrain,Ytrain)
 	# rrtp_MO.train_model()
 
@@ -446,9 +451,17 @@ def merge_data(path2data_list):
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg: dict):
 
-	my_seed = 12
+	my_seed = 15
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
+
+	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
+	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
+
+	if using_hybridrobotics:
+		path2project = "/home/amarco/code_projects/ood_project/ood/experiments"
+	else:
+		path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
 
 	# get_training_data_from_waypoints(save_data_dict=None,use_nominal_model=True)
 
@@ -465,7 +478,7 @@ def main(cfg: dict):
 	# path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_nominal_model_waypoints.pickle"
 	# path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_nominal_model_waypoints_lighter.pickle"
 	# path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_nominal_model_waypoints_lighter_many_trajs.pickle"
-	path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_nominal_model_waypoints_lighter_many_trajs_for_searching_wlim.pickle"
+	path2data = "{0:s}/dubinscar_data_nominal_model_waypoints_lighter_many_trajs_for_searching_wlim.pickle".format(path2project)
 	# path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_nominal_model.pickle" # I accidentally overwrote this
 	# path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_disturbance_model.pickle" # additive in linear velocity; distur = -2.0
 	# path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_disturbance_model_2.pickle" # multiplicative in linear and angular velocities; distur_v = 2.0; distur_w = 3.0
@@ -491,6 +504,14 @@ def main(cfg: dict):
 		Ntrajs = data_dict["Ntrajs"]
 		deltaT = data_dict["deltaT"]
 
+
+	if using_deltas:
+		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
+		Ytrain = Ytrain_deltas
+
+
+
+
 	# tf.debugging.experimental.enable_dump_debug_info(
 	# 	"/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/tfdbg2_logdir",
 	# 	tensor_debug_mode="FULL_HEALTH",
@@ -509,30 +530,37 @@ def main(cfg: dict):
 	# spectral_density = DubinsCarSpectralDensity(cfg.spectral_density.dubinscar,cfg.sampler.hmc,dim=dim_X)
 	# rrtp_MO, Ndiv = initialize_GPmodel_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use_nominal_model_for_spectral_density=True)
 	# pdb.set_trace()
-	rrtp_MO = initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use_nominal_model_for_spectral_density=True)
+	rrtp_MO = initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,path2project,use_nominal_model_for_spectral_density=True)
 	
 	# Trajectory selector:
 	Ntrajs_for_sel = Xtrain.shape[0]//Nsteps
 	Xtrain_for_sel = tf.reshape(Xtrain,(Ntrajs_for_sel,Nsteps,dim_X))
 	Ytrain_for_sel = tf.reshape(Ytrain,(Ntrajs_for_sel,Nsteps,dim_x))
-	ind_traj_selected = np.random.randint(low=0,high=Ntrajs_for_sel)
-	zu_vec = Xtrain_for_sel[ind_traj_selected,...]
-	zu_next_vec = Ytrain_for_sel[ind_traj_selected,...]
-	z_vec = Xtrain_for_sel[ind_traj_selected,:,0:dim_x].numpy()
-	u_vec = Xtrain_for_sel[ind_traj_selected,:,dim_x::].numpy()
+	ind_traj_selected = np.random.randint(low=0,high=Ntrajs_for_sel) # scalar
+	zu_vec = Xtrain_for_sel[ind_traj_selected,...] # [Nsteps,dim_in]
+	z_next_vec = Ytrain_for_sel[ind_traj_selected,...] # [Nsteps,dim_in]
+	z_vec = Xtrain_for_sel[ind_traj_selected,:,0:dim_x].numpy() # [Nsteps,dim_out]
+	u_vec = Xtrain_for_sel[ind_traj_selected,:,dim_x::].numpy() # [Nsteps,dim_u]
 
 
 	# zu_vec = Xtrain[-Nsteps::,...]
-	# zu_next_vec = Ytrain[-Nsteps::,...]
+	# z_next_vec = Ytrain[-Nsteps::,...]
 
 	MO_mean_pred, MO_std_pred = rrtp_MO.predict_at_locations(zu_vec)
 
 
+	if using_deltas:
+		z_next_vec_plotting = z_next_vec + zu_vec[:,0:dim_x]
+		MO_mean_pred_plotting = MO_mean_pred + zu_vec[:,0:dim_x]
+	else:
+		z_next_vec_plotting = z_next_vec
+		MO_mean_pred_plotting = MO_mean_pred
+
 	hdl_fig_pred, hdl_splots_pred = plt.subplots(1,1,figsize=(12,8),sharex=True)
 	hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
 	hdl_splots_pred.plot(zu_vec[:,0],zu_vec[:,1],linestyle="-",color="grey",lw=2.0,label=r"Real traj - Input",alpha=0.3)
-	hdl_splots_pred.plot(zu_next_vec[:,0],zu_next_vec[:,1],linestyle="-",color="navy",lw=2.0,label=r"Real traj - Next state",alpha=0.3)
-	hdl_splots_pred.plot(MO_mean_pred[:,0],MO_mean_pred[:,1],linestyle="-",color="navy",lw=2.0,label=r"Predicted traj - Next dynamics",alpha=0.7)
+	hdl_splots_pred.plot(z_next_vec_plotting[:,0],z_next_vec_plotting[:,1],linestyle="-",color="navy",lw=2.0,label=r"Real traj - Next state",alpha=0.3)
+	hdl_splots_pred.plot(MO_mean_pred_plotting[:,0],MO_mean_pred_plotting[:,1],linestyle="-",color="navy",lw=2.0,label=r"Predicted traj - Next dynamics",alpha=0.7)
 
 
 	plt.show(block=False)
@@ -573,8 +601,8 @@ def main(cfg: dict):
 	z_vec_changed_dyn[0,:] = z_vec[0,:]
 	for tt in range(Nsteps-1):
 
-		# use_nominal_model = alter_dynamics_flag_time_based(tt=tt,Nsteps=Nsteps)
-		use_nominal_model = alter_dynamics_flag_state_based(state_curr=z_vec_changed_dyn[tt:tt+1,:])
+		use_nominal_model = not alter_dynamics_flag_time_based(tt=tt,Nsteps=Nsteps)
+		# use_nominal_model = alter_dynamics_flag_state_based(state_curr=z_vec_changed_dyn[tt:tt+1,:])
 		# use_nominal_model = True
 		# z_vec_changed_dyn[tt+1:tt+2,:] = dyn_sys_true(state_vec=z_vec_changed_dyn[tt:tt+1,:],control_vec=u_vec[tt:tt+1,:],use_nominal_model=use_nominal_model)
 
@@ -620,8 +648,8 @@ def main(cfg: dict):
 	z_vec_changed_dyn_tf = tf.convert_to_tensor(value=z_vec_changed_dyn,dtype=tf.float32)
 	u_vec_tf = tf.convert_to_tensor(value=u_vec,dtype=tf.float32)
 
-	compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "nominal_model"
-	# compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "altered_model"
+	# compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "nominal_model"
+	compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "altered_model"
 	assert compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to in ["nominal_model","altered_model"]
 	if compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to == "nominal_model":
 		z_vec_real = z_vec_tf # [Nsteps,dim_out]
@@ -681,11 +709,17 @@ def main(cfg: dict):
 	savedata = True
 	# recompute = True
 	recompute = False
-	path2save_receding_horizon = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubins_car_receding"
+	path2save_receding_horizon = "{0:s}/dubins_car_receding".format(path2project)
 	file_name = "trajs_ind_traj_{0:d}.pickle".format(ind_traj_selected)
 	if plotting_receding_horizon_predictions and recompute:
-		Nhorizon_rec = 50
-		Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
+
+		if using_hybridrobotics:
+			Nhorizon_rec = 50
+			Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
+		else:
+			Nhorizon_rec = 15
+			Nsteps_tot = 10
+
 		loss_val_per_step = np.zeros(Nsteps_tot)
 		x_traj_pred_all_vec = np.zeros((Nsteps_tot,Nrollouts,Nhorizon_rec,dim_x))
 		for tt in range(Nsteps_tot):
@@ -699,6 +733,7 @@ def main(cfg: dict):
 																												scale_loss_entropy=scale_loss_entropy,
 																												scale_prior_regularizer=scale_prior_regularizer,
 																												sample_fx_once=True)
+			# Add the last prediction y_traj_pred[:,-1::,:]; so x_traj_pred_all_vec[tt,...] contains [x0,predictions,last_prediction]
 			x_traj_pred_all_vec[tt,...] = np.concatenate([x_traj_pred,y_traj_pred[:,-1::,:]],axis=1) # [Nsteps_tot,Nrollouts,Nhorizon_rec,self.dim_out]
 
 
@@ -717,11 +752,14 @@ def main(cfg: dict):
 		# file_name = "trajs_ind_traj_46.pickle"
 		# file_name = "trajs_ind_traj_47.pickle"
 		# file_name = "trajs_ind_traj_78.pickle" # multiplicative factor in control inputs
-		file_name = "trajs_ind_traj_67.pickle" # Models sampled as they should; multiplicative factor in control inputs
+		# file_name = "trajs_ind_traj_67.pickle" # Models sampled as they should; multiplicative factor in control inputs
 		# file_name = "trajs_ind_traj_54.pickle" # 
 		# file_name = "trajs_ind_traj_9.pickle" # Using low pass filter as change in dynamics
 		# file_name = "trajs_ind_traj_25.pickle" # Using disturbance, but now distance-based dynamics alteration
 		# file_name = "trajs_ind_traj_75.pickle" # Nominal model, horizon=50
+
+		# file_name = "trajs_ind_traj_12.pickle" # using deltas
+		file_name = "trajs_ind_traj_72.pickle" # using deltas
 
 
 

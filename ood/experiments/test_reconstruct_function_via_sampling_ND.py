@@ -168,7 +168,7 @@ def reconstruct(cfg):
 	delta_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
 	delta_statespace_trainedNN = np.zeros((dim_out,Xtrain.shape[0],1))
 
-	learning_rate = 1e-2
+	learning_rate_list = [1e-2,1e-2,1e-3]
 	stop_loss_val = 1./fx_true_testing.shape[0]
 	# stop_loss_val = 0.01
 	lengthscale_loss = 0.01

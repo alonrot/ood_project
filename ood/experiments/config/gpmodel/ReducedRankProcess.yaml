@@ -50,3 +50,9 @@ which_process: "gaussian" # [gaussian,student-t]
 
 which_features: "RRPDiscreteCosineFeaturesVariableIntegrationStep" # RRPLinearFeatures, RRPDiscreteCosineFeatures, RRPRegularFourierFeatures, RRPRandomFourierFeatures, RRPDiscreteCosineFeaturesVariableIntegrationStep
 # which_features: "RRPDiscreteCosineFeatures" # RRPLinearFeatures, RRPDiscreteCosineFeatures, RRPRegularFourierFeatures, RRPRandomFourierFeatures, RRPDiscreteCosineFeaturesVariableIntegrationStep
+
+
+using_hybridrobotics: False
+
+
+

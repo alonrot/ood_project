@@ -75,7 +75,7 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg: dict):
 
-	my_seed = 12
+	my_seed = 14
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -200,7 +200,7 @@ def main(cfg: dict):
 
 	elif plotting_receding_horizon_predictions:
 
-		# file_name = "trajs_ind_traj_12.pickle" # trials dbg mac
+		file_name = "trajs_ind_traj_12.pickle" # from hybrid
 
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)
@@ -238,7 +238,8 @@ def main(cfg: dict):
 		hdl_splots_sampling_rec[0].set_ylabel(r"$x_2$", fontsize=fontsize_labels)
 		hdl_plt_predictions_list = []
 		for ss in range(Nrollouts):
-			hdl_plt_predictions_list += hdl_splots_sampling_rec[0].plot(x_traj_pred_all_vec[0,ss,:,0],x_traj_pred_all_vec[0,ss,:,1],linestyle="-",color="darkorange",lw=0.5,label="Sampled trajs",alpha=0.5)
+			Nhor = 3
+			hdl_plt_predictions_list += hdl_splots_sampling_rec[0].plot(x_traj_pred_all_vec[0,ss,0:Nhor,0],x_traj_pred_all_vec[0,ss,0:Nhor,1],linestyle="-",color="darkorange",lw=0.5,label="Sampled trajs",alpha=0.5)
 
 		# Loss evolution:
 		hdl_plt_artist_loss_title = hdl_splots_sampling_rec[1].set_title("Prediction loss", fontsize=fontsize_labels)
@@ -265,8 +266,9 @@ def main(cfg: dict):
 			hdl_plt_dubins_real.set_ydata(z_vec_real[tt,1])
 			
 			for ss in range(Nrollouts):
-				hdl_plt_predictions_list[ss].set_xdata(x_traj_pred_all_vec[tt,ss,:,0])
-				hdl_plt_predictions_list[ss].set_ydata(x_traj_pred_all_vec[tt,ss,:,1])
+				Nhor = 3
+				hdl_plt_predictions_list[ss].set_xdata(x_traj_pred_all_vec[tt,ss,0:Nhor,0])
+				hdl_plt_predictions_list[ss].set_ydata(x_traj_pred_all_vec[tt,ss,0:Nhor,1])
 				# hdl_splots_sampling_rec[0].plot(x_traj_pred_all_vec[tt,ss,:,0],x_traj_pred_all_vec[tt,ss,:,1],linestyle="-",color="crimson",lw=0.5,label="Sampled trajs",alpha=0.3)
 
 			hdl_plt_artist_loss.set_xdata(time_steps[0:tt+1])

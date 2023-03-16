@@ -209,7 +209,7 @@ def main_test_model(cfg: dict):
 	if using_hybridrobotics:
 		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
 
-	my_seed = 14
+	my_seed = 15
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -356,8 +356,9 @@ def main_test_model(cfg: dict):
 	elif plotting_receding_horizon_predictions:
 
 		# file_name = "trajs_ind_traj_75.pickle" # Using trajectory from nominal model; trained GPflow model: model_12
-		# file_name = "trajs_ind_traj_48.pickle" # Using trajectory from altered model; trained GPflow model: model_12
-		file_name = "trajs_ind_traj_12.pickle" # Using coregionalization and trajectory from altered model; trained GPflow model: model_13_coregionalization_True
+		file_name = "trajs_ind_traj_48.pickle" # Using trajectory from altered model; trained GPflow model: model_12
+		# file_name = "trajs_ind_traj_12.pickle" # Using coregionalization, no linear kernel, and trajectory from altered model; trained GPflow model: model_13_coregionalization_True; -> training ended prematurely; not working
+		# file_name = "trajs_ind_traj_72.pickle" # Using coregionalization, with linear kernel, and trajectory from altered model; trained GPflow model: model_13_coregionalization_True; -> no big difference wrt trajs_ind_traj_48
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)
 		file = open(path2save_full, 'rb')
@@ -440,9 +441,9 @@ def main_test_model(cfg: dict):
 
 if __name__ == "__main__":
 
-	main_train_model()
+	# main_train_model()
 
-	# main_test_model()
+	main_test_model()
 
 
 

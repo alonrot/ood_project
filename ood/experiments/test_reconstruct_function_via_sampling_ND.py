@@ -8,7 +8,7 @@ import numpy as np
 import scipy
 from scipy import stats
 from scipy import integrate
-from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity, ParaboloidSpectralDensity, KinkSharpSpectralDensity, VanDerPolSpectralDensity, DubinsCarSpectralDensity
+from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity, ParaboloidSpectralDensity, KinkSharpSpectralDensity, VanDerPolSpectralDensity, DubinsCarSpectralDensity, QuadrupedSpectralDensity
 from lqrker.spectral_densities.base import SpectralDensityBase
 from ood.fourier_kernel import InverseFourierTransformKernelToolbox
 from lqrker.utils.common import CommonUtils
@@ -32,21 +32,10 @@ matplotlib.rc('font',**{'family':'serif','serif':['Computer Modern Roman']})
 # plt.rc('legend',fontsize=fontsize_labels+2)
 plt.rc('legend',fontsize=fontsize_labels//2)
 
-@hydra.main(config_path="./config",config_name="config")
-def reconstruct(cfg):
 
-	savefig = True
 
-	using_hybridrobotics = False
-	# using_hybridrobotics = True
+def load_data_dubins_car(path2project):
 
-	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
-	if using_hybridrobotics:
-		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
-
-	"""
-	Get training dataset
-	"""
 	path2data = "{0:s}/dubinscar_data_nominal_model_waypoints_lighter_many_trajs_for_searching_wlim.pickle".format(path2project)
 	assert path2data != "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_data_nominal_model.pickle", "I accidentally overwrote this"
 	# Create a TF dataset: https://www.tensorflow.org/datasets/add_dataset
@@ -60,18 +49,78 @@ def reconstruct(cfg):
 	dim_u = data_dict["dim_u"]
 	Nsteps = data_dict["Nsteps"]
 	Ntrajs = data_dict["Ntrajs"]
-	deltaT = data_dict["deltaT"]
 
 	dim_in = dim_x + dim_u
 	dim_out = dim_x
 
-	spectral_density_list = [None]*dim_out
-	for jj in range(dim_out):
-		spectral_density_list[jj] = DubinsCarSpectralDensity(cfg=cfg.spectral_density.dubinscar,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",use_nominal_model=True,Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
+
+	return Xtrain, Ytrain, dim_in, dim_out, Nsteps, Ntrajs, path2data
+
+
+def load_quadruped_experiments_03_13_2023(path2project):
+
+	path2data = "{0:s}/data_quadruped_experiments_03_13_2023/joined_go1trajs.pickle".format(path2project)
+	logger.info("Loading {0:s} ...".format(path2data))
+	file = open(path2data, 'rb')
+	data_dict = pickle.load(file)
+	file.close()
+
+	Xtrain = data_dict["Xtrain"]
+	Ytrain = data_dict["Ytrain"]
+	dim_x = Ytrain.shape[1]
+	dim_u = Xtrain.shape[1] - dim_x
+	Nsteps = Xtrain.shape[0]
+	Ntrajs = None
+
+	dim_in = dim_x + dim_u
+	dim_out = dim_x
+
+	Xtrain = tf.cast(Xtrain,dtype=tf.float32)
+	Ytrain = tf.cast(Ytrain,dtype=tf.float32)
+
+	return Xtrain, Ytrain, dim_in, dim_out, Nsteps, Ntrajs, path2data
+
+
+
+
+@hydra.main(config_path="./config",config_name="config")
+def reconstruct(cfg):
+
+	# path2folder = "dubins_car_reconstruction"
+	path2folder = "data_quadruped_experiments_03_13_2023"
+
+	savefig = True
+
+	# using_hybridrobotics = False
+	using_hybridrobotics = True
+
+	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
+	if using_hybridrobotics:
+		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
+
+	assert path2folder in ["dubins_car_reconstruction","data_quadruped_experiments_03_13_2023"]
+
+	# Load data:
+	if path2folder == "dubins_car_reconstruction":
+		Xtrain, Ytrain, dim_in, dim_out, Nsteps, Ntrajs, path2data = load_data_dubins_car(path2project) # Dubins car
+	
+		spectral_density_list = [None]*dim_out
+		for jj in range(dim_out):
+			spectral_density_list[jj] = DubinsCarSpectralDensity(cfg=cfg.spectral_density.dubinscar,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",use_nominal_model=True,Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
+	
+	if path2folder == "data_quadruped_experiments_03_13_2023":
+		Xtrain, Ytrain, dim_in, dim_out, Nsteps, Ntrajs, path2data = load_quadruped_experiments_03_13_2023(path2project) # Actual quadruped - Experiments March 13
+
+		spectral_density_list = [None]*dim_out
+		for jj in range(dim_out):
+			spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.dubinscar,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
+
 
 	# Testing dataset (we use the training dataset)
 	xpred_testing = tf.identity(Xtrain)
 	fx_true_testing = tf.identity(Ytrain)
+
+	# pdb.set_trace()
 
 	# # Discrete grid:
 	# # L = 200.0; Ndiv = 5 # 5**5=3125 # works
@@ -92,8 +141,8 @@ def reconstruct(cfg):
 	# delta_statespace = (xmax_testing-xmin_testing)**dim_in / Ndiv_testing
 	delta_statespace = 1.0 / Ndiv_testing
 
-	Nepochs = 4000
-	Nsamples_omega = 2000
+	Nepochs = 20
+	Nsamples_omega = 200
 	if using_hybridrobotics:
 		Nepochs = 4500
 		Nsamples_omega = 1500
@@ -149,7 +198,6 @@ def reconstruct(cfg):
 
 
 	# Save relevant quantities:
-	path2folder = "dubins_car_reconstruction"
 	save_data = True
 	# save_data = False
 	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid_omegalim1p0_omegas_within_lims.pickle"

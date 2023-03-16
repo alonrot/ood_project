@@ -707,8 +707,8 @@ def main(cfg: dict):
 	# Receding horizon predictions:
 	plotting_receding_horizon_predictions = True
 	savedata = True
-	recompute = True
-	# recompute = False
+	# recompute = True
+	recompute = False
 	path2save_receding_horizon = "{0:s}/dubins_car_receding".format(path2project)
 	file_name = "trajs_ind_traj_{0:d}.pickle".format(ind_traj_selected)
 	if plotting_receding_horizon_predictions and recompute:
@@ -761,7 +761,8 @@ def main(cfg: dict):
 		# file_name = "trajs_ind_traj_12.pickle" # using deltas
 		# file_name = "trajs_ind_traj_72.pickle" # using deltas, from hybridrobotics
 
-		file_name = "trajs_ind_traj_41.pickle" # using deltas, dbg noise param
+		# file_name = "trajs_ind_traj_41.pickle" # using deltas, dbg noise param
+		file_name = "trajs_ind_traj_15.pickle" # using deltas, lower noise, hybridrobotics
 
 
 

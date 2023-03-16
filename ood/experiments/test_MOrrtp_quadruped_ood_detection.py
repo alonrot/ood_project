@@ -47,8 +47,8 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use
 	dim_in = dim_X
 	dim_out = Ytrain.shape[1]
 	spectral_density_list = [None]*dim_out
-	# path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/learning_data_Nepochs4500.pickle" # mac
-	path2load = "/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/learning_data_Nepochs4500.pickle" # hybridrobotics
+	path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/learning_data_Nepochs4500.pickle" # mac
+	# path2load = "/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/learning_data_Nepochs4500.pickle" # hybridrobotics
 	for jj in range(dim_out):
 		spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
 		spectral_density_list[jj].update_Wsamples_from_file(path2data=path2load,ind_out=jj)
@@ -79,8 +79,8 @@ def main(cfg: dict):
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
-	# path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/joined_go1trajs.pickle" # mac
-	path2data = "/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/joined_go1trajs.pickle" # hybridrobotics
+	path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/joined_go1trajs.pickle" # mac
+	# path2data = "/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/joined_go1trajs.pickle" # hybridrobotics
 	logger.info("Loading {0:s} ...".format(path2data))
 	file = open(path2data, 'rb')
 	data_dict = pickle.load(file)
@@ -128,6 +128,7 @@ def main(cfg: dict):
 	z_vec_tf = tf.convert_to_tensor(value=z_vec,dtype=tf.float32)
 	u_vec_tf = tf.convert_to_tensor(value=u_vec,dtype=tf.float32)
 	z_vec_real = z_vec_tf
+	z_vec_changed_dyn_tf = None
 	rrtp_MO.update_dataset_predictive_loss(	z_vec_real=z_vec_tf,u_traj_real=u_vec_tf,Nhorizon=Nhorizon,
 											learning_rate=learning_rate,epochs=epochs,stop_loss_val=stop_loss_val,
 											scale_loss_entropy=scale_loss_entropy,scale_prior_regularizer=scale_prior_regularizer,
@@ -165,10 +166,11 @@ def main(cfg: dict):
 	savedata = True
 	recompute = True
 	# recompute = False
-	path2save_receding_horizon = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023"
+	path2save_receding_horizon = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023" # mac
+	# path2save_receding_horizon = "/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023" # hybridrobotics
 	file_name = "trajs_ind_traj_{0:d}.pickle".format(my_seed)
 	if plotting_receding_horizon_predictions and recompute:
-		Nhorizon_rec = 50
+		Nhorizon_rec = 15
 		Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
 		loss_val_per_step = np.zeros(Nsteps_tot)
 		x_traj_pred_all_vec = np.zeros((Nsteps_tot,Nrollouts,Nhorizon_rec,dim_x))
@@ -198,15 +200,7 @@ def main(cfg: dict):
 
 	elif plotting_receding_horizon_predictions:
 
-		# file_name = "trajs_ind_traj_46.pickle"
-		# file_name = "trajs_ind_traj_47.pickle"
-		# file_name = "trajs_ind_traj_78.pickle" # multiplicative factor in control inputs
-		file_name = "trajs_ind_traj_67.pickle" # Models sampled as they should; multiplicative factor in control inputs
-		# file_name = "trajs_ind_traj_54.pickle" # 
-		# file_name = "trajs_ind_traj_9.pickle" # Using low pass filter as change in dynamics
-		# file_name = "trajs_ind_traj_25.pickle" # Using disturbance, but now distance-based dynamics alteration
-		# file_name = "trajs_ind_traj_75.pickle" # Nominal model, horizon=50
-
+		# file_name = "trajs_ind_traj_12.pickle" # trials dbg mac
 
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)
@@ -234,7 +228,8 @@ def main(cfg: dict):
 		# hdl_fig_pred_sampling_rec.suptitle("Simulated trajectory predictions ...", fontsize=fontsize_labels)
 		# hdl_splots_sampling_rec[0].plot(z_vec_real[0:tt+1,0],z_vec_real[0:tt+1,1],linestyle="-",color="navy",lw=2.0,label="Real traj - nominal dynamics",alpha=0.3)
 		hdl_splots_sampling_rec[0].plot(z_vec_tf[:,0],z_vec_tf[:,1],linestyle="-",color="navy",lw=2.0,label="With nominal dynamics",alpha=0.7)
-		hdl_splots_sampling_rec[0].plot(z_vec_changed_dyn_tf[:,0],z_vec_changed_dyn_tf[:,1],linestyle="-",color="navy",lw=2.0,label="With changed dynamics",alpha=0.15)
+		if z_vec_changed_dyn_tf is not None: hdl_splots_sampling_rec[0].plot(z_vec_changed_dyn_tf[:,0],z_vec_changed_dyn_tf[:,1],linestyle="-",color="navy",lw=2.0,label="With changed dynamics",alpha=0.15)
+		tt = 0
 		hdl_plt_dubins_real, = hdl_splots_sampling_rec[0].plot(z_vec_real[tt,0],z_vec_real[tt,1],marker="*",markersize=14,color="darkgreen",label="Dubins car")
 		# hdl_splots_sampling_rec[0].set_xlim([-6.0,5.0])
 		# hdl_splots_sampling_rec[0].set_ylim([-3.5,1.5])

@@ -27,10 +27,16 @@ hyperpars:
   # prior_mean_factor: 1.0
   # noise_std_process: 0.1
 
-  # Dubins car:
+  # # Dubins car:
+  # prior_variance: 1.0
+  # prior_mean_factor: 1.0
+  # noise_std_process: 0.05
+
+  # Dubins car (using deltas)
   prior_variance: 1.0
   prior_mean_factor: 1.0
-  noise_std_process: 0.05
+  noise_std_process: 0.01
+
 
   # # Quadruped:
   # prior_variance: 0.5

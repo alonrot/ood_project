@@ -451,7 +451,7 @@ def merge_data(path2data_list):
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg: dict):
 
-	my_seed = 15
+	my_seed = 17
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -714,11 +714,11 @@ def main(cfg: dict):
 	if plotting_receding_horizon_predictions and recompute:
 
 		if using_hybridrobotics:
-			Nhorizon_rec = 75
+			Nhorizon_rec = 50
 			Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
 		else:
 			Nhorizon_rec = 15
-			Nsteps_tot = 10
+			Nsteps_tot = 40
 
 		loss_val_per_step = np.zeros(Nsteps_tot)
 		x_traj_pred_all_vec = np.zeros((Nsteps_tot,Nrollouts,Nhorizon_rec,dim_x))
@@ -759,7 +759,9 @@ def main(cfg: dict):
 		# file_name = "trajs_ind_traj_75.pickle" # Nominal model, horizon=50
 
 		# file_name = "trajs_ind_traj_12.pickle" # using deltas
-		file_name = "trajs_ind_traj_72.pickle" # using deltas
+		# file_name = "trajs_ind_traj_72.pickle" # using deltas, from hybridrobotics
+
+		file_name = "trajs_ind_traj_41.pickle" # using deltas, dbg noise param
 
 
 

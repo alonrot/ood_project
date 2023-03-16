@@ -707,14 +707,14 @@ def main(cfg: dict):
 	# Receding horizon predictions:
 	plotting_receding_horizon_predictions = True
 	savedata = True
-	# recompute = True
-	recompute = False
+	recompute = True
+	# recompute = False
 	path2save_receding_horizon = "{0:s}/dubins_car_receding".format(path2project)
 	file_name = "trajs_ind_traj_{0:d}.pickle".format(ind_traj_selected)
 	if plotting_receding_horizon_predictions and recompute:
 
 		if using_hybridrobotics:
-			Nhorizon_rec = 50
+			Nhorizon_rec = 75
 			Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
 		else:
 			Nhorizon_rec = 15

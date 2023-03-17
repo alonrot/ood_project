@@ -44,6 +44,13 @@ hyperpars:
   # noise_std_process: 0.01
 
 
+
+  chol_corr_noise_mat_lim_init: 2.0
+
+
+
+
+
   weights_features:
     Nfeat: 1001 # Number of features (i.e., number of linear models to sample)
 learning:

@@ -30,10 +30,7 @@ from test_dubin_car import get_sequence_of_feedback_gains_finite_horizon_LQR, ro
 dyn_sys_true = DubinsCarSpectralDensity._controlled_dubinscar_dynamics
 
 # tf.compat.v1.enable_v2_behavior()
-
-
 # tf.debugging.enable_check_numerics()
-
 # tf.compat.v1.disable_eager_execution()
 
 
@@ -48,103 +45,6 @@ matplotlib.rc('ytick', labelsize=fontsize_labels)
 matplotlib.rc('text', usetex=True)
 matplotlib.rc('font',**{'family':'serif','serif':['Computer Modern Roman']})
 plt.rc('legend',fontsize=fontsize_labels+2)
-
-
-def alter_dynamics_flag_time_based(tt,Nsteps):
-
-	# Time-based:
-	flag_alter = False
-	if tt > Nsteps/2:
-		flag_alter = True
-
-	return flag_alter
-
-def alter_dynamics_flag_state_based(state_curr):
-
-	flag_alter = False
-	if np.any(abs(state_curr[0,0:2]) > 2.0):
-		flag_alter = True
-
-	return flag_alter
-
-
-
-def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,path2project,use_nominal_model_for_spectral_density=True):
-	"""
-	<<< Initialize GP model >>>
-	"""
-	
-	# dim_y = dim_x
-
-	# print("Initializing Spectral density ...")
-	# if which_kernel == "vanderpol":
-	# 	spectral_density = VanDerPolSpectralDensity(cfg.spectral_density.vanderpol,cfg.sampler.hmc,dim=dim_X)
-	# elif which_kernel == "matern":
-	# 	spectral_density = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_X)
-	# elif which_kernel == "dubinscar":
-	# 	# integration_method = "integrate_with_regular_grid"
-	# 	integration_method = "integrate_with_data"
-	# 	spectral_density = DubinsCarSpectralDensity(cfg.spectral_density.dubinscar,cfg.sampler.hmc,dim=dim_X,integration_method=integration_method,use_nominal_model=use_nominal_model_for_spectral_density,Xtrain=Xtrain,Ytrain=Ytrain)
-	# else:
-	# 	raise ValueError("Possibilities: [vanderpol,matern,dubinscar]")
-
-
-	# Regular grid:
-	# omega_min = -6.
-	# omega_max = +6.
-	# Ndiv = 31
-	# cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_x
-	# spectral_density.update_Wpoints_regular(omega_min,omega_max,Ndiv)
-
-
-	# # Discrete grid:
-	# L = 200.0; Ndiv = 5 # 5**5=3125 # works
-	# # L = 100.0; Ndiv = 3 # 3**5=243 # reasonable for being just Ndiv=3
-	# # L = 50.0; Ndiv = 3 # 3**5=243 # reasonable for being just Ndiv=3
-	# # L = 50.0; Ndiv = 13 # 3**5=243 # reasonable for being just Ndiv=3
-	# # L = 10.0; Ndiv = 5 # 5**5=3125
-	# # L = 10.0; Ndiv = 7 # 7**5=16807
-	# # L = 30.0
-	# # Ndiv = 61
-	# cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_X
-	# spectral_density.update_Wpoints_discrete(L,Ndiv,normalize_density_numerically=False,reshape_for_plotting=False)
-
-
-
-	# We should be able to do 1500 with wlim maybe 1.0 or 2.0, and tune the noise and variance parameters by training the model -> doesn't work
-
-
-	# Spectral density:
-	dim_in = dim_X
-	dim_out = Ytrain.shape[1]
-	spectral_density_list = [None]*dim_out
-	path2load = "{0:s}/dubins_car_reconstruction/from_hybridrobotics/learning_data_Nepochs4500.pickle".format(path2project)
-	# path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubins_car_reconstruction/from_dawkins/learning_data_Nepochs4500.pickle"
-	# path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid_omegalim1p0_omegas_within_lims.pickle"
-	# path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid_omegalim0p5.pickle"
-	# path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid.pickle"
-	# path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters.pickle"
-	for jj in range(dim_out):
-		spectral_density_list[jj] = DubinsCarSpectralDensity(cfg=cfg.spectral_density.dubinscar,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",use_nominal_model=True,Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
-		spectral_density_list[jj].update_Wsamples_from_file(path2data=path2load,ind_out=jj)
-		# spectral_density_list[jj].update_Wsamples_from_file(path2load)
-
-
-	# # Randomly sampled uniform grid:
-	# omega_min = -0.314
-	# omega_max = +0.134
-	# Nsamples = 3125
-	# spectral_density.update_Wsamples_uniform(omega_min,omega_max,Nsamples)
-
-	
-
-	print("Initializing GP model ...")
-	rrtp_MO = MultiObjectiveReducedRankProcess(dim_X,cfg,spectral_density_list,Xtrain,Ytrain,using_deltas=using_deltas)
-	# rrtp_MO = MultiObjectiveReducedRankProcess(dim_X,cfg,spectral_density,Xtrain,Ytrain)
-	# rrtp_MO.train_model()
-
-	return rrtp_MO
-
 
 
 def get_training_data_from_vel_profile(save_data_dict=None,use_nominal_model=True,z0_mean=np.zeros(3)):
@@ -448,10 +348,64 @@ def merge_data(path2data_list):
 	file.close()
 
 
+
+
+
+
+
+
+
+
+
+def alter_dynamics_flag_time_based(tt,Nsteps):
+
+	# Time-based:
+	flag_alter = False
+	if tt > Nsteps/2:
+		flag_alter = True
+
+	return flag_alter
+
+def alter_dynamics_flag_state_based(state_curr):
+
+	flag_alter = False
+	if np.any(abs(state_curr[0,0:2]) > 2.0):
+		flag_alter = True
+
+	return flag_alter
+
+
+
+def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,path2project,use_nominal_model_for_spectral_density=True):
+	"""
+	<<< Initialize GP model >>>
+	"""
+		# Spectral density:
+	dim_in = dim_X
+	dim_out = Ytrain.shape[1]
+	spectral_density_list = [None]*dim_out
+	path2load = "{0:s}/dubins_car_reconstruction/from_hybridrobotics/learning_data_Nepochs4500.pickle".format(path2project)
+	for jj in range(dim_out):
+		spectral_density_list[jj] = DubinsCarSpectralDensity(cfg=cfg.spectral_density.dubinscar,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",use_nominal_model=True,Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
+		spectral_density_list[jj].update_Wsamples_from_file(path2data=path2load,ind_out=jj)
+		# spectral_density_list[jj].update_Wsamples_from_file(path2load)
+
+	print("Initializing GP model ...")
+	learn_correlation_noise = False
+	# learn_correlation_noise = True
+	rrtp_MO = MultiObjectiveReducedRankProcess(dim_X,cfg,spectral_density_list,Xtrain,Ytrain,using_deltas=using_deltas,learn_correlation_noise=learn_correlation_noise)
+	# rrtp_MO = MultiObjectiveReducedRankProcess(dim_X,cfg,spectral_density,Xtrain,Ytrain)
+	# rrtp_MO.train_model()
+
+	return rrtp_MO
+
+
+
+
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg: dict):
 
-	my_seed = 17
+	my_seed = 19
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -508,18 +462,6 @@ def main(cfg: dict):
 	if using_deltas:
 		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
 		Ytrain = Ytrain_deltas
-
-
-
-
-	# tf.debugging.experimental.enable_dump_debug_info(
-	# 	"/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/tfdbg2_logdir",
-	# 	tensor_debug_mode="FULL_HEALTH",
-	# 	circular_buffer_size=-1)
-	# 	
-	# 	
-	# 	
-	# pdb.set_trace()
 
 	# Initialize GP model:
 	dim_X = dim_x + dim_u
@@ -633,75 +575,70 @@ def main(cfg: dict):
 			linearize our model at cost O(1) because all it takes is to compute the derivatives of the features. Then, we can decompose matrix A in something deterministic (the mean) and a stochastic component (a random disturbabce) and just use standard stcohastc MPC tools.
 		"""
 
-
-
-	# Prepare the training and its loss; the latter compares the true trajectory with the predicted one, in chunks.
-	learning_rate = 1e-1
-	epochs = 5
-	Nhorizon = 10
-	Nrollouts = 20
-	train = False
-	stop_loss_val = -1000.
-	scale_loss_entropy = 0.1
-	scale_prior_regularizer = 0.1
 	z_vec_tf = tf.convert_to_tensor(value=z_vec,dtype=tf.float32)
 	z_vec_changed_dyn_tf = tf.convert_to_tensor(value=z_vec_changed_dyn,dtype=tf.float32)
 	u_vec_tf = tf.convert_to_tensor(value=u_vec,dtype=tf.float32)
 
-	# compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "nominal_model"
-	compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "altered_model"
+	compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "nominal_model"
+	# compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "altered_model"
 	assert compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to in ["nominal_model","altered_model"]
 	if compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to == "nominal_model":
 		z_vec_real = z_vec_tf # [Nsteps,dim_out]
 	if compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to == "altered_model":
 		z_vec_real = z_vec_changed_dyn_tf # [Nsteps,dim_out]
-	rrtp_MO.update_dataset_predictive_loss(	z_vec_real=z_vec_real,u_traj_real=u_vec_tf,Nhorizon=Nhorizon,
-											learning_rate=learning_rate,epochs=epochs,stop_loss_val=stop_loss_val,
+
+	if using_hybridrobotics:
+		Nhorizon_rec = 30
+		Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
+		Nepochs = 1000
+		Nrollouts = 15
+	else:
+		Nhorizon_rec = 2
+		Nsteps_tot = 5
+		Nepochs = 5
+		Nrollouts = 5
+
+	assert Nsteps_tot > Nhorizon_rec
+
+	# Prepare the training and its loss; the latter compares the true trajectory with the predicted one, in chunks.
+	learning_rate = 1e-1
+	
+	stop_loss_val = -1000.
+	scale_loss_entropy = 0.1
+	scale_prior_regularizer = 0.1
+
+	rrtp_MO.update_dataset_predictive_loss(	z_vec_real=z_vec_real,u_traj_real=u_vec_tf,
+											learning_rate=learning_rate,Nepochs=Nepochs,stop_loss_val=stop_loss_val,
 											scale_loss_entropy=scale_loss_entropy,scale_prior_regularizer=scale_prior_regularizer,
 											Nrollouts=Nrollouts)
 
-	# plt.show(block=True)
 
-	# # Before training to predict:
-	# plotting_dict = dict(plotting=True,block_plot=False,title_fig="Predictions || Dummy",ref_xt_vec=None,z_vec=None,z_vec_changed_dyn=None)
-	# plotting_dict["title_fig"] = "Predictions || Using posterior, after training one-step ahead"
-	# plotting_dict["ref_xt_vec"] = ref_xt_vec
-	# plotting_dict["z_vec"] = z_vec
-	# plotting_dict["z_vec_changed_dyn"] = z_vec_changed_dyn
-	# # plotting_dict["z_vec_changed_dyn"] = None
-	# # rrtp_MO.set_dbg_flag(True)
-	# loss_val, x_traj_pred_chunks = rrtp_MO.get_negative_log_evidence_predictive_full_trajs_in_batch(update_features=False,plotting_dict=plotting_dict,Nrollouts=Nrollouts)
-	# # x_traj_pred_chunks: [Nchunks,Nrollouts,Nhorizon,dim_X]
-	# logger.info("loss_total (before training): {0:f}".format(loss_val))
+	# path2save_tensors = "{0:s}/dubins_car_receding/tensors4fast_prediction_with_MOrrp_model".format(path2project)
+	# rrtp_MO.export_tensors_needed_for_sampling_predictions_using_sampled_model_instances(path2save_tensors)
 
-	# # plt.show(block=True)
+	# Train:
+	train = True
+	load_weights = False
+	if train:
+		path2save = "{0:s}/dubins_car_receding/training_MOrrp_model".format(path2project)
+		rrtp_MO.train_MOrrp_predictive(Nsteps_tot,Nhorizon_rec,sample_fx_once=True,verbosity=False,save_weights=True,path2save=path2save)
 
+		logger.info("training has finished!!!")
+		return;
 
-	# Visualize samples:
-	plotting_visualize_samples = False
-	if plotting_visualize_samples:
-		plt_pause_sec = 1.0
-		plt_samples_ylabels = [r"$x_1$",r"$x_2$",r"$\theta$"]
-		hdl_fig_pred_sampling, hdl_splots_sampling = plt.subplots(dim_x,1,figsize=(12,8),sharex=True)
-		Nchunks = Nsteps//Nhorizon
-		z_vec_real_in_chunks = np.reshape(z_vec_real,(Nchunks,Nhorizon,dim_x)) # z_vec_real: [Nsteps,dim_out] || z_vec_real_in_chunks: [Nchunks,Nhorizon,dim_out]
-		hdl_fig_pred_sampling.suptitle("Sampling trajectories ...", fontsize=16)
-		time_steps = np.arange(1,z_vec_real_in_chunks.shape[1]+1)
-		hdl_splots_sampling[-1].set_xlabel(r"Horizon time steps")
-		for ii in range(Nchunks):
+	elif load_weights:
 
-			for dd in range(dim_x):
-				hdl_splots_sampling[dd].cla()
-				hdl_splots_sampling[dd].plot(time_steps,z_vec_real_in_chunks[ii,:,dd],linestyle="-",color="navy",lw=2.0,label=r"Real traj",alpha=0.8)
-				hdl_splots_sampling[dd].plot(time_steps,z_vec_real_in_chunks[ii,:,dd],linestyle="None",color="navy",marker=".",alpha=0.8,markersize=8)
-				hdl_splots_sampling[dd].set_ylabel(plt_samples_ylabels[dd],fontsize=fontsize_labels)
-				for ss in range(Nrollouts):
-					hdl_splots_sampling[dd].plot(time_steps,x_traj_pred_chunks[ii,ss,:,dd],linestyle="-",color="navy",lw=1.0,label=r"Sampled trajs",alpha=0.2)
+		path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubins_car_receding/training_MOrrp_model"
+		file_name = "2023_03_16_18_11_35_weights_trained_MOrrp_model.pickle"
+		path2data_full = "{0:s}/{1:s}".format(path2data,file_name)
 
-			plt.show(block=False)
-			plt.pause(plt_pause_sec)
-
-		plt.show(block=True)
+		logger.info("Loading {0:s} ...".format(path2data_full))
+		file = open(path2data_full, 'rb')
+		weights2load = pickle.load(file)
+		logger.info("Setting learned weights to the GPSSM model ...")
+		logger.info("weights2load: {0:s}".format(str(weights2load)))
+		rrtp_MO.set_weights(weights2load)
+		file.close()
 
 
 	# Receding horizon predictions:
@@ -713,29 +650,7 @@ def main(cfg: dict):
 	file_name = "trajs_ind_traj_{0:d}.pickle".format(ind_traj_selected)
 	if plotting_receding_horizon_predictions and recompute:
 
-		if using_hybridrobotics:
-			Nhorizon_rec = 50
-			Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
-		else:
-			Nhorizon_rec = 15
-			Nsteps_tot = 40
-
-		loss_val_per_step = np.zeros(Nsteps_tot)
-		x_traj_pred_all_vec = np.zeros((Nsteps_tot,Nrollouts,Nhorizon_rec,dim_x))
-		for tt in range(Nsteps_tot):
-
-			x_traj_real_applied = z_vec_real[tt:tt+Nhorizon_rec,:]
-			x_traj_real_applied_tf = tf.reshape(x_traj_real_applied,(1,Nhorizon_rec,dim_x))
-			u_applied_tf = u_vec_tf[tt:tt+Nhorizon_rec,:]
-			str_progress_bar = "Prediction with horizon = {0:d}; tt: {1:d} / {2:d} | ".format(Nhorizon_rec,tt+1,Nsteps_tot)
-			loss_val_per_step[tt], x_traj_pred, y_traj_pred = rrtp_MO._get_negative_log_evidence_and_predictive_trajectory_chunk(x_traj_real_applied_tf,u_applied_tf,Nsamples=1,
-																												Nrollouts=Nrollouts,str_progress_bar=str_progress_bar,from_prior=False,
-																												scale_loss_entropy=scale_loss_entropy,
-																												scale_prior_regularizer=scale_prior_regularizer,
-																												sample_fx_once=True)
-			# Add the last prediction y_traj_pred[:,-1::,:]; so x_traj_pred_all_vec[tt,...] contains [x0,predictions,last_prediction]
-			x_traj_pred_all_vec[tt,...] = np.concatenate([x_traj_pred,y_traj_pred[:,-1::,:]],axis=1) # [Nsteps_tot,Nrollouts,Nhorizon_rec,self.dim_out]
-
+		loss_avg, x_traj_pred_all_vec, loss_val_per_step = rrtp_MO.get_elbo_loss_for_predictions_in_full_trajectory_with_certain_horizon(Nsteps_tot,Nhorizon_rec,sample_fx_once=True)
 
 		if savedata:
 			data2save = dict(x_traj_pred_all_vec=x_traj_pred_all_vec,u_vec_tf=u_vec_tf,z_vec_real=z_vec_real,z_vec_tf=z_vec_tf,z_vec_changed_dyn_tf=z_vec_changed_dyn_tf,loss_val_per_step=loss_val_per_step)
@@ -762,8 +677,10 @@ def main(cfg: dict):
 		# file_name = "trajs_ind_traj_72.pickle" # using deltas, from hybridrobotics
 
 		# file_name = "trajs_ind_traj_41.pickle" # using deltas, dbg noise param
-		file_name = "trajs_ind_traj_15.pickle" # using deltas, lower noise, hybridrobotics
+		file_name = "trajs_ind_traj_15.pickle" # using deltas, lower noise, hybridrobotics | INCREDIBLY GOOD LONG TERM PREDICTIONS!!!!!
+		# file_name = "trajs_ind_traj_42.pickle" # using deltas, lower noise, hybridrobotics, dbg
 
+		# file_name = "trajs_ind_traj_40.pickle" # using deltas, noise_std_process: 0.01, super good long-term predictions!!
 
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)
@@ -781,7 +698,7 @@ def main(cfg: dict):
 		Nrollouts = x_traj_pred_all_vec.shape[1]
 		time_steps = np.arange(1,Nsteps_tot+1)
 		list_xticks_loss = list(range(0,Nsteps_tot+1,40)); list_xticks_loss[0] = 1
-		thres_OoD = 10.0
+		thres_OoD = 300.0
 		loss_min = np.amin(loss_val_per_step)
 
 		def is_OoD_loss_based(loss_val_current,loss_thres):
@@ -814,6 +731,8 @@ def main(cfg: dict):
 		plt.show(block=False)
 		plt.pause(0.5)
 		plt_pause_sec = 0.01
+
+		# pdb.set_trace()
 		
 
 		for tt in range(Nsteps_tot):
@@ -852,14 +771,6 @@ def main(cfg: dict):
 
 	# plt.show(block=True)
 
-	# Train:
-	if train:
-		rrtp_MO.train_MOrrp_predictive()
-	else:
-		# rrtp_MO = assign_weights_v1(rrtp_MO,log_noise_std_per_dim,log_prior_variance_per_dim)
-		# rrtp_MO = assign_weights_v1(rrtp_MO,weights_list)
-		rrtp_MO = assign_weights_v2(rrtp_MO,weights_list)
-
 	# After training to predict:
 	plotting_dict["title_fig"] = "Predictions || Using posterior after training H-step ahead)"
 	loss_val, = rrtp_MO.get_negative_log_evidence_predictive_full_trajs_in_batch(update_features=True,plotting_dict=plotting_dict,Nrollouts=Nrollouts)
@@ -869,23 +780,119 @@ def main(cfg: dict):
 
 	# deprecated()
 
-def assign_weights_v1(rrtp_MO,weights_list):
+# def assign_weights_v1(rrtp_MO,weights_list):
 
-	dd = 0
-	for weights in weights_list:
-		rrtp_MO.rrgpMO[dd].log_noise_std.assign(value=[weights["log_noise_std"]])
-		rrtp_MO.rrgpMO[dd].log_prior_variance.assign(value=[weights["log_prior_variance"]])
-		rrtp_MO.rrgpMO[dd].log_prior_mean_factor.assign(value=[weights["log_prior_mean_factor"]])
-		dd += 1
+# 	dd = 0
+# 	for weights in weights_list:
+# 		rrtp_MO.rrgpMO[dd].log_noise_std.assign(value=[weights["log_noise_std"]])
+# 		rrtp_MO.rrgpMO[dd].log_prior_variance.assign(value=[weights["log_prior_variance"]])
+# 		rrtp_MO.rrgpMO[dd].log_prior_mean_factor.assign(value=[weights["log_prior_mean_factor"]])
+# 		dd += 1
 
-	return rrtp_MO
+# 	return rrtp_MO
 
-def assign_weights_v2(rrtp_MO,weights_list):
-	raise NotImplementedError("assign_weights_v2")
+# def assign_weights_v2(rrtp_MO,weights_list):
+# 	raise NotImplementedError("assign_weights_v2")
 
 if __name__ == "__main__":
 
 	main()
+
+
+
+	# plt.show(block=True)
+
+	# # Before training to predict:
+	# plotting_dict = dict(plotting=True,block_plot=False,title_fig="Predictions || Dummy",ref_xt_vec=None,z_vec=None,z_vec_changed_dyn=None)
+	# plotting_dict["title_fig"] = "Predictions || Using posterior, after training one-step ahead"
+	# plotting_dict["ref_xt_vec"] = ref_xt_vec
+	# plotting_dict["z_vec"] = z_vec
+	# plotting_dict["z_vec_changed_dyn"] = z_vec_changed_dyn
+	# # plotting_dict["z_vec_changed_dyn"] = None
+	# # rrtp_MO.set_dbg_flag(True)
+	# loss_val, x_traj_pred_chunks = rrtp_MO.get_negative_log_evidence_predictive_full_trajs_in_batch(update_features=False,plotting_dict=plotting_dict,Nrollouts=Nrollouts)
+	# # x_traj_pred_chunks: [Nchunks,Nrollouts,Nhorizon,dim_X]
+	# logger.info("loss_total (before training): {0:f}".format(loss_val))
+
+	# # plt.show(block=True)
+
+
+	# # Visualize samples:
+	# plotting_visualize_samples = False
+	# if plotting_visualize_samples:
+	# 	plt_pause_sec = 1.0
+	# 	plt_samples_ylabels = [r"$x_1$",r"$x_2$",r"$\theta$"]
+	# 	hdl_fig_pred_sampling, hdl_splots_sampling = plt.subplots(dim_x,1,figsize=(12,8),sharex=True)
+	# 	Nchunks = Nsteps//Nhorizon
+	# 	z_vec_real_in_chunks = np.reshape(z_vec_real,(Nchunks,Nhorizon,dim_x)) # z_vec_real: [Nsteps,dim_out] || z_vec_real_in_chunks: [Nchunks,Nhorizon,dim_out]
+	# 	hdl_fig_pred_sampling.suptitle("Sampling trajectories ...", fontsize=16)
+	# 	time_steps = np.arange(1,z_vec_real_in_chunks.shape[1]+1)
+	# 	hdl_splots_sampling[-1].set_xlabel(r"Horizon time steps")
+	# 	for ii in range(Nchunks):
+
+	# 		for dd in range(dim_x):
+	# 			hdl_splots_sampling[dd].cla()
+	# 			hdl_splots_sampling[dd].plot(time_steps,z_vec_real_in_chunks[ii,:,dd],linestyle="-",color="navy",lw=2.0,label=r"Real traj",alpha=0.8)
+	# 			hdl_splots_sampling[dd].plot(time_steps,z_vec_real_in_chunks[ii,:,dd],linestyle="None",color="navy",marker=".",alpha=0.8,markersize=8)
+	# 			hdl_splots_sampling[dd].set_ylabel(plt_samples_ylabels[dd],fontsize=fontsize_labels)
+	# 			for ss in range(Nrollouts):
+	# 				hdl_splots_sampling[dd].plot(time_steps,x_traj_pred_chunks[ii,ss,:,dd],linestyle="-",color="navy",lw=1.0,label=r"Sampled trajs",alpha=0.2)
+
+	# 		plt.show(block=False)
+	# 		plt.pause(plt_pause_sec)
+
+	# 	plt.show(block=True)
+
+
+
+
+
+
+
+
+# def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,path2project,use_nominal_model_for_spectral_density=True):
+# 	"""
+# 	<<< Initialize GP model >>>
+# 	"""
+	
+# 	# dim_y = dim_x
+
+# 	# print("Initializing Spectral density ...")
+# 	# if which_kernel == "vanderpol":
+# 	# 	spectral_density = VanDerPolSpectralDensity(cfg.spectral_density.vanderpol,cfg.sampler.hmc,dim=dim_X)
+# 	# elif which_kernel == "matern":
+# 	# 	spectral_density = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_X)
+# 	# elif which_kernel == "dubinscar":
+# 	# 	# integration_method = "integrate_with_regular_grid"
+# 	# 	integration_method = "integrate_with_data"
+# 	# 	spectral_density = DubinsCarSpectralDensity(cfg.spectral_density.dubinscar,cfg.sampler.hmc,dim=dim_X,integration_method=integration_method,use_nominal_model=use_nominal_model_for_spectral_density,Xtrain=Xtrain,Ytrain=Ytrain)
+# 	# else:
+# 	# 	raise ValueError("Possibilities: [vanderpol,matern,dubinscar]")
+
+
+# 	# Regular grid:
+# 	# omega_min = -6.
+# 	# omega_max = +6.
+# 	# Ndiv = 31
+# 	# cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_x
+# 	# spectral_density.update_Wpoints_regular(omega_min,omega_max,Ndiv)
+
+
+# 	# # Discrete grid:
+# 	# L = 200.0; Ndiv = 5 # 5**5=3125 # works
+# 	# # L = 100.0; Ndiv = 3 # 3**5=243 # reasonable for being just Ndiv=3
+# 	# # L = 50.0; Ndiv = 3 # 3**5=243 # reasonable for being just Ndiv=3
+# 	# # L = 50.0; Ndiv = 13 # 3**5=243 # reasonable for being just Ndiv=3
+# 	# # L = 10.0; Ndiv = 5 # 5**5=3125
+# 	# # L = 10.0; Ndiv = 7 # 7**5=16807
+# 	# # L = 30.0
+# 	# # Ndiv = 61
+# 	# cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_X
+# 	# spectral_density.update_Wpoints_discrete(L,Ndiv,normalize_density_numerically=False,reshape_for_plotting=False)
+
+
+
+# 	# We should be able to do 1500 with wlim maybe 1.0 or 2.0, and tune the noise and variance parameters by training the model -> doesn't work
 
 
 

@@ -33,10 +33,6 @@ dyn_sys_true = DubinsCarSpectralDensity._controlled_dubinscar_dynamics
 # tf.debugging.enable_check_numerics()
 # tf.compat.v1.disable_eager_execution()
 
-
-using_deltas = True
-# using_deltas = False
-
 markersize_x0 = 10
 markersize_trajs = 0.4
 fontsize_labels = 25
@@ -376,6 +372,15 @@ def alter_dynamics_flag_state_based(state_curr):
 
 
 
+
+
+
+using_deltas = True
+# using_deltas = False
+
+
+
+
 def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,path2project,use_nominal_model_for_spectral_density=True):
 	"""
 	<<< Initialize GP model >>>
@@ -589,14 +594,18 @@ def main(cfg: dict):
 
 	if using_hybridrobotics:
 		Nhorizon_rec = 30
-		Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
-		Nepochs = 1000
+		# Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
+		Nsteps_tot = z_vec_real.shape[0]
+		Nepochs = 200
 		Nrollouts = 15
+		Nchunks = 4
 	else:
 		Nhorizon_rec = 2
-		Nsteps_tot = 5
+		# Nsteps_tot = 15
+		Nsteps_tot = z_vec_real.shape[0]
 		Nepochs = 5
 		Nrollouts = 5
+		Nchunks = 4
 
 	assert Nsteps_tot > Nhorizon_rec
 
@@ -621,7 +630,7 @@ def main(cfg: dict):
 	load_weights = False
 	if train:
 		path2save = "{0:s}/dubins_car_receding/training_MOrrp_model".format(path2project)
-		rrtp_MO.train_MOrrp_predictive(Nsteps_tot,Nhorizon_rec,sample_fx_once=True,verbosity=False,save_weights=True,path2save=path2save)
+		rrtp_MO.train_MOrrp_predictive(Nsteps_tot,Nhorizon_rec,sample_fx_once=True,verbosity=False,save_weights=True,path2save=path2save,Nchunks=Nchunks)
 
 		logger.info("Training has finished!!!")
 		return;

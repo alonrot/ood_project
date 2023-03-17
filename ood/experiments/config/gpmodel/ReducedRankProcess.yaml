@@ -37,7 +37,7 @@ hyperpars:
   prior_mean_factor: 1.0
   noise_std_process:
     value_init: 0.01
-    learn: True
+    learn: False
 
 
   # # Quadruped:

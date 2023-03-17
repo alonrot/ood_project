@@ -391,8 +391,8 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,pat
 		# spectral_density_list[jj].update_Wsamples_from_file(path2load)
 
 	print("Initializing GP model ...")
-	learn_correlation_noise = False
-	# learn_correlation_noise = True
+	# learn_correlation_noise = False
+	learn_correlation_noise = True
 	rrtp_MO = MultiObjectiveReducedRankProcess(dim_X,cfg,spectral_density_list,Xtrain,Ytrain,using_deltas=using_deltas,learn_correlation_noise=learn_correlation_noise)
 	# rrtp_MO = MultiObjectiveReducedRankProcess(dim_X,cfg,spectral_density,Xtrain,Ytrain)
 	# rrtp_MO.train_model()

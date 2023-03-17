@@ -10,7 +10,7 @@ from matplotlib import cm
 import matplotlib
 import numpy as np
 import scipy
-from lqrker.spectral_densities import MaternSpectralDensity, VanDerPolSpectralDensity, DubinsCarSpectralDensity, QuadrupedSpectralDensity
+from lqrker.spectral_densities import MaternSpectralDensity, VanDerPolSpectralDensity, QuadrupedSpectralDensity
 from lqrker.models import MultiObjectiveReducedRankProcess
 from scipy import stats
 import hydra
@@ -22,10 +22,8 @@ from lqrker.utils.parsing import get_logger
 logger = get_logger(__name__)
 from min_jerk_gen import min_jerk
 
-from lqrker.spectral_densities import DubinsCarSpectralDensity
 from test_dubin_car import get_sequence_of_feedback_gains_finite_horizon_LQR, rollout_with_finitie_horizon_LQR, generate_trajectories, generate_reference_trajectory
 
-dyn_sys_true = DubinsCarSpectralDensity._controlled_dubinscar_dynamics
 
 markersize_x0 = 10
 markersize_trajs = 0.4
@@ -36,51 +34,45 @@ matplotlib.rc('text', usetex=True)
 matplotlib.rc('font',**{'family':'serif','serif':['Computer Modern Roman']})
 plt.rc('legend',fontsize=fontsize_labels+2)
 
-def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use_nominal_model_for_spectral_density=True):
+using_deltas = True
+# using_deltas = False
+
+def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,path2project,use_nominal_model_for_spectral_density=True):
 	"""
 	<<< Initialize GP model >>>
 	"""
-
-	assert which_kernel == "quadruped"
-	
-	# Spectral density:
+		# Spectral density:
 	dim_in = dim_X
 	dim_out = Ytrain.shape[1]
 	spectral_density_list = [None]*dim_out
-	path2load = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/learning_data_Nepochs4500.pickle" # mac
-	# path2load = "/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/learning_data_Nepochs4500.pickle" # hybridrobotics
+	# path2load = "{0:s}/data_quadruped_experiments_03_13_2023/learning_data_Nepochs4500.pickle".format(path2project) # not using deltas, trained in hybridrobotics
+	path2load = "{0:s}/data_quadruped_experiments_03_13_2023/learning_data_Nepochs300.pickle".format(path2project) # using deltas, trained on mac
 	for jj in range(dim_out):
 		spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
 		spectral_density_list[jj].update_Wsamples_from_file(path2data=path2load,ind_out=jj)
-		# spectral_density_list[jj].update_Wsamples_from_file(path2load)
-
-
-	# # Randomly sampled uniform grid:
-	# omega_min = -0.314
-	# omega_max = +0.134
-	# Nsamples = 3125
-	# spectral_density.update_Wsamples_uniform(omega_min,omega_max,Nsamples)
-
-	
 
 	print("Initializing GP model ...")
-	rrtp_MO = MultiObjectiveReducedRankProcess(dim_X,cfg,spectral_density_list,Xtrain,Ytrain)
-	# rrtp_MO = MultiObjectiveReducedRankProcess(dim_X,cfg,spectral_density,Xtrain,Ytrain)
-	# rrtp_MO.train_model()
-
+	rrtp_MO = MultiObjectiveReducedRankProcess(dim_X,cfg,spectral_density_list,Xtrain,Ytrain,using_deltas=using_deltas)
 	return rrtp_MO
-
 
 
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg: dict):
 
-	my_seed = 13
+	my_seed = 50
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
-	path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/joined_go1trajs.pickle" # mac
-	# path2data = "/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/joined_go1trajs.pickle" # hybridrobotics
+	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
+	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
+
+	if using_hybridrobotics:
+		path2project = "/home/amarco/code_projects/ood_project/ood/experiments"
+	else:
+		path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
+
+
+	path2data = "{0:s}/data_quadruped_experiments_03_13_2023/joined_go1trajs.pickle".format(path2project) # mac
 	logger.info("Loading {0:s} ...".format(path2data))
 	file = open(path2data, 'rb')
 	data_dict = pickle.load(file)
@@ -90,106 +82,99 @@ def main(cfg: dict):
 	dim_x = Ytrain.shape[1]
 	dim_u = Xtrain.shape[1] - Ytrain.shape[1]
 
+	if using_deltas:
+		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
+		Ytrain = Ytrain_deltas
+
 	# Initialize GP model:
 	dim_X = dim_x + dim_u
 	which_kernel = "quadruped"
 	# which_kernel = "matern"
-	rrtp_MO = initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,use_nominal_model_for_spectral_density=True)
+	rrtp_MO = initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,path2project,use_nominal_model_for_spectral_density=True)
 	
 	# Trajectory selector:
 	# See dubins car version of this file...
 
 	Nsteps = 510
 	zu_vec = Xtrain[-Nsteps::,...]
-	zu_next_vec = Ytrain[-Nsteps::,...]
+	z_next_vec = Ytrain[-Nsteps::,...]
 	z_vec = Xtrain[-Nsteps::,0:dim_x]
 	u_vec = Xtrain[-Nsteps::,dim_x::]
 
 	MO_mean_pred, MO_std_pred = rrtp_MO.predict_at_locations(zu_vec)
 
+	if using_deltas:
+		z_next_vec_plotting = z_next_vec + zu_vec[:,0:dim_x]
+		MO_mean_pred_plotting = MO_mean_pred + zu_vec[:,0:dim_x]
+	else:
+		z_next_vec_plotting = z_next_vec
+		MO_mean_pred_plotting = MO_mean_pred
+
 	hdl_fig_pred, hdl_splots_pred = plt.subplots(1,1,figsize=(12,8),sharex=True)
 	hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
 	hdl_splots_pred.plot(zu_vec[:,0],zu_vec[:,1],linestyle="-",color="grey",lw=2.0,label=r"Real traj - Input",alpha=0.3)
-	hdl_splots_pred.plot(zu_next_vec[:,0],zu_next_vec[:,1],linestyle="-",color="navy",lw=2.0,label=r"Real traj - Next state",alpha=0.3)
-	hdl_splots_pred.plot(MO_mean_pred[:,0],MO_mean_pred[:,1],linestyle="-",color="navy",lw=2.0,label=r"Predicted traj - Next dynamics",alpha=0.7)
+	hdl_splots_pred.plot(z_next_vec_plotting[:,0],z_next_vec_plotting[:,1],linestyle="-",color="navy",lw=2.0,label=r"Real traj - Next state",alpha=0.3)
+	hdl_splots_pred.plot(MO_mean_pred_plotting[:,0],MO_mean_pred_plotting[:,1],linestyle="-",color="navy",lw=2.0,label=r"Predicted traj - Next dynamics",alpha=0.7)
+
 
 	plt.show(block=False)
 	plt.pause(1.)
 
+
+	z_vec_tf = tf.convert_to_tensor(value=z_vec,dtype=tf.float32)
+	u_vec_tf = tf.convert_to_tensor(value=u_vec,dtype=tf.float32)
+
+	z_vec_real = z_vec_tf
+	z_vec_changed_dyn_tf = None
+
+	if using_hybridrobotics:
+		Nhorizon_rec = 30
+		# Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
+		Nsteps_tot = z_vec_real.shape[0]
+		Nepochs = 200
+		Nrollouts = 15
+		Nchunks = 4
+	else:
+		Nsteps_tot = z_vec_real.shape[0]
+		# Nsteps_tot = 50
+		Nchunks = 4
+
+		Nhorizon_rec = 30 # Will be overwritten if Nchunks is passed to get_elbo_loss_for_predictions_in_full_trajectory_with_certain_horizon() and it's not None
+		Nrollouts = 15
+
+		# Nsteps_tot = 50
+		# Nhorizon_rec = 10
+		# Nrollouts = 5
+
+		Nepochs = 50
+
+	assert Nsteps_tot > Nhorizon_rec
+
 	# Prepare the training and its loss; the latter compares the true trajectory with the predicted one, in chunks.
 	learning_rate = 1e-1
-	epochs = 5
-	Nhorizon = 10
-	Nrollouts = 20
-	train = False
+	
 	stop_loss_val = -1000.
 	scale_loss_entropy = 0.1
 	scale_prior_regularizer = 0.1
-	z_vec_tf = tf.convert_to_tensor(value=z_vec,dtype=tf.float32)
-	u_vec_tf = tf.convert_to_tensor(value=u_vec,dtype=tf.float32)
-	z_vec_real = z_vec_tf
-	z_vec_changed_dyn_tf = None
-	rrtp_MO.update_dataset_predictive_loss(	z_vec_real=z_vec_tf,u_traj_real=u_vec_tf,Nhorizon=Nhorizon,
-											learning_rate=learning_rate,epochs=epochs,stop_loss_val=stop_loss_val,
+
+	rrtp_MO.update_dataset_predictive_loss(	z_vec_real=z_vec_real,u_traj_real=u_vec_tf,
+											learning_rate=learning_rate,Nepochs=Nepochs,stop_loss_val=stop_loss_val,
 											scale_loss_entropy=scale_loss_entropy,scale_prior_regularizer=scale_prior_regularizer,
 											Nrollouts=Nrollouts)
-
-	# Visualize samples:
-	plotting_visualize_samples = False
-	if plotting_visualize_samples:
-		plt_pause_sec = 1.0
-		plt_samples_ylabels = [r"$x_1$",r"$x_2$",r"$\theta$"]
-		hdl_fig_pred_sampling, hdl_splots_sampling = plt.subplots(dim_x,1,figsize=(12,8),sharex=True)
-		Nchunks = Nsteps//Nhorizon
-		z_vec_real_in_chunks = np.reshape(z_vec_real,(Nchunks,Nhorizon,dim_x)) # z_vec_real: [Nsteps,dim_out] || z_vec_real_in_chunks: [Nchunks,Nhorizon,dim_out]
-		hdl_fig_pred_sampling.suptitle("Sampling trajectories ...", fontsize=16)
-		time_steps = np.arange(1,z_vec_real_in_chunks.shape[1]+1)
-		hdl_splots_sampling[-1].set_xlabel(r"Horizon time steps")
-		for ii in range(Nchunks):
-
-			for dd in range(dim_x):
-				hdl_splots_sampling[dd].cla()
-				hdl_splots_sampling[dd].plot(time_steps,z_vec_real_in_chunks[ii,:,dd],linestyle="-",color="navy",lw=2.0,label=r"Real traj",alpha=0.8)
-				hdl_splots_sampling[dd].plot(time_steps,z_vec_real_in_chunks[ii,:,dd],linestyle="None",color="navy",marker=".",alpha=0.8,markersize=8)
-				hdl_splots_sampling[dd].set_ylabel(plt_samples_ylabels[dd],fontsize=fontsize_labels)
-				for ss in range(Nrollouts):
-					hdl_splots_sampling[dd].plot(time_steps,x_traj_pred_chunks[ii,ss,:,dd],linestyle="-",color="navy",lw=1.0,label=r"Sampled trajs",alpha=0.2)
-
-			plt.show(block=False)
-			plt.pause(plt_pause_sec)
-
-		plt.show(block=True)
-
 
 	# Receding horizon predictions:
 	plotting_receding_horizon_predictions = True
 	savedata = True
-	# recompute = True
-	recompute = False
-	path2save_receding_horizon = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023" # mac
-	# path2save_receding_horizon = "/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023" # hybridrobotics
-	file_name = "trajs_ind_traj_{0:d}.pickle".format(my_seed)
+	recompute = True
+	# recompute = False
+	path2save_receding_horizon = "{0:s}/data_quadruped_experiments_03_13_2023".format(path2project)
 	if plotting_receding_horizon_predictions and recompute:
-		Nhorizon_rec = 15
-		Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
-		loss_val_per_step = np.zeros(Nsteps_tot)
-		x_traj_pred_all_vec = np.zeros((Nsteps_tot,Nrollouts,Nhorizon_rec,dim_x))
-		for tt in range(Nsteps_tot):
 
-			x_traj_real_applied = z_vec_real[tt:tt+Nhorizon_rec,:]
-			x_traj_real_applied_tf = tf.reshape(x_traj_real_applied,(1,Nhorizon_rec,dim_x))
-			u_applied_tf = u_vec_tf[tt:tt+Nhorizon_rec,:]
-			str_progress_bar = "Prediction with horizon = {0:d}; tt: {1:d} / {2:d} | ".format(Nhorizon_rec,tt+1,Nsteps_tot)
-			loss_val_per_step[tt], x_traj_pred, y_traj_pred = rrtp_MO._get_negative_log_evidence_and_predictive_trajectory_chunk(x_traj_real_applied_tf,u_applied_tf,Nsamples=1,
-																												Nrollouts=Nrollouts,str_progress_bar=str_progress_bar,from_prior=False,
-																												scale_loss_entropy=scale_loss_entropy,
-																												scale_prior_regularizer=scale_prior_regularizer,
-																												sample_fx_once=True)
-			x_traj_pred_all_vec[tt,...] = np.concatenate([x_traj_pred,y_traj_pred[:,-1::,:]],axis=1) # [Nsteps_tot,Nrollouts,Nhorizon_rec,self.dim_out]
-
+		loss_avg, x_traj_pred_all_vec, loss_val_per_step = rrtp_MO.get_elbo_loss_for_predictions_in_full_trajectory_with_certain_horizon(Nsteps_tot,Nhorizon_rec,sample_fx_once=True)
 
 		if savedata:
 			data2save = dict(x_traj_pred_all_vec=x_traj_pred_all_vec,u_vec_tf=u_vec_tf,z_vec_real=z_vec_real,z_vec_tf=z_vec_tf,z_vec_changed_dyn_tf=z_vec_changed_dyn_tf,loss_val_per_step=loss_val_per_step)
+			file_name = "predicted_trajs_{0:d}.pickle".format(my_seed)
 			path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)
 			logger.info("Saving at {0:s} ...".format(path2save_full))
 			file = open(path2save_full, 'wb')
@@ -197,10 +182,9 @@ def main(cfg: dict):
 			file.close()
 			return
 
-
 	elif plotting_receding_horizon_predictions:
 
-		file_name = "trajs_ind_traj_12.pickle" # from hybrid
+		file_name = "predicted_trajs_50.pickle" # dbg, using deltas, recosntruction loss trained on mac, predictions done on mac
 
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)

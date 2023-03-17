@@ -32,22 +32,26 @@ hyperpars:
   # prior_mean_factor: 1.0
   # noise_std_process: 0.05
 
-  # Dubins car (using deltas)
+  # # Dubins car (using deltas)
+  # prior_variance: 1.0
+  # prior_mean_factor: 1.0
+  # noise_std_process:
+  #   value_init: 0.01
+  #   learn: False
+
+  # Quadruped (using deltas)
   prior_variance: 1.0
   prior_mean_factor: 1.0
   noise_std_process:
-    value_init: 0.01
+    # value_init: 0.1
+    value_init: 0.05
     learn: False
 
 
-  # # Quadruped:
-  # prior_variance: 0.5
-  # prior_mean_factor: 1.0
-  # noise_std_process: 0.01
 
-
-
-  chol_corr_noise_mat_lim_init: 2.0
+  chol_corr_noise_mat_lim:
+    value_init: 2.0
+    learn: False
 
 
 

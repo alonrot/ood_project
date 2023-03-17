@@ -396,9 +396,7 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,pat
 		# spectral_density_list[jj].update_Wsamples_from_file(path2load)
 
 	print("Initializing GP model ...")
-	# learn_correlation_noise = False
-	learn_correlation_noise = True
-	rrtp_MO = MultiObjectiveReducedRankProcess(dim_X,cfg,spectral_density_list,Xtrain,Ytrain,using_deltas=using_deltas,learn_correlation_noise=learn_correlation_noise)
+	rrtp_MO = MultiObjectiveReducedRankProcess(dim_X,cfg,spectral_density_list,Xtrain,Ytrain,using_deltas=using_deltas)
 	# rrtp_MO = MultiObjectiveReducedRankProcess(dim_X,cfg,spectral_density,Xtrain,Ytrain)
 	# rrtp_MO.train_model()
 
@@ -410,7 +408,7 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,pat
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg: dict):
 
-	my_seed = 19
+	my_seed = 20
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -584,8 +582,8 @@ def main(cfg: dict):
 	z_vec_changed_dyn_tf = tf.convert_to_tensor(value=z_vec_changed_dyn,dtype=tf.float32)
 	u_vec_tf = tf.convert_to_tensor(value=u_vec,dtype=tf.float32)
 
-	compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "nominal_model"
-	# compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "altered_model"
+	# compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "nominal_model"
+	compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "altered_model"
 	assert compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to in ["nominal_model","altered_model"]
 	if compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to == "nominal_model":
 		z_vec_real = z_vec_tf # [Nsteps,dim_out]
@@ -600,12 +598,13 @@ def main(cfg: dict):
 		Nrollouts = 15
 		Nchunks = 4
 	else:
-		Nhorizon_rec = 2
-		# Nsteps_tot = 15
 		Nsteps_tot = z_vec_real.shape[0]
-		Nepochs = 5
-		Nrollouts = 5
 		Nchunks = 4
+
+		Nhorizon_rec = 40 # Will be overwritten if Nchunks is not None
+		Nrollouts = 15 
+
+		Nepochs = 50
 
 	assert Nsteps_tot > Nhorizon_rec
 
@@ -626,8 +625,8 @@ def main(cfg: dict):
 	# rrtp_MO.export_tensors_needed_for_sampling_predictions_using_sampled_model_instances(path2save_tensors)
 
 	# Train:
-	train = True
-	load_weights = False
+	train = False
+	load_weights = True
 	if train:
 		path2save = "{0:s}/dubins_car_receding/training_MOrrp_model".format(path2project)
 		rrtp_MO.train_MOrrp_predictive(Nsteps_tot,Nhorizon_rec,sample_fx_once=True,verbosity=False,save_weights=True,path2save=path2save,Nchunks=Nchunks)
@@ -638,7 +637,8 @@ def main(cfg: dict):
 	elif load_weights:
 
 		path2data = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubins_car_receding/training_MOrrp_model"
-		file_name = "2023_03_16_18_11_35_weights_trained_MOrrp_model.pickle"
+		# file_name = "2023_03_16_18_11_35_weights_trained_MOrrp_model.pickle"
+		file_name = "2023_03_16_22_55_21_weights_trained_MOrrp_model.pickle" # Trained on mac for 50 iterations; model noise was fixed; best loss: 0.9087; using fac_mul in front of the correlation matrix as: fac_mul = 0.01
 		path2data_full = "{0:s}/{1:s}".format(path2data,file_name)
 
 		logger.info("Loading {0:s} ...".format(path2data_full))
@@ -656,13 +656,13 @@ def main(cfg: dict):
 	# recompute = True
 	recompute = False
 	path2save_receding_horizon = "{0:s}/dubins_car_receding".format(path2project)
-	file_name = "trajs_ind_traj_{0:d}.pickle".format(ind_traj_selected)
 	if plotting_receding_horizon_predictions and recompute:
 
 		loss_avg, x_traj_pred_all_vec, loss_val_per_step = rrtp_MO.get_elbo_loss_for_predictions_in_full_trajectory_with_certain_horizon(Nsteps_tot,Nhorizon_rec,sample_fx_once=True)
 
 		if savedata:
 			data2save = dict(x_traj_pred_all_vec=x_traj_pred_all_vec,u_vec_tf=u_vec_tf,z_vec_real=z_vec_real,z_vec_tf=z_vec_tf,z_vec_changed_dyn_tf=z_vec_changed_dyn_tf,loss_val_per_step=loss_val_per_step)
+			file_name = "trajs_ind_traj_{0:d}.pickle".format(ind_traj_selected)
 			path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)
 			logger.info("Saving at {0:s} ...".format(path2save_full))
 			file = open(path2save_full, 'wb')
@@ -686,10 +686,12 @@ def main(cfg: dict):
 		# file_name = "trajs_ind_traj_72.pickle" # using deltas, from hybridrobotics
 
 		# file_name = "trajs_ind_traj_41.pickle" # using deltas, dbg noise param
-		file_name = "trajs_ind_traj_15.pickle" # using deltas, lower noise, hybridrobotics | INCREDIBLY GOOD LONG TERM PREDICTIONS!!!!!
+		# file_name = "trajs_ind_traj_15.pickle" # using deltas, lower noise, hybridrobotics | INCREDIBLY GOOD LONG TERM PREDICTIONS!!!!!
 		# file_name = "trajs_ind_traj_42.pickle" # using deltas, lower noise, hybridrobotics, dbg
 
-		# file_name = "trajs_ind_traj_40.pickle" # using deltas, noise_std_process: 0.01, super good long-term predictions!!
+		# file_name = "trajs_ind_traj_40.pickle" # using deltas, noise_std_process: 0.01, learned correlation matrix, good long-term predictions, using nominal model
+
+		file_name = "trajs_ind_traj_15.pickle" # using deltas, noise_std_process: 0.01, learned correlation matrix, good long-term predictions, using wrong model
 
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)

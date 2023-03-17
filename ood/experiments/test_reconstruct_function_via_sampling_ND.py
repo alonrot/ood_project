@@ -36,8 +36,8 @@ plt.rc('legend',fontsize=fontsize_labels//2)
 using_hybridrobotics = False
 # using_hybridrobotics = True
 
-path2folder = "dubins_car_reconstruction"
-# path2folder = "data_quadruped_experiments_03_13_2023"
+# path2folder = "dubins_car_reconstruction"
+path2folder = "data_quadruped_experiments_03_13_2023"
 
 using_deltas = True
 # using_deltas = False
@@ -150,8 +150,8 @@ def reconstruct(cfg):
 	# delta_statespace = (xmax_testing-xmin_testing)**dim_in / Ndiv_testing
 	delta_statespace = 1.0 / Ndiv_testing
 
-	Nepochs = 20
-	Nsamples_omega = 200
+	Nepochs = 300
+	Nsamples_omega = 1000
 	if using_hybridrobotics:
 		Nepochs = 4500
 		Nsamples_omega = 1500
@@ -186,7 +186,7 @@ def reconstruct(cfg):
 																					inverse_fourier_toolbox=inverse_fourier_toolbox_channel,
 																					Xtest=xpred_testing,Ytest=fx_true_testing[:,jj:jj+1])
 
-		reconstructor_fx_deltas_and_omegas.train(Nepochs=Nepochs,learning_rate=learning_rate,stop_loss_val=stop_loss_val,lengthscale_loss=lengthscale_loss,print_every=10)
+		reconstructor_fx_deltas_and_omegas.train(Nepochs=Nepochs,learning_rate=learning_rate_list[jj],stop_loss_val=stop_loss_val,lengthscale_loss=lengthscale_loss,print_every=10)
 
 
 		spectral_density_optimized_list[jj] = reconstructor_fx_deltas_and_omegas.update_internal_spectral_density_parameters()

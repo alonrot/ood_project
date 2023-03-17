@@ -35,7 +35,9 @@ hyperpars:
   # Dubins car (using deltas)
   prior_variance: 1.0
   prior_mean_factor: 1.0
-  noise_std_process: 0.01
+  noise_std_process:
+    value_init: 0.01
+    learn: True
 
 
   # # Quadruped:

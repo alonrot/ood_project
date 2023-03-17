@@ -623,7 +623,7 @@ def main(cfg: dict):
 		path2save = "{0:s}/dubins_car_receding/training_MOrrp_model".format(path2project)
 		rrtp_MO.train_MOrrp_predictive(Nsteps_tot,Nhorizon_rec,sample_fx_once=True,verbosity=False,save_weights=True,path2save=path2save)
 
-		logger.info("training has finished!!!")
+		logger.info("Training has finished!!!")
 		return;
 
 	elif load_weights:

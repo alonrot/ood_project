@@ -166,8 +166,8 @@ def main(cfg: dict):
 	# Receding horizon predictions:
 	plotting_receding_horizon_predictions = True
 	savedata = True
-	recompute = True
-	# recompute = False
+	# recompute = True
+	recompute = False
 	path2save_receding_horizon = "{0:s}/data_quadruped_experiments_03_13_2023".format(path2project)
 	if plotting_receding_horizon_predictions and recompute:
 
@@ -186,7 +186,8 @@ def main(cfg: dict):
 	elif plotting_receding_horizon_predictions:
 
 		# file_name = "predicted_trajs_50.pickle" # using deltas, reconstruction loss trained on mac, predictions done on mac
-		file_name = "predicted_trajs_51.pickle" # using deltas, reconstruction loss trained on mac, predictions done on mac, longer horizon, more noise
+		# file_name = "predicted_trajs_51.pickle" # using deltas, reconstruction loss trained on mac, predictions done on mac, longer horizon, more noise
+		file_name = "predicted_trajs_52.pickle" # using deltas, reconstruction loss trained on hybridrobotics, predictions done on hybridrobotics, longer horizon, more noise
 
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)
@@ -199,6 +200,8 @@ def main(cfg: dict):
 		z_vec_changed_dyn_tf = data_dict["z_vec_changed_dyn_tf"]
 		z_vec_real = data_dict["z_vec_real"]
 		loss_val_per_step = data_dict["loss_val_per_step"]
+
+		# pdb.set_trace()
 
 		Nsteps_tot = x_traj_pred_all_vec.shape[0]
 		Nrollouts = x_traj_pred_all_vec.shape[1]
@@ -224,7 +227,8 @@ def main(cfg: dict):
 		hdl_splots_sampling_rec[0].set_ylabel(r"$x_2$", fontsize=fontsize_labels)
 		hdl_plt_predictions_list = []
 		for ss in range(Nrollouts):
-			Nhor = 3
+			# Nhor = 3
+			Nhor = x_traj_pred_all_vec.shape[2]
 			hdl_plt_predictions_list += hdl_splots_sampling_rec[0].plot(x_traj_pred_all_vec[0,ss,0:Nhor,0],x_traj_pred_all_vec[0,ss,0:Nhor,1],linestyle="-",color="darkorange",lw=0.5,label="Sampled trajs",alpha=0.5)
 
 		# Loss evolution:
@@ -252,7 +256,8 @@ def main(cfg: dict):
 			hdl_plt_dubins_real.set_ydata(z_vec_real[tt,1])
 			
 			for ss in range(Nrollouts):
-				Nhor = 3
+				# Nhor = 3
+				Nhor = x_traj_pred_all_vec.shape[2]
 				hdl_plt_predictions_list[ss].set_xdata(x_traj_pred_all_vec[tt,ss,0:Nhor,0])
 				hdl_plt_predictions_list[ss].set_ydata(x_traj_pred_all_vec[tt,ss,0:Nhor,1])
 				# hdl_splots_sampling_rec[0].plot(x_traj_pred_all_vec[tt,ss,:,0],x_traj_pred_all_vec[tt,ss,:,1],linestyle="-",color="crimson",lw=0.5,label="Sampled trajs",alpha=0.3)

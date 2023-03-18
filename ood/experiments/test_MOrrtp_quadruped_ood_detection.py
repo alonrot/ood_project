@@ -46,7 +46,8 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,pat
 	dim_out = Ytrain.shape[1]
 	spectral_density_list = [None]*dim_out
 	# path2load = "{0:s}/data_quadruped_experiments_03_13_2023/learning_data_Nepochs4500.pickle".format(path2project) # not using deltas, trained in hybridrobotics
-	path2load = "{0:s}/data_quadruped_experiments_03_13_2023/learning_data_Nepochs300.pickle".format(path2project) # using deltas, trained on mac
+	# path2load = "{0:s}/data_quadruped_experiments_03_13_2023/learning_data_Nepochs300.pickle".format(path2project) # using deltas, trained on mac
+	path2load = "{0:s}/data_quadruped_experiments_03_13_2023/learning_data_Nepochs6000.pickle".format(path2project) # using deltas, trained on hybridrobotics
 	for jj in range(dim_out):
 		spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
 		spectral_density_list[jj].update_Wsamples_from_file(path2data=path2load,ind_out=jj)
@@ -59,7 +60,7 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,pat
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg: dict):
 
-	my_seed = 51
+	my_seed = 53
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -95,7 +96,7 @@ def main(cfg: dict):
 	# Trajectory selector:
 	# See dubins car version of this file...
 
-	Nsteps = 510
+	Nsteps = 490
 	zu_vec = Xtrain[-Nsteps::,...]
 	z_next_vec = Ytrain[-Nsteps::,...]
 	z_vec = Xtrain[-Nsteps::,0:dim_x]
@@ -128,19 +129,19 @@ def main(cfg: dict):
 	z_vec_changed_dyn_tf = None
 
 	if using_hybridrobotics:
-		Nhorizon_rec = 30
+		Nhorizon_rec = 50
 		# Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
 		Nsteps_tot = z_vec_real.shape[0]
 		Nepochs = 200
-		Nrollouts = 15
+		Nrollouts = 20
 		Nchunks = 4
 	else:
-		Nsteps_tot = z_vec_real.shape[0]
-		# Nsteps_tot = 50
+		# Nsteps_tot = z_vec_real.shape[0]
+		Nsteps_tot = 50
 		Nchunks = 4
 
-		Nhorizon_rec = 60 # Will be overwritten if Nchunks is passed to get_elbo_loss_for_predictions_in_full_trajectory_with_certain_horizon() and it's not None
-		Nrollouts = 15
+		Nhorizon_rec = 10 # Will be overwritten if Nchunks is passed to get_elbo_loss_for_predictions_in_full_trajectory_with_certain_horizon() and it's not None
+		Nrollouts = 5
 
 		# Nsteps_tot = 50
 		# Nhorizon_rec = 10
@@ -165,8 +166,8 @@ def main(cfg: dict):
 	# Receding horizon predictions:
 	plotting_receding_horizon_predictions = True
 	savedata = True
-	# recompute = True
-	recompute = False
+	recompute = True
+	# recompute = False
 	path2save_receding_horizon = "{0:s}/data_quadruped_experiments_03_13_2023".format(path2project)
 	if plotting_receding_horizon_predictions and recompute:
 
@@ -277,13 +278,13 @@ def main(cfg: dict):
 
 	# plt.show(block=True)
 
-	# Train:
-	if train:
-		rrtp_MO.train_MOrrp_predictive()
-	else:
-		# rrtp_MO = assign_weights_v1(rrtp_MO,log_noise_std_per_dim,log_prior_variance_per_dim)
-		# rrtp_MO = assign_weights_v1(rrtp_MO,weights_list)
-		rrtp_MO = assign_weights_v2(rrtp_MO,weights_list)
+	# # Train:
+	# if train:
+	# 	rrtp_MO.train_MOrrp_predictive()
+	# else:
+	# 	# rrtp_MO = assign_weights_v1(rrtp_MO,log_noise_std_per_dim,log_prior_variance_per_dim)
+	# 	# rrtp_MO = assign_weights_v1(rrtp_MO,weights_list)
+	# 	rrtp_MO = assign_weights_v2(rrtp_MO,weights_list)
 
 	# After training to predict:
 	plotting_dict["title_fig"] = "Predictions || Using posterior after training H-step ahead)"

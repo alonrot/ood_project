@@ -33,8 +33,8 @@ matplotlib.rc('font',**{'family':'serif','serif':['Computer Modern Roman']})
 plt.rc('legend',fontsize=fontsize_labels//2)
 
 
-using_hybridrobotics = False
-# using_hybridrobotics = True
+# using_hybridrobotics = False
+using_hybridrobotics = True
 
 # path2folder = "dubins_car_reconstruction"
 path2folder = "data_quadruped_experiments_03_13_2023"
@@ -150,10 +150,10 @@ def reconstruct(cfg):
 	# delta_statespace = (xmax_testing-xmin_testing)**dim_in / Ndiv_testing
 	delta_statespace = 1.0 / Ndiv_testing
 
-	Nepochs = 300
-	Nsamples_omega = 1000
+	Nepochs = 13
+	Nsamples_omega = 30
 	if using_hybridrobotics:
-		Nepochs = 4500
+		Nepochs = 6000
 		Nsamples_omega = 1500
 	
 	omega_lim = 3.0

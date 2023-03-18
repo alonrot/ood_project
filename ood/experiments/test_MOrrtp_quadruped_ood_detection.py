@@ -59,7 +59,7 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,pat
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg: dict):
 
-	my_seed = 50
+	my_seed = 51
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -139,7 +139,7 @@ def main(cfg: dict):
 		# Nsteps_tot = 50
 		Nchunks = 4
 
-		Nhorizon_rec = 30 # Will be overwritten if Nchunks is passed to get_elbo_loss_for_predictions_in_full_trajectory_with_certain_horizon() and it's not None
+		Nhorizon_rec = 60 # Will be overwritten if Nchunks is passed to get_elbo_loss_for_predictions_in_full_trajectory_with_certain_horizon() and it's not None
 		Nrollouts = 15
 
 		# Nsteps_tot = 50
@@ -165,8 +165,8 @@ def main(cfg: dict):
 	# Receding horizon predictions:
 	plotting_receding_horizon_predictions = True
 	savedata = True
-	recompute = True
-	# recompute = False
+	# recompute = True
+	recompute = False
 	path2save_receding_horizon = "{0:s}/data_quadruped_experiments_03_13_2023".format(path2project)
 	if plotting_receding_horizon_predictions and recompute:
 
@@ -184,7 +184,8 @@ def main(cfg: dict):
 
 	elif plotting_receding_horizon_predictions:
 
-		file_name = "predicted_trajs_50.pickle" # dbg, using deltas, recosntruction loss trained on mac, predictions done on mac
+		# file_name = "predicted_trajs_50.pickle" # using deltas, reconstruction loss trained on mac, predictions done on mac
+		file_name = "predicted_trajs_51.pickle" # using deltas, reconstruction loss trained on mac, predictions done on mac, longer horizon, more noise
 
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)

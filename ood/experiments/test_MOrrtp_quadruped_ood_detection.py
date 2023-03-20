@@ -117,7 +117,7 @@ def main(cfg: dict):
 
 	# Plotting:
 	plotting_selected_trajs = True
-	if plotting_selected_trajs:
+	if plotting_selected_trajs and not using_hybridrobotics:
 		if using_deltas:
 			z_next_vec_plotting = z_next_vec + zu_vec[:,0:dim_x]
 			MO_mean_pred_plotting = MO_mean_pred + zu_vec[:,0:dim_x]
@@ -194,12 +194,11 @@ def main(cfg: dict):
 
 
 	# Receding horizon predictions:
-	plotting_receding_horizon_predictions = True
 	savedata = True
 	recompute = True
 	# recompute = False
 	path2save_receding_horizon = "{0:s}/data_quadruped_experiments_03_13_2023".format(path2project)
-	if plotting_receding_horizon_predictions and recompute:
+	if recompute:
 
 		loss_avg, x_traj_pred_all_vec, loss_val_per_step = rrtp_MO.get_elbo_loss_for_predictions_in_full_trajectory_with_certain_horizon(Nsteps_tot,Nhorizon_rec,sample_fx_once=True)
 
@@ -213,7 +212,7 @@ def main(cfg: dict):
 			file.close()
 			return
 
-	elif plotting_receding_horizon_predictions:
+	else:
 
 		# file_name = "predicted_trajs_50.pickle" # using deltas, reconstruction loss trained on mac, predictions done on mac
 		# file_name = "predicted_trajs_51.pickle" # using deltas, reconstruction loss trained on mac, predictions done on mac, longer horizon, more noise

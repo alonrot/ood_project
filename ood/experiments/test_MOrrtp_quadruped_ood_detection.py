@@ -67,7 +67,7 @@ def main(cfg: dict):
 	# my_seed = 60 # hybridrobotics, with value_init: 0.006
 	# my_seed = 61 # mac, with value_init: 0.006
 	# my_seed = 62 # mac, with value_init: 0.006, full time, 20 rollouts
-	my_seed = 67
+	my_seed = 68
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 

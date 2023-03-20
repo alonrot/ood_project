@@ -472,3 +472,24 @@ if __name__ == "__main__":
 
 	reconstruct()
 
+
+
+
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/"*6100.png" ./data_quadruped_experiments_03_13_2023/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/"*6100.pickle" ./data_quadruped_experiments_03_13_2023/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

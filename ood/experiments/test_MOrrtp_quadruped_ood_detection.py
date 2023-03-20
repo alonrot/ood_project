@@ -47,7 +47,8 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,pat
 	spectral_density_list = [None]*dim_out
 	# path2load = "{0:s}/data_quadruped_experiments_03_13_2023/learning_data_Nepochs4500.pickle".format(path2project) # not using deltas, trained in hybridrobotics
 	# path2load = "{0:s}/data_quadruped_experiments_03_13_2023/learning_data_Nepochs300.pickle".format(path2project) # using deltas, trained on mac
-	path2load = "{0:s}/data_quadruped_experiments_03_13_2023/learning_data_Nepochs6000.pickle".format(path2project) # using deltas, trained on hybridrobotics
+	# path2load = "{0:s}/data_quadruped_experiments_03_13_2023/learning_data_Nepochs6000.pickle".format(path2project) # using deltas, trained on hybridrobotics
+	path2load = "{0:s}/data_quadruped_experiments_03_13_2023/learning_data_Nepochs6100.pickle".format(path2project) # using deltas, trained on hybridrobotics, cut data a bit
 	for jj in range(dim_out):
 		spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
 		spectral_density_list[jj].update_Wsamples_from_file(path2data=path2load,ind_out=jj)
@@ -60,7 +61,7 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,pat
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg: dict):
 
-	my_seed = 54
+	my_seed = 55
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -85,6 +86,12 @@ def main(cfg: dict):
 	dim_x = Ytrain.shape[1]
 	dim_u = Xtrain.shape[1] - Ytrain.shape[1]
 
+	# Convert to tensor:
+	Xtrain = tf.convert_to_tensor(Xtrain,dtype=tf.float32)
+	Ytrain = tf.convert_to_tensor(Ytrain,dtype=tf.float32)
+	state_and_control_full_list = [tf.convert_to_tensor(state_and_control_full_el,dtype=tf.float32) for state_and_control_full_el in state_and_control_full_list]
+	state_next_full_list = [tf.convert_to_tensor(state_next_full_el,dtype=tf.float32) for state_next_full_el in state_next_full_list]
+
 	if using_deltas:
 		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
 		Ytrain = tf.identity(Ytrain_deltas)
@@ -95,55 +102,53 @@ def main(cfg: dict):
 	# which_kernel = "matern"
 	rrtp_MO = initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,path2project,use_nominal_model_for_spectral_density=True)
 	
-	# Trajectory selector:
-	# See dubins car version of this file...
-
-	# Nsteps = 490
-	# zu_vec = Xtrain[-Nsteps::,...]
-	# z_next_vec = Ytrain[-Nsteps::,...]
-	# z_vec = Xtrain[-Nsteps::,0:dim_x]
-	# u_vec = Xtrain[-Nsteps::,dim_x::]
-
-	ind_which_traj = 2
+	# Select test trajectory:
+	ind_which_traj = 1
 	zu_vec = state_and_control_full_list[ind_which_traj]
 	z_vec = zu_vec[:,0:dim_x]
 	u_vec = zu_vec[:,dim_x::]
-	z_next_vec = state_next_full_list[ind_which_traj]
+	if using_deltas:
+		z_next_vec = state_next_full_list[ind_which_traj] - state_and_control_full_list[ind_which_traj][:,0:dim_x]
+	else:
+		z_next_vec = state_next_full_list[ind_which_traj]
 
-
+	# Predictions:
 	MO_mean_pred, MO_std_pred = rrtp_MO.predict_at_locations(zu_vec)
 
-	if using_deltas:
-		z_next_vec_plotting = z_next_vec + zu_vec[:,0:dim_x]
-		MO_mean_pred_plotting = MO_mean_pred + zu_vec[:,0:dim_x]
-	else:
-		z_next_vec_plotting = z_next_vec
-		MO_mean_pred_plotting = MO_mean_pred
+	# Plotting:
+	plotting_selected_trajs = True
+	if plotting_selected_trajs:
+		if using_deltas:
+			z_next_vec_plotting = z_next_vec + zu_vec[:,0:dim_x]
+			MO_mean_pred_plotting = MO_mean_pred + zu_vec[:,0:dim_x]
+		else:
+			z_next_vec_plotting = z_next_vec
+			MO_mean_pred_plotting = MO_mean_pred
 
 
-	hdl_fig_pred, hdl_splots_pred = plt.subplots(1,1,figsize=(12,8),sharex=True)
-	hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
-	for ii in range(len(state_and_control_full_list)):
-		zu_el = state_and_control_full_list[ii]
-		zu_el_next = state_next_full_list[ii]
-		hdl_splots_pred.cla()
-		hdl_splots_pred.plot(zu_el[:,0],zu_el[:,1],linestyle="-",color="grey",lw=3.0,label=r"Real traj - Input",alpha=0.3)
-		hdl_splots_pred.plot(zu_el_next[:,0],zu_el_next[:,1],linestyle="-",color="navy",lw=1.0,label=r"Real traj - Input",alpha=0.5)
+		hdl_fig_pred, hdl_splots_pred = plt.subplots(1,1,figsize=(12,8),sharex=True)
+		hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
+		for ii in range(len(state_and_control_full_list)):
+			zu_el = state_and_control_full_list[ii]
+			zu_el_next = state_next_full_list[ii]
+			hdl_splots_pred.cla()
+			hdl_splots_pred.plot(zu_el[:,0],zu_el[:,1],linestyle="-",color="grey",lw=3.0,label=r"Real traj - Input",alpha=0.3)
+			hdl_splots_pred.plot(zu_el_next[:,0],zu_el_next[:,1],linestyle="-",color="navy",lw=1.0,label=r"Real traj - Input",alpha=0.5)
+			plt.show(block=False)
+			logger.info("ii: {0:d}".format(ii))
+			plt.pause(0.1)
+			# pdb.set_trace()
+
+		hdl_fig_pred, hdl_splots_pred = plt.subplots(1,1,figsize=(12,8),sharex=True)
+		hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
+		hdl_splots_pred.plot(z_vec[:,0],z_vec[:,1],linestyle="-",color="grey",lw=2.0,label=r"Real traj - Input",alpha=0.3)
+		hdl_splots_pred.plot(z_next_vec_plotting[:,0],z_next_vec_plotting[:,1],linestyle="-",color="navy",lw=2.0,label=r"Real traj - Next state",alpha=0.3)
+		hdl_splots_pred.plot(MO_mean_pred_plotting[:,0],MO_mean_pred_plotting[:,1],linestyle="-",color="navy",lw=2.0,label=r"Predicted traj - Next dynamics",alpha=0.7)
+
+
 		plt.show(block=False)
-		logger.info("ii: {0:d}".format(ii))
-		plt.pause(0.1)
-		pdb.set_trace()
-
-
-	hdl_fig_pred, hdl_splots_pred = plt.subplots(1,1,figsize=(12,8),sharex=True)
-	hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
-	hdl_splots_pred.plot(zu_vec[:,0],zu_vec[:,1],linestyle="-",color="grey",lw=2.0,label=r"Real traj - Input",alpha=0.3)
-	hdl_splots_pred.plot(z_next_vec_plotting[:,0],z_next_vec_plotting[:,1],linestyle="-",color="navy",lw=2.0,label=r"Real traj - Next state",alpha=0.3)
-	hdl_splots_pred.plot(MO_mean_pred_plotting[:,0],MO_mean_pred_plotting[:,1],linestyle="-",color="navy",lw=2.0,label=r"Predicted traj - Next dynamics",alpha=0.7)
-
-
-	plt.show(block=True)
-	plt.pause(1.)
+		# plt.show(block=True)
+		plt.pause(4.)
 
 
 	z_vec_tf = tf.convert_to_tensor(value=z_vec,dtype=tf.float32)
@@ -153,7 +158,7 @@ def main(cfg: dict):
 	z_vec_changed_dyn_tf = None
 
 	if using_hybridrobotics:
-		Nhorizon_rec = 50
+		Nhorizon_rec = 20
 		# Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
 		Nsteps_tot = z_vec_real.shape[0]
 		Nepochs = 200
@@ -191,8 +196,8 @@ def main(cfg: dict):
 	# Receding horizon predictions:
 	plotting_receding_horizon_predictions = True
 	savedata = True
-	# recompute = True
-	recompute = False
+	recompute = True
+	# recompute = False
 	path2save_receding_horizon = "{0:s}/data_quadruped_experiments_03_13_2023".format(path2project)
 	if plotting_receding_horizon_predictions and recompute:
 

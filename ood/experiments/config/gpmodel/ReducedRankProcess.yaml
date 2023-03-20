@@ -43,8 +43,8 @@ hyperpars:
   prior_variance: 1.0
   prior_mean_factor: 1.0
   noise_std_process:
-    value_init: 0.1
-    # value_init: 0.05
+    # value_init: 0.1
+    value_init: 0.05
     learn: False
 
 

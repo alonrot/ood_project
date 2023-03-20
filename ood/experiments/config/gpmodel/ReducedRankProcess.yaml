@@ -45,7 +45,7 @@ hyperpars:
   noise_std_process:
     # value_init: 0.1
     # value_init: 0.05
-    value_init: 0.006
+    value_init: 0.0025
     learn: False
 
 

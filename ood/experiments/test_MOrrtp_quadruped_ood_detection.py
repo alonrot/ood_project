@@ -64,7 +64,9 @@ def main(cfg: dict):
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/predicted_trajs_55.pickle ./data_quadruped_experiments_03_13_2023/
 
-	my_seed = 60
+	# my_seed = 60 # hybridrobotics, with value_init: 0.006
+	# my_seed = 61 # mac, with value_init: 0.006
+	my_seed = 62 # mac, with value_init: 0.006, full time, 20 rollouts
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -182,18 +184,30 @@ def main(cfg: dict):
 		Nrollouts = 30
 		Nchunks = 4
 	else:
-		# Nsteps_tot = z_vec_real.shape[0]
-		Nsteps_tot = 50
-		Nchunks = 4
 
-		Nhorizon_rec = 10 # Will be overwritten if Nchunks is passed to get_elbo_loss_for_predictions_in_full_trajectory_with_certain_horizon() and it's not None
-		Nrollouts = 5
-
+		# # Nsteps_tot = z_vec_real.shape[0]
 		# Nsteps_tot = 50
-		# Nhorizon_rec = 10
+		# Nchunks = 4
+
+		# Nhorizon_rec = 10 # Will be overwritten if Nchunks is passed to get_elbo_loss_for_predictions_in_full_trajectory_with_certain_horizon() and it's not None
 		# Nrollouts = 5
 
-		Nepochs = 50
+		# # Nsteps_tot = 50
+		# # Nhorizon_rec = 10
+		# # Nrollouts = 5
+
+		# Nepochs = 50
+
+
+		Nhorizon_rec = 25
+		Nsteps_tot = z_vec_real.shape[0]
+		# Nsteps_tot = 40
+		Nepochs = 200
+		Nrollouts = 20
+		Nchunks = 4
+
+
+
 
 	assert Nsteps_tot > Nhorizon_rec
 
@@ -237,7 +251,9 @@ def main(cfg: dict):
 		# file_name = "predicted_trajs_53.pickle" # using deltas, reconstruction loss trained on hybridrobotics, predictions done on hybridrobotics, longer horizon, more noise
 		# file_name = "predicted_trajs_55.pickle" # using deltas, reconstruction loss trained on hybridrobotics with different learning rates, predictions done on hybridrobotics, shorter horizon, same noise as above, cut a bit the beginning and the end of the traectories
 		# file_name = "predicted_trajs_57.pickle" # using deltas, reconstruction loss trained on hybridrobotics with different learning rates, predictions done on hybridrobotics, shorter horizon, same noise as above, trimmed the data, cutting off the beginning and the end
-		file_name = "predicted_trajs_58.pickle" # dbg
+		# file_name = "predicted_trajs_58.pickle" # dbg
+		file_name = "predicted_trajs_60.pickle" # dbg, hybridrobotics, with value_init: 0.006
+		# file_name = "predicted_trajs_61.pickle" # dbg, mac, with value_init: 0.006
 
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)

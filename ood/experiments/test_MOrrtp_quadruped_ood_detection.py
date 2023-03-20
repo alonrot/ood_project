@@ -67,7 +67,7 @@ def main(cfg: dict):
 	# my_seed = 60 # hybridrobotics, with value_init: 0.006
 	# my_seed = 61 # mac, with value_init: 0.006
 	# my_seed = 62 # mac, with value_init: 0.006, full time, 20 rollouts
-	my_seed = 64
+	my_seed = 66
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -93,11 +93,21 @@ def main(cfg: dict):
 	dim_x = Ytrain.shape[1]
 	dim_u = Xtrain.shape[1] - Ytrain.shape[1]
 
+	# Trying modifications:
+	do_modifications = True
+	if do_modifications:
+		Xtrain[:,3] = 1.1*Xtrain[:,3]
+		Xtrain[:,4] = 1.1*Xtrain[:,4]
+		for state_and_control_full_el in state_and_control_full_list:
+			state_and_control_full_el[:,3] = 1.1*state_and_control_full_el[:,3]
+			state_and_control_full_el[:,4] = 1.1*state_and_control_full_el[:,4]
+
 	# Convert to tensor:
 	Xtrain = tf.convert_to_tensor(Xtrain,dtype=tf.float32)
 	Ytrain = tf.convert_to_tensor(Ytrain,dtype=tf.float32)
 	state_and_control_full_list = [tf.convert_to_tensor(state_and_control_full_el,dtype=tf.float32) for state_and_control_full_el in state_and_control_full_list]
 	state_next_full_list = [tf.convert_to_tensor(state_next_full_el,dtype=tf.float32) for state_next_full_el in state_next_full_list]
+
 
 	if using_deltas:
 		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
@@ -225,8 +235,8 @@ def main(cfg: dict):
 
 	# Receding horizon predictions:
 	savedata = True
-	# recompute = True
-	recompute = False
+	recompute = True
+	# recompute = False
 	path2save_receding_horizon = "{0:s}/data_quadruped_experiments_03_13_2023".format(path2project)
 	if recompute:
 
@@ -253,8 +263,8 @@ def main(cfg: dict):
 		# file_name = "predicted_trajs_58.pickle" # dbg
 		# file_name = "predicted_trajs_60.pickle" # dbg, hybridrobotics, with value_init: 0.006
 		# file_name = "predicted_trajs_61.pickle" # dbg, mac, with value_init: 0.006
-		file_name = "predicted_trajs_62.pickle" # mac, with value_init: 0.0025, short horizon, looks good!!!
-		# file_name = "predicted_trajs_63.pickle" # hybridrobotics, with value_init: 0.0025, looks good!!!
+		# file_name = "predicted_trajs_62.pickle" # mac, with value_init: 0.0025, short horizon, looks good!!!
+		file_name = "predicted_trajs_63.pickle" # hybridrobotics, with value_init: 0.0025, looks good!!!
 		# file_name = "predicted_trajs_64.pickle" # hybridrobotics, with value_init: 0.0025, longer horizon, looks good!!!
 
 
@@ -287,10 +297,10 @@ def main(cfg: dict):
 		hdl_splots_sampling_rec[0].plot(z_vec_tf[:,0],z_vec_tf[:,1],linestyle="-",color="navy",lw=2.0,label="With nominal dynamics",alpha=0.7)
 		if z_vec_changed_dyn_tf is not None: hdl_splots_sampling_rec[0].plot(z_vec_changed_dyn_tf[:,0],z_vec_changed_dyn_tf[:,1],linestyle="-",color="navy",lw=2.0,label="With changed dynamics",alpha=0.15)
 		tt = 0
-		hdl_plt_dubins_real, = hdl_splots_sampling_rec[0].plot(z_vec_real[tt,0],z_vec_real[tt,1],marker="*",markersize=14,color="darkgreen",label="Dubins car")
+		hdl_plt_dubins_real, = hdl_splots_sampling_rec[0].plot(z_vec_real[tt,0],z_vec_real[tt,1],marker="*",markersize=14,color="darkgreen",label="Tracking experimental data - Quadruped")
 		# hdl_splots_sampling_rec[0].set_xlim([-6.0,5.0])
 		# hdl_splots_sampling_rec[0].set_ylim([-3.5,1.5])
-		hdl_splots_sampling_rec[0].set_title("Dubins car", fontsize=fontsize_labels)
+		hdl_splots_sampling_rec[0].set_title("Tracking experimental data - Quadruped", fontsize=fontsize_labels)
 		hdl_splots_sampling_rec[0].set_xlabel(r"$x_1$", fontsize=fontsize_labels)
 		hdl_splots_sampling_rec[0].set_ylabel(r"$x_2$", fontsize=fontsize_labels)
 		hdl_plt_predictions_list = []
@@ -310,7 +320,8 @@ def main(cfg: dict):
 		
 		plt.show(block=False)
 		plt.pause(0.5)
-		plt_pause_sec = 0.01
+		plt_pause_sec = 0.005
+		pdb.set_trace()
 		
 
 		for tt in range(Nsteps_tot):

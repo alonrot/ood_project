@@ -70,7 +70,8 @@ def load_data_dubins_car(path2project):
 
 def load_quadruped_experiments_03_13_2023(path2project):
 
-	path2data = "{0:s}/data_quadruped_experiments_03_13_2023/joined_go1trajs.pickle".format(path2project)
+	# path2data = "{0:s}/data_quadruped_experiments_03_13_2023/joined_go1trajs.pickle".format(path2project)
+	path2data = "{0:s}/data_quadruped_experiments_03_13_2023/joined_go1trajs_trimmed.pickle".format(path2project)
 	logger.info("Loading {0:s} ...".format(path2data))
 	file = open(path2data, 'rb')
 	data_dict = pickle.load(file)
@@ -153,7 +154,7 @@ def reconstruct(cfg):
 	Nepochs = 13
 	Nsamples_omega = 30
 	if using_hybridrobotics:
-		Nepochs = 6100
+		Nepochs = 6200
 		Nsamples_omega = 1500
 	
 	omega_lim = 3.0
@@ -268,7 +269,7 @@ def reconstruct(cfg):
 		# Spectral density:
 		# S_vec_plotting = np.reshape(Sw_vec[:,jj:jj+1],(Ndiv_omega_for_analysis,Ndiv_omega_for_analysis),order="F")
 		S_vec_plotting = np.reshape(Sw_vec,(Ndiv_omega_for_analysis,Ndiv_omega_for_analysis),order="F")
-		hdl_splots_omegas[jj,0].imshow(S_vec_plotting,extent=extent_plot_omegas,origin="lower",cmap=plt.get_cmap(COLOR_MAP),vmin=S_vec_plotting.min(),vmax=S_vec_plotting.max(),interpolation='nearest')
+		hdl_splots_omegas[jj,0].imshow(S_vec_plotting,extent=extent_plot_omegas,origin="upper",cmap=plt.get_cmap(COLOR_MAP),vmin=S_vec_plotting.min(),vmax=S_vec_plotting.max(),interpolation='nearest')
 		my_title = "S_{0:d}(\omega)".format(jj+1)
 		hdl_splots_omegas[jj,0].set_title(r"${0:s}$".format(my_title),fontsize=fontsize_labels)
 		if jj == dim_out-1: hdl_splots_omegas[jj,0].set_xlabel(r"$\omega_1$",fontsize=fontsize_labels)
@@ -283,7 +284,7 @@ def reconstruct(cfg):
 		if np.any(phiw_vec != 0.0):
 			# phi_vec_plotting = np.reshape(phiw_vec[:,jj:jj+1],(Ndiv_omega_for_analysis,Ndiv_omega_for_analysis),order="F")
 			phi_vec_plotting = np.reshape(phiw_vec,(Ndiv_omega_for_analysis,Ndiv_omega_for_analysis),order="F")
-			hdl_splots_omegas[jj,1].imshow(phi_vec_plotting,extent=extent_plot_omegas,origin="lower",cmap=plt.get_cmap(COLOR_MAP),vmin=phi_vec_plotting.min(),vmax=phi_vec_plotting.max(),interpolation='nearest')
+			hdl_splots_omegas[jj,1].imshow(phi_vec_plotting,extent=extent_plot_omegas,origin="upper",cmap=plt.get_cmap(COLOR_MAP),vmin=phi_vec_plotting.min(),vmax=phi_vec_plotting.max(),interpolation='nearest')
 			my_title = "\\varphi_{0:d}(\omega)".format(jj+1)
 			hdl_splots_omegas[jj,1].set_title(r"${0:s}$".format(my_title),fontsize=fontsize_labels)
 		else:
@@ -297,7 +298,7 @@ def reconstruct(cfg):
 
 		# Plotting the integrand (without the voxels, obviously):
 		# fx_integrand_averaged_states_jj_plotting = np.reshape(fx_integrand_averaged_states_jj,(Ndiv_omega_for_analysis,Ndiv_omega_for_analysis),order="F")
-		# hdl_splots_omegas[jj,2].imshow(fx_integrand_averaged_states_jj_plotting,extent=extent_plot_omegas,origin="lower",cmap=plt.get_cmap(COLOR_MAP),vmin=fx_integrand_averaged_states_jj_plotting.min(),vmax=fx_integrand_averaged_states_jj_plotting.max(),interpolation='nearest')
+		# hdl_splots_omegas[jj,2].imshow(fx_integrand_averaged_states_jj_plotting,extent=extent_plot_omegas,origin="upper",cmap=plt.get_cmap(COLOR_MAP),vmin=fx_integrand_averaged_states_jj_plotting.min(),vmax=fx_integrand_averaged_states_jj_plotting.max(),interpolation='nearest')
 		my_title = "(1/T)\sum_t g_{0:d}(x_t;\omega)".format(jj+1)
 		hdl_splots_omegas[jj,2].set_title(r"${0:s}$".format(my_title),fontsize=fontsize_labels)
 		hdl_splots_omegas[jj,2].set_xlim([-omega_lim,omega_lim])
@@ -477,16 +478,6 @@ if __name__ == "__main__":
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/"*6100.png" ./data_quadruped_experiments_03_13_2023/
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/"*6100.pickle" ./data_quadruped_experiments_03_13_2023/
-
-
-
-
-
-
-
-
-
-
 
 
 

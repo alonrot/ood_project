@@ -61,6 +61,8 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,pat
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg: dict):
 
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/predicted_trajs_55.pickle ./data_quadruped_experiments_03_13_2023/
+
 	my_seed = 55
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
@@ -116,7 +118,7 @@ def main(cfg: dict):
 	MO_mean_pred, MO_std_pred = rrtp_MO.predict_at_locations(zu_vec)
 
 	# Plotting:
-	plotting_selected_trajs = True
+	plotting_selected_trajs = False
 	if plotting_selected_trajs and not using_hybridrobotics:
 		if using_deltas:
 			z_next_vec_plotting = z_next_vec + zu_vec[:,0:dim_x]
@@ -195,8 +197,8 @@ def main(cfg: dict):
 
 	# Receding horizon predictions:
 	savedata = True
-	recompute = True
-	# recompute = False
+	# recompute = True
+	recompute = False
 	path2save_receding_horizon = "{0:s}/data_quadruped_experiments_03_13_2023".format(path2project)
 	if recompute:
 
@@ -217,7 +219,8 @@ def main(cfg: dict):
 		# file_name = "predicted_trajs_50.pickle" # using deltas, reconstruction loss trained on mac, predictions done on mac
 		# file_name = "predicted_trajs_51.pickle" # using deltas, reconstruction loss trained on mac, predictions done on mac, longer horizon, more noise
 		# file_name = "predicted_trajs_52.pickle" # using deltas, reconstruction loss trained on mac, predictions done on mac, longer horizon, more noise
-		file_name = "predicted_trajs_53.pickle" # using deltas, reconstruction loss trained on hybridrobotics, predictions done on hybridrobotics, longer horizon, more noise
+		# file_name = "predicted_trajs_53.pickle" # using deltas, reconstruction loss trained on hybridrobotics, predictions done on hybridrobotics, longer horizon, more noise
+		file_name = "predicted_trajs_55.pickle" # using deltas, reconstruction loss trained on hybridrobotics with different learning rates, predictions done on hybridrobotics, shorter horizon, same noise as above, cut a bit the beginning and the end of the traectories
 
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)

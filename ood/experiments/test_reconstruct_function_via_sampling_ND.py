@@ -306,7 +306,8 @@ def reconstruct(cfg):
 		hdl_splots_omegas[jj,2].set_yticks([-omega_lim,0,omega_lim])
 
 		# Add the resulting omegas:
-		hdl_splots_omegas[jj,2].plot(omegas_trainedNN[jj,:,0],omegas_trainedNN[jj,:,1],marker=".",color="indigo",markersize=3,linestyle="None")
+		hdl_splots_omegas[jj,0].plot(omegas_trainedNN[jj,:,0],omegas_trainedNN[jj,:,1],marker=".",color="indigo",markersize=2,linestyle="None")
+		hdl_splots_omegas[jj,1].plot(omegas_trainedNN[jj,:,0],omegas_trainedNN[jj,:,1],marker=".",color="indigo",markersize=2,linestyle="None")
 
 		if jj == dim_out-1: hdl_splots_omegas[jj,0].set_xlabel(r"$\omega_1$",fontsize=fontsize_labels)
 		if jj == dim_out-1: hdl_splots_omegas[jj,1].set_xlabel(r"$\omega_1$",fontsize=fontsize_labels)

@@ -89,7 +89,7 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 
 	def train(self,Nepochs,learning_rate,stop_loss_val,lengthscale_loss,print_every=100):
 
-		optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate,amsgrad=True)
+		optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
 		str_banner = " << Training the delta omegas >> "
 

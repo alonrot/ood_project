@@ -188,11 +188,13 @@ def main(cfg: dict):
 	z_vec_changed_dyn_tf = None
 
 	if using_hybridrobotics:
-		Nhorizon_rec = 40
+		# Nhorizon_rec = 40
+		Nhorizon_rec = 25
 		# Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
-		Nsteps_tot = z_vec_real.shape[0]
+		Nsteps_tot = z_vec_real.shape[0] // 2
+		# Nsteps_tot = z_vec_real.shape[0]
 		Nepochs = 200
-		Nrollouts = 30
+		Nrollouts = 15
 		Nchunks = 4
 	else:
 

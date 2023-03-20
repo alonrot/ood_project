@@ -67,7 +67,7 @@ def main(cfg: dict):
 	# my_seed = 60 # hybridrobotics, with value_init: 0.006
 	# my_seed = 61 # mac, with value_init: 0.006
 	# my_seed = 62 # mac, with value_init: 0.006, full time, 20 rollouts
-	my_seed = 66
+	my_seed = 67
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -88,19 +88,19 @@ def main(cfg: dict):
 	file.close()
 	Xtrain = data_dict["Xtrain"]
 	Ytrain = data_dict["Ytrain"]
-	state_and_control_full_list = data_dict["state_and_control_full_list"]
-	state_next_full_list = data_dict["state_next_full_list"]
+	state_and_control_full_list = data_dict["state_and_control_full_list"] # Identical to the training data, only that trajectories are sorted out in a list; Will be used as test data
+	state_next_full_list = data_dict["state_next_full_list"] # Identical to the training data, only that trajectories are sorted out in a list; Will be used as test data
 	dim_x = Ytrain.shape[1]
 	dim_u = Xtrain.shape[1] - Ytrain.shape[1]
 
 	# Trying modifications:
-	do_modifications = True
-	if do_modifications:
-		Xtrain[:,3] = 1.1*Xtrain[:,3]
-		Xtrain[:,4] = 1.1*Xtrain[:,4]
+	do_modifications_to_test_data = True
+	if do_modifications_to_test_data: # Expose the robot to an altered trajectory at test time and hence, during rollouts
 		for state_and_control_full_el in state_and_control_full_list:
-			state_and_control_full_el[:,3] = 1.1*state_and_control_full_el[:,3]
-			state_and_control_full_el[:,4] = 1.1*state_and_control_full_el[:,4]
+			# state_and_control_full_el[:,3] = 1.1*state_and_control_full_el[:,3]
+			# state_and_control_full_el[:,4] = 1.1*state_and_control_full_el[:,4]
+			state_and_control_full_el[:,0] = 1.15*state_and_control_full_el[:,0]
+			state_and_control_full_el[:,1] = 1.15*state_and_control_full_el[:,1]
 
 	# Convert to tensor:
 	Xtrain = tf.convert_to_tensor(Xtrain,dtype=tf.float32)
@@ -133,7 +133,7 @@ def main(cfg: dict):
 	MO_mean_pred, MO_std_pred = rrtp_MO.predict_at_locations(zu_vec)
 
 	# Plotting:
-	plotting_selected_trajs = False
+	plotting_selected_trajs = True
 	if plotting_selected_trajs and not using_hybridrobotics:
 		if using_deltas:
 			z_next_vec_plotting = z_next_vec + zu_vec[:,0:dim_x]
@@ -171,7 +171,7 @@ def main(cfg: dict):
 
 		hdl_fig_pred, hdl_splots_pred = plt.subplots(1,1,figsize=(12,8),sharex=True)
 		hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
-		hdl_splots_pred.plot(z_vec[:,0],z_vec[:,1],linestyle="-",color="grey",lw=2.0,label=r"Real traj - Input",alpha=0.3)
+		hdl_splots_pred.plot(z_vec[:,0],z_vec[:,1],linestyle="--",color="grey",lw=1.0,label=r"Real traj - Input",alpha=0.3)
 		hdl_splots_pred.plot(z_next_vec_plotting[:,0],z_next_vec_plotting[:,1],linestyle="-",color="navy",lw=2.0,label=r"Real traj - Next state",alpha=0.3)
 		hdl_splots_pred.plot(MO_mean_pred_plotting[:,0],MO_mean_pred_plotting[:,1],linestyle="-",color="navy",lw=2.0,label=r"Predicted traj - Next dynamics",alpha=0.7)
 
@@ -237,8 +237,8 @@ def main(cfg: dict):
 
 	# Receding horizon predictions:
 	savedata = True
-	recompute = True
-	# recompute = False
+	# recompute = True
+	recompute = False
 	path2save_receding_horizon = "{0:s}/data_quadruped_experiments_03_13_2023".format(path2project)
 	if recompute:
 
@@ -266,8 +266,9 @@ def main(cfg: dict):
 		# file_name = "predicted_trajs_60.pickle" # dbg, hybridrobotics, with value_init: 0.006
 		# file_name = "predicted_trajs_61.pickle" # dbg, mac, with value_init: 0.006
 		# file_name = "predicted_trajs_62.pickle" # mac, with value_init: 0.0025, short horizon, looks good!!!
-		file_name = "predicted_trajs_63.pickle" # hybridrobotics, with value_init: 0.0025, looks good!!!
+		# file_name = "predicted_trajs_63.pickle" # hybridrobotics, with value_init: 0.0025, looks good!!!
 		# file_name = "predicted_trajs_64.pickle" # hybridrobotics, with value_init: 0.0025, longer horizon, looks good!!!
+		file_name = "predicted_trajs_66.pickle" # hybridrobotics, with value_init: 0.0025, looks good!!!
 
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)

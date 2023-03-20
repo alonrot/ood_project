@@ -225,8 +225,8 @@ def main(cfg: dict):
 
 	# Receding horizon predictions:
 	savedata = True
-	recompute = True
-	# recompute = False
+	# recompute = True
+	recompute = False
 	path2save_receding_horizon = "{0:s}/data_quadruped_experiments_03_13_2023".format(path2project)
 	if recompute:
 
@@ -253,7 +253,9 @@ def main(cfg: dict):
 		# file_name = "predicted_trajs_58.pickle" # dbg
 		# file_name = "predicted_trajs_60.pickle" # dbg, hybridrobotics, with value_init: 0.006
 		# file_name = "predicted_trajs_61.pickle" # dbg, mac, with value_init: 0.006
-		file_name = "predicted_trajs_63.pickle" # hybridrobotics, with value_init: 0.0025, looks good!!!
+		file_name = "predicted_trajs_62.pickle" # mac, with value_init: 0.0025, short horizon, looks good!!!
+		# file_name = "predicted_trajs_63.pickle" # hybridrobotics, with value_init: 0.0025, looks good!!!
+		# file_name = "predicted_trajs_64.pickle" # hybridrobotics, with value_init: 0.0025, longer horizon, looks good!!!
 
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)

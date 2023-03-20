@@ -67,7 +67,7 @@ def main(cfg: dict):
 	# my_seed = 60 # hybridrobotics, with value_init: 0.006
 	# my_seed = 61 # mac, with value_init: 0.006
 	# my_seed = 62 # mac, with value_init: 0.006, full time, 20 rollouts
-	my_seed = 63
+	my_seed = 64
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -178,7 +178,7 @@ def main(cfg: dict):
 	z_vec_changed_dyn_tf = None
 
 	if using_hybridrobotics:
-		Nhorizon_rec = 25
+		Nhorizon_rec = 40
 		# Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
 		Nsteps_tot = z_vec_real.shape[0]
 		Nepochs = 200
@@ -208,8 +208,6 @@ def main(cfg: dict):
 		Nchunks = 4
 
 
-
-
 	assert Nsteps_tot > Nhorizon_rec
 
 	# Prepare the training and its loss; the latter compares the true trajectory with the predicted one, in chunks.
@@ -227,8 +225,8 @@ def main(cfg: dict):
 
 	# Receding horizon predictions:
 	savedata = True
-	recompute = True
-	# recompute = False
+	# recompute = True
+	recompute = False
 	path2save_receding_horizon = "{0:s}/data_quadruped_experiments_03_13_2023".format(path2project)
 	if recompute:
 
@@ -253,8 +251,9 @@ def main(cfg: dict):
 		# file_name = "predicted_trajs_55.pickle" # using deltas, reconstruction loss trained on hybridrobotics with different learning rates, predictions done on hybridrobotics, shorter horizon, same noise as above, cut a bit the beginning and the end of the traectories
 		# file_name = "predicted_trajs_57.pickle" # using deltas, reconstruction loss trained on hybridrobotics with different learning rates, predictions done on hybridrobotics, shorter horizon, same noise as above, trimmed the data, cutting off the beginning and the end
 		# file_name = "predicted_trajs_58.pickle" # dbg
-		file_name = "predicted_trajs_60.pickle" # dbg, hybridrobotics, with value_init: 0.006
+		# file_name = "predicted_trajs_60.pickle" # dbg, hybridrobotics, with value_init: 0.006
 		# file_name = "predicted_trajs_61.pickle" # dbg, mac, with value_init: 0.006
+		file_name = "predicted_trajs_63.pickle" # hybridrobotics, with value_init: 0.0025, looks good!!!
 
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)

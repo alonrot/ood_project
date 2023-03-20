@@ -48,7 +48,8 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,pat
 	# path2load = "{0:s}/data_quadruped_experiments_03_13_2023/learning_data_Nepochs4500.pickle".format(path2project) # not using deltas, trained in hybridrobotics
 	# path2load = "{0:s}/data_quadruped_experiments_03_13_2023/learning_data_Nepochs300.pickle".format(path2project) # using deltas, trained on mac
 	# path2load = "{0:s}/data_quadruped_experiments_03_13_2023/learning_data_Nepochs6000.pickle".format(path2project) # using deltas, trained on hybridrobotics
-	path2load = "{0:s}/data_quadruped_experiments_03_13_2023/learning_data_Nepochs6100.pickle".format(path2project) # using deltas, trained on hybridrobotics, cut data a bit
+	# path2load = "{0:s}/data_quadruped_experiments_03_13_2023/learning_data_Nepochs6100.pickle".format(path2project) # using deltas, trained on hybridrobotics, cut data a bit
+	path2load = "{0:s}/data_quadruped_experiments_03_13_2023/learning_data_Nepochs6200.pickle".format(path2project) # using deltas, trained on hybridrobotics, cut data a lot
 	for jj in range(dim_out):
 		spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
 		spectral_density_list[jj].update_Wsamples_from_file(path2data=path2load,ind_out=jj)
@@ -63,7 +64,7 @@ def main(cfg: dict):
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/predicted_trajs_55.pickle ./data_quadruped_experiments_03_13_2023/
 
-	my_seed = 55
+	my_seed = 57
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -76,7 +77,8 @@ def main(cfg: dict):
 		path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
 
 
-	path2data = "{0:s}/data_quadruped_experiments_03_13_2023/joined_go1trajs.pickle".format(path2project) # mac
+	# path2data = "{0:s}/data_quadruped_experiments_03_13_2023/joined_go1trajs.pickle".format(path2project) # mac
+	path2data = "{0:s}/data_quadruped_experiments_03_13_2023/joined_go1trajs_trimmed.pickle".format(path2project) # mac
 	logger.info("Loading {0:s} ...".format(path2data))
 	file = open(path2data, 'rb')
 	data_dict = pickle.load(file)
@@ -128,18 +130,31 @@ def main(cfg: dict):
 			MO_mean_pred_plotting = MO_mean_pred
 
 
-		hdl_fig_pred, hdl_splots_pred = plt.subplots(1,1,figsize=(12,8),sharex=True)
+		hdl_fig_pred, hdl_splots_pred = plt.subplots(4,figsize=(12,8),sharex=True)
 		hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
 		for ii in range(len(state_and_control_full_list)):
 			zu_el = state_and_control_full_list[ii]
 			zu_el_next = state_next_full_list[ii]
-			hdl_splots_pred.cla()
-			hdl_splots_pred.plot(zu_el[:,0],zu_el[:,1],linestyle="-",color="grey",lw=3.0,label=r"Real traj - Input",alpha=0.3)
-			hdl_splots_pred.plot(zu_el_next[:,0],zu_el_next[:,1],linestyle="-",color="navy",lw=1.0,label=r"Real traj - Input",alpha=0.5)
+			hdl_splots_pred[0].cla()
+			hdl_splots_pred[0].plot(zu_el[:,0],zu_el[:,1],linestyle="-",color="grey",lw=3.0,label=r"Real traj - Input",alpha=0.3)
+			hdl_splots_pred[0].plot(zu_el_next[:,0],zu_el_next[:,1],linestyle="-",color="navy",lw=1.0,label=r"Real traj - Input",alpha=0.5)
+
+			hdl_splots_pred[1].cla()
+			hdl_splots_pred[1].plot(zu_el[:,2])
+
+			hdl_splots_pred[2].cla()
+			hdl_splots_pred[2].plot(zu_el[:,3])
+
+			hdl_splots_pred[3].cla()
+			hdl_splots_pred[3].plot(zu_el[:,4])
+
 			plt.show(block=False)
-			logger.info("ii: {0:d}".format(ii))
-			plt.pause(0.1)
+
 			# pdb.set_trace()
+			logger.info("ii: {0:d}".format(ii))
+			# plt.pause(0.1)
+			# if ii == 15:
+			# 	plt.show(block=True)
 
 		hdl_fig_pred, hdl_splots_pred = plt.subplots(1,1,figsize=(12,8),sharex=True)
 		hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
@@ -148,8 +163,8 @@ def main(cfg: dict):
 		hdl_splots_pred.plot(MO_mean_pred_plotting[:,0],MO_mean_pred_plotting[:,1],linestyle="-",color="navy",lw=2.0,label=r"Predicted traj - Next dynamics",alpha=0.7)
 
 
-		plt.show(block=False)
-		# plt.show(block=True)
+		# plt.show(block=False)
+		plt.show(block=True)
 		plt.pause(4.)
 
 
@@ -197,8 +212,8 @@ def main(cfg: dict):
 
 	# Receding horizon predictions:
 	savedata = True
-	# recompute = True
-	recompute = False
+	recompute = True
+	# recompute = False
 	path2save_receding_horizon = "{0:s}/data_quadruped_experiments_03_13_2023".format(path2project)
 	if recompute:
 

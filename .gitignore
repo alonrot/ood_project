@@ -11,3 +11,7 @@ ood/experiments/plotting/*
 *.pickle
 *tfdbg2_logdir
 dubins_car_reconstruction
+build/
+# ood/predictions_module/include/eigen
+eigen
+pybind11

@@ -133,7 +133,7 @@ def main(cfg: dict):
 	MO_mean_pred, MO_std_pred = rrtp_MO.predict_at_locations(zu_vec)
 
 	# Plotting:
-	plotting_selected_trajs = True
+	plotting_selected_trajs = False
 	if plotting_selected_trajs and not using_hybridrobotics:
 		if using_deltas:
 			z_next_vec_plotting = z_next_vec + zu_vec[:,0:dim_x]
@@ -237,8 +237,8 @@ def main(cfg: dict):
 
 	# Receding horizon predictions:
 	savedata = True
-	recompute = True
-	# recompute = False
+	# recompute = True
+	recompute = False
 	path2save_receding_horizon = "{0:s}/data_quadruped_experiments_03_13_2023".format(path2project)
 	if recompute:
 
@@ -268,7 +268,8 @@ def main(cfg: dict):
 		# file_name = "predicted_trajs_62.pickle" # mac, with value_init: 0.0025, short horizon, looks good!!!
 		# file_name = "predicted_trajs_63.pickle" # hybridrobotics, with value_init: 0.0025, looks good!!!
 		# file_name = "predicted_trajs_64.pickle" # hybridrobotics, with value_init: 0.0025, longer horizon, looks good!!!
-		file_name = "predicted_trajs_66.pickle" # hybridrobotics, with value_init: 0.0025, looks good!!!
+		# file_name = "predicted_trajs_66.pickle" # hybridrobotics, with value_init: 0.0025, looks good!!!
+		file_name = "predicted_trajs_68.pickle" # hybridrobotics, with value_init: 0.0025, change in input traj -> doesn't do too bad
 
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)

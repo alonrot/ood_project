@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>predictions_module</name>
+  <version>0.0.0</version>
+  <description>The predictions_module package</description>
+
+  <maintainer email="amarco@berkeley.edu">unitree</maintainer>
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>eigen</depend>
+
+</package>

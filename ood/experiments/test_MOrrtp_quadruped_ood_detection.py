@@ -60,7 +60,7 @@ def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,pat
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg: dict):
 
-	my_seed = 53
+	my_seed = 54
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -80,12 +80,14 @@ def main(cfg: dict):
 	file.close()
 	Xtrain = data_dict["Xtrain"]
 	Ytrain = data_dict["Ytrain"]
+	state_and_control_full_list = data_dict["state_and_control_full_list"]
+	state_next_full_list = data_dict["state_next_full_list"]
 	dim_x = Ytrain.shape[1]
 	dim_u = Xtrain.shape[1] - Ytrain.shape[1]
 
 	if using_deltas:
 		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
-		Ytrain = Ytrain_deltas
+		Ytrain = tf.identity(Ytrain_deltas)
 
 	# Initialize GP model:
 	dim_X = dim_x + dim_u
@@ -96,11 +98,18 @@ def main(cfg: dict):
 	# Trajectory selector:
 	# See dubins car version of this file...
 
-	Nsteps = 490
-	zu_vec = Xtrain[-Nsteps::,...]
-	z_next_vec = Ytrain[-Nsteps::,...]
-	z_vec = Xtrain[-Nsteps::,0:dim_x]
-	u_vec = Xtrain[-Nsteps::,dim_x::]
+	# Nsteps = 490
+	# zu_vec = Xtrain[-Nsteps::,...]
+	# z_next_vec = Ytrain[-Nsteps::,...]
+	# z_vec = Xtrain[-Nsteps::,0:dim_x]
+	# u_vec = Xtrain[-Nsteps::,dim_x::]
+
+	ind_which_traj = 2
+	zu_vec = state_and_control_full_list[ind_which_traj]
+	z_vec = zu_vec[:,0:dim_x]
+	u_vec = zu_vec[:,dim_x::]
+	z_next_vec = state_next_full_list[ind_which_traj]
+
 
 	MO_mean_pred, MO_std_pred = rrtp_MO.predict_at_locations(zu_vec)
 
@@ -111,6 +120,21 @@ def main(cfg: dict):
 		z_next_vec_plotting = z_next_vec
 		MO_mean_pred_plotting = MO_mean_pred
 
+
+	hdl_fig_pred, hdl_splots_pred = plt.subplots(1,1,figsize=(12,8),sharex=True)
+	hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
+	for ii in range(len(state_and_control_full_list)):
+		zu_el = state_and_control_full_list[ii]
+		zu_el_next = state_next_full_list[ii]
+		hdl_splots_pred.cla()
+		hdl_splots_pred.plot(zu_el[:,0],zu_el[:,1],linestyle="-",color="grey",lw=3.0,label=r"Real traj - Input",alpha=0.3)
+		hdl_splots_pred.plot(zu_el_next[:,0],zu_el_next[:,1],linestyle="-",color="navy",lw=1.0,label=r"Real traj - Input",alpha=0.5)
+		plt.show(block=False)
+		logger.info("ii: {0:d}".format(ii))
+		plt.pause(0.1)
+		pdb.set_trace()
+
+
 	hdl_fig_pred, hdl_splots_pred = plt.subplots(1,1,figsize=(12,8),sharex=True)
 	hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
 	hdl_splots_pred.plot(zu_vec[:,0],zu_vec[:,1],linestyle="-",color="grey",lw=2.0,label=r"Real traj - Input",alpha=0.3)
@@ -118,7 +142,7 @@ def main(cfg: dict):
 	hdl_splots_pred.plot(MO_mean_pred_plotting[:,0],MO_mean_pred_plotting[:,1],linestyle="-",color="navy",lw=2.0,label=r"Predicted traj - Next dynamics",alpha=0.7)
 
 
-	plt.show(block=False)
+	plt.show(block=True)
 	plt.pause(1.)
 
 
@@ -163,11 +187,12 @@ def main(cfg: dict):
 											scale_loss_entropy=scale_loss_entropy,scale_prior_regularizer=scale_prior_regularizer,
 											Nrollouts=Nrollouts)
 
+
 	# Receding horizon predictions:
 	plotting_receding_horizon_predictions = True
 	savedata = True
-	recompute = True
-	# recompute = False
+	# recompute = True
+	recompute = False
 	path2save_receding_horizon = "{0:s}/data_quadruped_experiments_03_13_2023".format(path2project)
 	if plotting_receding_horizon_predictions and recompute:
 
@@ -187,7 +212,8 @@ def main(cfg: dict):
 
 		# file_name = "predicted_trajs_50.pickle" # using deltas, reconstruction loss trained on mac, predictions done on mac
 		# file_name = "predicted_trajs_51.pickle" # using deltas, reconstruction loss trained on mac, predictions done on mac, longer horizon, more noise
-		file_name = "predicted_trajs_52.pickle" # using deltas, reconstruction loss trained on hybridrobotics, predictions done on hybridrobotics, longer horizon, more noise
+		# file_name = "predicted_trajs_52.pickle" # using deltas, reconstruction loss trained on mac, predictions done on mac, longer horizon, more noise
+		file_name = "predicted_trajs_53.pickle" # using deltas, reconstruction loss trained on hybridrobotics, predictions done on hybridrobotics, longer horizon, more noise
 
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)

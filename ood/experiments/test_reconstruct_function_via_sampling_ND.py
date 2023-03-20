@@ -63,7 +63,7 @@ def load_data_dubins_car(path2project):
 
 	if using_deltas:
 		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
-		Ytrain = Ytrain_deltas
+		Ytrain = tf.identity(Ytrain_deltas)
 
 	return Xtrain, Ytrain, dim_in, dim_out, Nsteps, Ntrajs, path2data
 
@@ -88,7 +88,7 @@ def load_quadruped_experiments_03_13_2023(path2project):
 
 	if using_deltas:
 		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
-		Ytrain = Ytrain_deltas
+		Ytrain = tf.identity(Ytrain_deltas)
 
 	Xtrain = tf.cast(Xtrain,dtype=tf.float32)
 	Ytrain = tf.cast(Ytrain,dtype=tf.float32)
@@ -153,7 +153,7 @@ def reconstruct(cfg):
 	Nepochs = 13
 	Nsamples_omega = 30
 	if using_hybridrobotics:
-		Nepochs = 6000
+		Nepochs = 6100
 		Nsamples_omega = 1500
 	
 	omega_lim = 3.0

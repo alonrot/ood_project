@@ -64,7 +64,7 @@ def main(cfg: dict):
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/predicted_trajs_55.pickle ./data_quadruped_experiments_03_13_2023/
 
-	my_seed = 59
+	my_seed = 60
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 

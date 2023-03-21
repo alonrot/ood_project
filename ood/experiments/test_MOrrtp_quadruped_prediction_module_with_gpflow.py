@@ -135,7 +135,7 @@ def main_train_model(cfg: dict):
 			model.training_loss_closure(data),
 			variables=model.trainable_variables,
 			method="l-bfgs-b",
-			options={"disp": 50, "maxiter": MAXITER},
+			options={"disp": 50, "maxiter": MAXITER, "gtol": 1e-7, "ftol": 1e-7},
 		)
 
 

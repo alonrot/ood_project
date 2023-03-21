@@ -1,6 +1,7 @@
 import tensorflow as tf
 # import tensorflow.compat.v2 as tf
 import tensorflow_probability as tfp
+import time
 import pdb
 import math
 import matplotlib.pyplot as plt
@@ -313,7 +314,7 @@ def main_test_model(cfg: dict):
 		Nhorizon_rec = 20
 		# Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
 		# Nsteps_tot = z_vec_real.shape[0]
-		Nsteps_tot = z_vec_real.shape[0] // 8
+		Nsteps_tot = z_vec_real.shape[0] // 2
 		Nepochs = 200
 		Nrollouts = 15
 		Nchunks = 4
@@ -367,6 +368,8 @@ def main_test_model(cfg: dict):
 		noise_mat = np.random.randn(Nrollouts,dim_x)
 		for tt in range(Nsteps_tot):
 
+			time_init = time.time()
+
 			x_traj_real_applied = z_vec_real[tt:tt+Nhorizon_rec,:]
 			x_traj_real_applied_tf = tf.reshape(x_traj_real_applied,(1,Nhorizon_rec,dim_x))
 			u_applied_tf = u_vec_tf[tt:tt+Nhorizon_rec,:]
@@ -386,6 +389,11 @@ def main_test_model(cfg: dict):
 					xnext = MO_mean_pred + np.sqrt(np.diag(cov_full[0,...]))*noise_mat[rr:rr+1,:] # [1,dim_x]
 
 					x_traj_pred_all_vec[tt,rr,ppp+1:ppp+2,:] = xnext
+
+			time_elapsed = time.time() - time_init
+
+			logger.info("time_elapsed: {0:2.2f}".format(time_elapsed))
+
 
 		if savedata:
 			data2save = dict(x_traj_pred_all_vec=x_traj_pred_all_vec,u_vec_tf=u_vec_tf,z_vec_real=z_vec_real,z_vec_tf=z_vec_tf,z_vec_changed_dyn_tf=z_vec_changed_dyn_tf,loss_val_per_step=loss_val_per_step)

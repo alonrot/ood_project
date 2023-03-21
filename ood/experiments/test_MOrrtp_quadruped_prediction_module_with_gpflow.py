@@ -310,7 +310,7 @@ def main_test_model(cfg: dict):
 
 	if using_hybridrobotics:
 		# Nhorizon_rec = 40
-		Nhorizon_rec = 25
+		Nhorizon_rec = 20
 		# Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
 		Nsteps_tot = z_vec_real.shape[0]
 		# Nsteps_tot = z_vec_real.shape[0]
@@ -333,7 +333,7 @@ def main_test_model(cfg: dict):
 		# Nepochs = 50
 
 
-		Nhorizon_rec = 25
+		Nhorizon_rec = 20
 		Nsteps_tot = z_vec_real.shape[0]
 		# Nsteps_tot = z_vec_real.shape[0] // 8
 		Nepochs = 200
@@ -346,24 +346,11 @@ def main_test_model(cfg: dict):
 	# Prepare the training and its loss; the latter compares the true trajectory with the predicted one, in chunks.
 	learning_rate = 1e-1
 	epochs = 5
-	Nhorizon = 10
-	Nrollouts = 20
 	train = False
-	stop_loss_val = -1000.
-	scale_loss_entropy = 0.1
-	scale_prior_regularizer = 0.1
 	z_vec_tf = tf.convert_to_tensor(value=z_vec,dtype=tf.float32)
 	# z_vec_changed_dyn_tf = tf.convert_to_tensor(value=z_vec_changed_dyn,dtype=tf.float32)
 	z_vec_changed_dyn_tf = None 
 	u_vec_tf = tf.convert_to_tensor(value=u_vec,dtype=tf.float32)
-
-	# compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "nominal_model"
-	# # compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to = "altered_model"
-	# assert compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to in ["nominal_model","altered_model"]
-	# if compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to == "nominal_model":
-	# 	z_vec_real = z_vec_tf # [Nsteps,dim_out]
-	# if compute_predictions_over_trajectory_when_nominal_control_sequence_applied_to == "altered_model":
-	# 	z_vec_real = z_vec_changed_dyn_tf # [Nsteps,dim_out]
 
 
 	# Receding horizon predictions:
@@ -395,6 +382,7 @@ def main_test_model(cfg: dict):
 
 					zu_vec_tf = tf.convert_to_tensor(np.concatenate((x_traj_pred_all_vec[tt,rr,ppp:ppp+1,:],u_applied_tf.numpy()[ppp:ppp+1,:]),axis=1),dtype=tf.float64)
 					MO_mean_pred, cov_full = loaded_model.compiled_predict_f(zu_vec_tf) # cov_full turns out to be alwys diagonal because tGPflow cannot handle full covariance
+					pdb.set_trace()
 
 					xnext = MO_mean_pred + np.sqrt(np.diag(cov_full[0,...]))*noise_mat[rr:rr+1,:] # [1,dim_x]
 

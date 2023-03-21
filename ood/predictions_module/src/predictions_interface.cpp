@@ -25,7 +25,7 @@ PYBIND11_MODULE(predictions_interface, m) {
       )pbdoc";
 
     py::class_<Predictions>(m, "Predictions")
-        .def(py::init<size_t , size_t , Eigen::MatrixXd , std::vector<Eigen::MatrixXd> , Eigen::MatrixXd , std::vector<Eigen::MatrixXd> , Eigen::MatrixXd >(),
+        .def(py::init<size_t , size_t , Eigen::MatrixXd , std::vector<Eigen::MatrixXd> , Eigen::MatrixXd , std::vector<Eigen::MatrixXd> , Eigen::MatrixXd, size_t , size_t >(),
         "Initialize the Articulated System.\n\n"
         "Do not call this method yourself. use World class to create an Articulated system.\n\n"
         "Args:\n"
@@ -33,7 +33,7 @@ PYBIND11_MODULE(predictions_interface, m) {
         "    resource_directory (str): path the resource directory. If empty, it will use the robot description folder.\n"
         "    joint_order (list[str]): specify the joint order, if we want it to be different from the URDF file.\n"
         "    options (ArticulatedSystemOption): options.",
-        py::arg("dim_in"), py::arg("dim_out"), py::arg("phi_samples_all_dim"), py::arg("W_samples_all_dim"), py::arg("mean_beta_pred_all_dim"), py::arg("cov_beta_pred_chol_all_dim"), py::arg("noise_mat"))
+        py::arg("dim_in"), py::arg("dim_out"), py::arg("phi_samples_all_dim"), py::arg("W_samples_all_dim"), py::arg("mean_beta_pred_all_dim"), py::arg("cov_beta_pred_chol_all_dim"), py::arg("noise_mat"), py::arg("Nrollouts"), py::arg("Nhor"))
         .def("run_all_rollouts_for_entire_trajectory", &Predictions::run_all_rollouts_for_entire_trajectory)
         .def("run_all_rollouts_from_current_state", &Predictions::run_all_rollouts_from_current_state)
         .def("run_one_rollout_from_current_state", &Predictions::run_one_rollout_from_current_state)

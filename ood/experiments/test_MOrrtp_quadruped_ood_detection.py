@@ -25,6 +25,10 @@ from min_jerk_gen import min_jerk
 from test_dubin_car import get_sequence_of_feedback_gains_finite_horizon_LQR, rollout_with_finitie_horizon_LQR, generate_trajectories, generate_reference_trajectory
 
 
+# export PYTHONPATH=$PYTHONPATH:/Users/alonrot/work/code_projects_WIP/ood_project/ood/predictions_module/build
+from predictions_interface import Predictions
+
+
 markersize_x0 = 10
 markersize_trajs = 0.4
 fontsize_labels = 25
@@ -36,6 +40,59 @@ plt.rc('legend',fontsize=fontsize_labels+2)
 
 using_deltas = True
 # using_deltas = False
+
+
+
+
+
+def test_dbg_cpp_predictions_module(rrtp_MO,predictions_module,Nsteps_tot,Nhorizon_rec,when2sample):
+
+	tt = 0
+
+	str_progress_bar = "Prediction with horizon = {0:d}; tt: {1:d} / {2:d} | ".format(Nhorizon_rec,tt+1,Nsteps_tot)
+
+	x_traj_real_applied = rrtp_MO.z_vec_real[tt:tt+Nhorizon_rec,:]
+	x_traj_real_applied_tf = tf.reshape(x_traj_real_applied,(1,Nhorizon_rec,rrtp_MO.dim_out))
+	u_applied_tf = rrtp_MO.u_traj_real[tt:tt+Nhorizon_rec,:]
+
+	loss_val_new, x_traj_pred, y_traj_pred = rrtp_MO._get_negative_log_evidence_and_predictive_trajectory_chunk(x_traj_real_applied_tf,u_applied_tf,Nsamples=1,
+																										Nrollouts=rrtp_MO.Nrollouts,str_progress_bar=str_progress_bar,from_prior=False,
+																										scale_loss_entropy=rrtp_MO.scale_loss_entropy,
+																										scale_prior_regularizer=rrtp_MO.scale_prior_regularizer,
+																										when2sample=when2sample,
+																										predictions_module=None)
+
+
+
+	x0_tf = tf.convert_to_tensor(value=x_traj_real_applied_tf[0,0:1,:],dtype=tf.float32) # [Npoints,self.dim_in], with Npoints=1
+	u_applied_tf = tf.convert_to_tensor(value=u_applied_tf,dtype=tf.float32) # [Npoints,self.dim_in], with Npoints=1
+
+	xtraj_sampled_all_rollouts_list = predictions_module.run_all_rollouts_from_current_state(x0_tf.numpy().astype(dtype=np.float64),u_applied_tf.numpy().astype(dtype=np.float64))
+
+	xtraj_sampled_all_rollouts = np.stack(xtraj_sampled_all_rollouts_list,axis=0)
+
+	x_traj_pred_cpp = xtraj_sampled_all_rollouts[:,0:-2,:]
+	y_traj_pred_cpp = xtraj_sampled_all_rollouts[:,1:-1,:]
+
+	x_traj_pred_cpp = tf.convert_to_tensor(value=x_traj_pred_cpp,dtype=tf.float32)
+	y_traj_pred_cpp = tf.convert_to_tensor(value=y_traj_pred_cpp,dtype=tf.float32)
+
+
+	# pdb.set_trace()
+
+
+
+	hdl_fig_pred, hdl_splots_pred = plt.subplots(1,figsize=(12,8),sharex=True)
+	hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
+
+	hdl_splots_pred.plot(x_traj_pred[0,:,0],x_traj_pred[0,:,1])
+	hdl_splots_pred.plot(x_traj_pred_cpp[0,:,0],x_traj_pred_cpp[0,:,1])
+
+	plt.show(block=True)
+
+	# pdb.set_trace()
+
+
 
 def initialize_MOrrp_with_existing_data(cfg,dim_X,Xtrain,Ytrain,which_kernel,path2project,use_nominal_model_for_spectral_density=True):
 	"""
@@ -67,7 +124,7 @@ def main(cfg: dict):
 	# my_seed = 60 # hybridrobotics, with value_init: 0.006
 	# my_seed = 61 # mac, with value_init: 0.006
 	# my_seed = 62 # mac, with value_init: 0.006, full time, 20 rollouts
-	my_seed = 68
+	my_seed = 78
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -212,11 +269,11 @@ def main(cfg: dict):
 		# Nepochs = 50
 
 
-		Nhorizon_rec = 25
+		Nhorizon_rec = 50
 		Nsteps_tot = z_vec_real.shape[0]
-		# Nsteps_tot = 40
+		# Nsteps_tot = z_vec_real.shape[0] // 8
 		Nepochs = 200
-		Nrollouts = 20
+		Nrollouts = 40
 		Nchunks = 4
 
 
@@ -235,6 +292,29 @@ def main(cfg: dict):
 											Nrollouts=Nrollouts)
 
 
+	path2save_tensors = "{0:s}/data_quadruped_experiments_03_13_2023".format(path2project)
+	tensors4predictions = rrtp_MO.export_tensors_needed_for_sampling_predictions_using_sampled_model_instances(path2save_tensors)
+
+	dim_in = tensors4predictions["dim_in"]
+	dim_out = tensors4predictions["dim_out"]
+	phi_samples_all_dim = tensors4predictions["phi_samples_all_dim"]
+	W_samples_all_dim = tensors4predictions["W_samples_all_dim"]
+	mean_beta_pred_all_dim = tensors4predictions["mean_beta_pred_all_dim"]
+	cov_beta_pred_chol_all_dim = tensors4predictions["cov_beta_pred_chol_all_dim"]
+
+
+	# noise_mat = CommonUtils.sample_standard_multivariate_normal_inside_confidence_set(Nsamples=Nrollouts,Nels=phi_samples_all_dim.shape[1],min_prob_chi2=0.99)
+	# noise_mat = np.random.randn(Nrollouts,phi_samples_all_dim.shape[1])
+	# pdb.set_trace()
+
+	# pdb.set_trace()
+	noise_mat = rrtp_MO.sample_mv0[...,0]
+	# pdb.set_trace()
+	predictions_module = Predictions(dim_in,dim_out,phi_samples_all_dim,W_samples_all_dim,mean_beta_pred_all_dim,cov_beta_pred_chol_all_dim,noise_mat,Nrollouts,Nhorizon_rec)
+	# predictions_module = None
+	
+	
+
 	# Receding horizon predictions:
 	savedata = True
 	# recompute = True
@@ -242,7 +322,11 @@ def main(cfg: dict):
 	path2save_receding_horizon = "{0:s}/data_quadruped_experiments_03_13_2023".format(path2project)
 	if recompute:
 
-		loss_avg, x_traj_pred_all_vec, loss_val_per_step = rrtp_MO.get_elbo_loss_for_predictions_in_full_trajectory_with_certain_horizon(Nsteps_tot,Nhorizon_rec,when2sample="once_per_class_instantiation")
+
+		# test_dbg_cpp_predictions_module(rrtp_MO,predictions_module,Nsteps_tot,Nhorizon_rec,when2sample="once_per_class_instantiation")
+		
+		loss_avg, x_traj_pred_all_vec, loss_val_per_step = rrtp_MO.get_elbo_loss_for_predictions_in_full_trajectory_with_certain_horizon(Nsteps_tot,Nhorizon_rec,when2sample="once_per_class_instantiation",predictions_module=predictions_module)
+
 
 		if savedata:
 			data2save = dict(x_traj_pred_all_vec=x_traj_pred_all_vec,u_vec_tf=u_vec_tf,z_vec_real=z_vec_real,z_vec_tf=z_vec_tf,z_vec_changed_dyn_tf=z_vec_changed_dyn_tf,loss_val_per_step=loss_val_per_step)
@@ -269,7 +353,16 @@ def main(cfg: dict):
 		# file_name = "predicted_trajs_63.pickle" # hybridrobotics, with value_init: 0.0025, looks good!!!
 		# file_name = "predicted_trajs_64.pickle" # hybridrobotics, with value_init: 0.0025, longer horizon, looks good!!!
 		# file_name = "predicted_trajs_66.pickle" # hybridrobotics, with value_init: 0.0025, looks good!!!
-		file_name = "predicted_trajs_68.pickle" # hybridrobotics, with value_init: 0.0025, change in input traj -> doesn't do too bad
+		# file_name = "predicted_trajs_68.pickle" # hybridrobotics, with value_init: 0.0025, change in input traj -> doesn't do too bad
+		# file_name = "predicted_trajs_70.pickle" # c++ implementation 
+		# file_name = "predicted_trajs_71.pickle" # dbg: comparison vs c++ implementation || This is the python version
+		# file_name = "predicted_trajs_72.pickle" # dbg: comparison vs c++ implementation || This is the c++ version
+		# file_name = "predicted_trajs_73.pickle" # dbg: comparison vs c++ implementation || This is the Python version
+		# file_name = "predicted_trajs_73_cpp.pickle" # dbg: comparison vs c++ implementation || This is the cpp version
+		# file_name = "predicted_trajs_74.pickle" # dbg: comparison vs c++ implementation || This is the cpp version
+		# file_name = "predicted_trajs_75.pickle" # dbg: comparison vs c++ implementation || This is the cpp version
+		# file_name = "predicted_trajs_76.pickle" # Working in cpp!
+		file_name = "predicted_trajs_78.pickle" # Working in cpp!
 
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)
@@ -325,7 +418,7 @@ def main(cfg: dict):
 		plt.show(block=False)
 		plt.pause(0.5)
 		plt_pause_sec = 0.005
-		# pdb.set_trace()
+		pdb.set_trace()
 		
 
 		for tt in range(Nsteps_tot):

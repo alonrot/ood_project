@@ -314,7 +314,7 @@ def main_test_model(cfg: dict):
 		# Nhorizon_rec = 20
 		# Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
 		# Nsteps_tot = z_vec_real.shape[0]
-		Nsteps_tot = z_vec_real.shape[0] // 2
+		Nsteps_tot = z_vec_real.shape[0]
 		Nepochs = 200
 		Nrollouts = 15
 		Nchunks = 4

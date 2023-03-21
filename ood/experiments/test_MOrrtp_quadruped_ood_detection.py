@@ -43,8 +43,6 @@ using_deltas = True
 
 
 
-
-
 def test_dbg_cpp_predictions_module(rrtp_MO,predictions_module,Nsteps_tot,Nhorizon_rec,when2sample):
 
 	tt = 0
@@ -151,7 +149,7 @@ def main(cfg: dict):
 	dim_u = Xtrain.shape[1] - Ytrain.shape[1]
 
 	# Trying modifications:
-	do_modifications_to_test_data = True
+	do_modifications_to_test_data = False
 	if do_modifications_to_test_data: # Expose the robot to an altered trajectory at test time and hence, during rollouts
 		for state_and_control_full_el in state_and_control_full_list:
 			# state_and_control_full_el[:,3] = 1.1*state_and_control_full_el[:,3]
@@ -316,8 +314,8 @@ def main(cfg: dict):
 
 	# Receding horizon predictions:
 	savedata = True
-	# recompute = True
-	recompute = False
+	recompute = True
+	# recompute = False
 	path2save_receding_horizon = "{0:s}/data_quadruped_experiments_03_13_2023".format(path2project)
 	if recompute:
 

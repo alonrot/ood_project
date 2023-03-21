@@ -364,8 +364,8 @@ def main_test_model(cfg: dict):
 		Nsteps_tot = min(z_vec_real.shape[0]-Nhorizon_rec,Nsteps_tot)
 		loss_val_per_step = np.zeros(Nsteps_tot)
 		x_traj_pred_all_vec = np.zeros((Nsteps_tot,Nrollouts,Nhorizon_rec,dim_x))
+		noise_mat = np.random.randn(Nrollouts,dim_x)
 		for tt in range(Nsteps_tot):
-			noise_mat = np.random.randn(Nrollouts,dim_x)
 
 			x_traj_real_applied = z_vec_real[tt:tt+Nhorizon_rec,:]
 			x_traj_real_applied_tf = tf.reshape(x_traj_real_applied,(1,Nhorizon_rec,dim_x))
@@ -381,8 +381,7 @@ def main_test_model(cfg: dict):
 				for ppp in range(Nhorizon_rec-1):
 
 					zu_vec_tf = tf.convert_to_tensor(np.concatenate((x_traj_pred_all_vec[tt,rr,ppp:ppp+1,:],u_applied_tf.numpy()[ppp:ppp+1,:]),axis=1),dtype=tf.float64)
-					MO_mean_pred, cov_full = loaded_model.compiled_predict_f(zu_vec_tf) # cov_full turns out to be alwys diagonal because tGPflow cannot handle full covariance
-					pdb.set_trace()
+					MO_mean_pred, cov_full = loaded_model.compiled_predict_f(zu_vec_tf)
 
 					xnext = MO_mean_pred + np.sqrt(np.diag(cov_full[0,...]))*noise_mat[rr:rr+1,:] # [1,dim_x]
 

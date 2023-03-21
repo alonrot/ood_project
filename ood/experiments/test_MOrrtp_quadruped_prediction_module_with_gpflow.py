@@ -310,8 +310,8 @@ def main_test_model(cfg: dict):
 	z_vec_changed_dyn_tf = None
 
 	if using_hybridrobotics:
-		# Nhorizon_rec = 40
-		Nhorizon_rec = 20
+		Nhorizon_rec = 40
+		# Nhorizon_rec = 20
 		# Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
 		# Nsteps_tot = z_vec_real.shape[0]
 		Nsteps_tot = z_vec_real.shape[0] // 2
@@ -357,8 +357,8 @@ def main_test_model(cfg: dict):
 	# Receding horizon predictions:
 	plotting_receding_horizon_predictions = True
 	savedata = True
-	recompute = True
-	# recompute = False
+	# recompute = True
+	recompute = False
 	path2save_receding_horizon = path2project+"/data_quadruped_experiments_03_13_2023_gpflow"
 	file_name = "trajs_ind_traj_{0:d}.pickle".format(my_seed)
 	if plotting_receding_horizon_predictions and recompute:

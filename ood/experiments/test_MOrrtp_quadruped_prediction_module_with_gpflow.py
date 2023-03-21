@@ -48,7 +48,7 @@ from gpflow.utilities import print_summary
 using_deltas = True
 # using_deltas = False
 
-my_seed = 80
+my_seed = 81
 
 
 def load_data(cfg):

@@ -386,9 +386,14 @@ def main_test_model(cfg: dict):
 					zu_vec_tf = tf.convert_to_tensor(np.concatenate((x_traj_pred_all_vec[tt,rr,ppp:ppp+1,:],u_applied_tf.numpy()[ppp:ppp+1,:]),axis=1),dtype=tf.float64)
 					MO_mean_pred, cov_full = loaded_model.compiled_predict_f(zu_vec_tf)
 
-					xnext = MO_mean_pred + np.sqrt(np.diag(cov_full[0,...]))*noise_mat[rr:rr+1,:] # [1,dim_x]
+					cov_full_chol = tf.linalg.cholesky(cov_full)[0,...]
 
-					x_traj_pred_all_vec[tt,rr,ppp+1:ppp+2,:] = xnext
+					ft_vec = MO_mean_pred + noise_mat[rr:rr+1,:]@tf.transpose(cov_full_chol) # [1,dim_x]
+					if using_deltas:
+						x_traj_pred_all_vec[tt,rr,ppp+1:ppp+2,:] = ft_vec + x_traj_pred_all_vec[tt,rr,ppp:ppp+1,:]
+					else:
+						x_traj_pred_all_vec[tt,rr,ppp+1:ppp+2,:] = ft_vec
+
 
 			time_elapsed = time.time() - time_init
 
@@ -409,9 +414,12 @@ def main_test_model(cfg: dict):
 	elif plotting_receding_horizon_predictions:
 
 		# file_name = "trajs_ind_traj_75.pickle" # Using trajectory from nominal model; trained GPflow model: model_12
-		file_name = "trajs_ind_traj_48.pickle" # Using trajectory from altered model; trained GPflow model: model_12
+		# file_name = "trajs_ind_traj_48.pickle" # Using trajectory from altered model; trained GPflow model: model_12
 		# file_name = "trajs_ind_traj_12.pickle" # Using coregionalization, no linear kernel, and trajectory from altered model; trained GPflow model: model_13_coregionalization_True; -> training ended prematurely; not working
 		# file_name = "trajs_ind_traj_72.pickle" # Using coregionalization, with linear kernel, and trajectory from altered model; trained GPflow model: model_13_coregionalization_True; -> no big difference wrt trajs_ind_traj_48
+		file_name = "trajs_ind_traj_80.pickle"
+
+		# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023_gpflow/trajs_ind_traj_80.pickle .
 
 		path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)
 		file = open(path2save_full, 'rb')
@@ -439,6 +447,7 @@ def main_test_model(cfg: dict):
 		# hdl_splots_sampling_rec[0].plot(z_vec_real[0:tt+1,0],z_vec_real[0:tt+1,1],linestyle="-",color="navy",lw=2.0,label="Real traj - nominal dynamics",alpha=0.3)
 		hdl_splots_sampling_rec[0].plot(z_vec_tf[:,0],z_vec_tf[:,1],linestyle="-",color="navy",lw=2.0,label="With nominal dynamics",alpha=0.7)
 		if z_vec_changed_dyn_tf is not None: hdl_splots_sampling_rec[0].plot(z_vec_changed_dyn_tf[:,0],z_vec_changed_dyn_tf[:,1],linestyle="-",color="navy",lw=2.0,label="With changed dynamics",alpha=0.15)
+		tt = 0
 		hdl_plt_dubins_real, = hdl_splots_sampling_rec[0].plot(z_vec_real[tt,0],z_vec_real[tt,1],marker="*",markersize=14,color="darkgreen",label="Dubins car")
 		# hdl_splots_sampling_rec[0].set_xlim([-6.0,5.0])
 		# hdl_splots_sampling_rec[0].set_ylim([-3.5,1.5])

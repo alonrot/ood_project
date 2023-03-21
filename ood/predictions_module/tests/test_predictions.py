@@ -11,8 +11,9 @@ def main():
 
 	dim_out = 3
 	dim_in = 5
-	Nomegas = 1000
-	Nrollouts = 50
+	Nomegas = 1500
+	Nrollouts = 25
+	Nhor = 100
 
 
 	# Eigen::MatrixXd phi_samples_all_dim;
@@ -23,7 +24,7 @@ def main():
 	cov_beta_pred_chol_all_dim = np.random.randn(dim_out,Nomegas,Nomegas)
 	noise_mat = np.random.randn(Nrollouts,Nomegas)
 
-	predictions = Predictions(dim_in,dim_out,phi_samples_all_dim,W_samples_all_dim,mean_beta_pred_all_dim,cov_beta_pred_chol_all_dim,noise_mat)
+	predictions = Predictions(dim_in,dim_out,phi_samples_all_dim,W_samples_all_dim,mean_beta_pred_all_dim,cov_beta_pred_chol_all_dim,noise_mat,Nrollouts,Nhor)
 	# Predictions predictions(dim_in,dim_out,phi_samples_all_dim,W_samples_all_dim,mean_beta_pred_all_dim,cov_beta_pred_chol_all_dim,noise_mat);
 
 	X_in = np.random.randn(1,dim_in)
@@ -34,8 +35,8 @@ def main():
 	# Eigen::MatrixXd ft_sampled = predictions.get_ft_sampled_all_dims(X_in,predictions.noise_mat.row(0));
 	# std::cout << "ft_sampled: " << ft_sampled.format(predictions.clean_format) << "\n";
 
-	ft_sampled = predictions.get_ft_sampled_all_dims(X_in,noise_mat[0:1,:])
-	print("ft_sampled:",ft_sampled)
+	# ft_sampled = predictions.get_ft_sampled_all_dims(X_in,noise_mat[0:1,:])
+	# print("ft_sampled:",ft_sampled)
 
 	# Eigen::MatrixXd x0 = Eigen::MatrixXd::Random(1,dim_out);
 	# size_t Nhor = 15;
@@ -55,7 +56,6 @@ def main():
 	# print("xtraj_sampled_all_rollouts.shape:",xtraj_sampled_all_rollouts.shape)
 
 
-	Nhor = 15
 	Nsteps = 120
 	x_traj_real = np.random.randn(Nsteps,dim_out)
 	u_traj_real = np.random.randn(Nsteps,dim_in-dim_out)

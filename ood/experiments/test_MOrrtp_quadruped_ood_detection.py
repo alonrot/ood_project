@@ -313,7 +313,6 @@ def main(cfg: dict):
 	predictions_module = Predictions(dim_in,dim_out,phi_samples_all_dim,W_samples_all_dim,mean_beta_pred_all_dim,cov_beta_pred_chol_all_dim,noise_mat,Nrollouts,Nhorizon_rec)
 	# predictions_module = None
 	
-	
 
 	# Receding horizon predictions:
 	savedata = True

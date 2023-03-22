@@ -130,7 +130,7 @@ def main(cfg):
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_80.pickle ./kernel_fit_reconstruction/
 
-	my_seed = 82
+	my_seed = 83
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -161,11 +161,11 @@ def main(cfg):
 	spectral_density_list += [ExponentiallySuppressedPolynomialsFromData(cfg=cfg.spectral_density.expsup,cfg_sampler=cfg.sampler.hmc,dim=dim_ctx,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain)]
 
 
-	Nepochs = 1000
+	Nepochs = 10
 	Nsamples_omega = 300
 	if using_hybridrobotics:
 		Nepochs = 60000
-		Nsamples_omega = 300
+		Nsamples_omega = 500
 	
 	omega_lim = 4.0
 	# Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
@@ -229,8 +229,19 @@ def main(cfg):
 							varphi_omegas_trainedNN=varphi_omegas_trainedNN,
 							delta_omegas_trainedNN=delta_omegas_trainedNN,
 							delta_statespace_trainedNN=delta_statespace_trainedNN,
+							xpred=xpred,
+							Nrollouts=Nrollouts,
+							spectral_density_list=spectral_density_list,
+							dim_ctx=dim_ctx,
+							Dw_coarse=Dw_coarse,
+							delta_statespace=delta_statespace,
+							omega_lim=omega_lim,
+							Nsamples_omega=Nsamples_omega,
+							Xtrain=Xtrain,
+							Ytrain=Ytrain,
 							path2data=path2data)
 		
+
 		logger.info("Saving learned omegas, S_w, varphi_w, delta_w, delta_xt at {0:s} ...".format(path2data))
 		file = open(path2data, 'wb')
 		pickle.dump(data2save,file)

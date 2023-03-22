@@ -128,12 +128,13 @@ def generate_data(plot_stuff=False,block_plot=False):
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg):
 
-	my_seed = 78
+	my_seed = 80
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
 
-	using_hybridrobotics = False
+	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
+	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
 
 	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
 	if using_hybridrobotics:

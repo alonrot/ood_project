@@ -127,7 +127,7 @@ def generate_data(plot_stuff=False,block_plot=False):
 	# Append a contextual variable:
 
 	# theta_cntxt_vals = 8.*np.pi*np.random.rand(Nrollouts,1)
-	theta_cntxt_vals = np.reshape(np.linspace(0,8.*np.pi,Nrollouts),(-1,1))
+	theta_cntxt_vals = np.reshape(np.linspace(-4.*np.pi,4.*np.pi,Nrollouts),(-1,1))
 	theta_cntxt_vec = theta_cntxt_vals @ np.ones((1,Npred))
 	theta_cntxt_vec = np.reshape(theta_cntxt_vec,(-1,1))
 	xpred_training = np.concatenate([xpred]*Nrollouts,axis=0)
@@ -179,8 +179,8 @@ def train_reconstruction(cfg):
 		Nsamples_omega = 1000
 	
 	omega_lim = 4.0
-	# Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
-	Dw_coarse = 1.0 / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
+	Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
+	# Dw_coarse = 1.0 / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 
 	fx_optimized_omegas_and_voxels = np.zeros((Xtrain.shape[0],dim_out))
 	Sw_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))

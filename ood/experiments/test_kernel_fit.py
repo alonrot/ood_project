@@ -189,7 +189,7 @@ def train_reconstruction(cfg):
 	delta_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
 	delta_statespace_trainedNN = np.zeros((dim_out,Xtrain.shape[0],1))
 
-	learning_rate = 1e-3
+	learning_rate = 1e-2
 	# learning_rate = 0.0005
 	stop_loss_val = 1./Ytrain.shape[0]
 	# stop_loss_val = 0.01

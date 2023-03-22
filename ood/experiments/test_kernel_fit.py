@@ -86,9 +86,9 @@ def generate_data(plot_stuff=False,block_plot=False):
 
 	f_samples = kXX_chol @ mvn0_samples.T # [Npred,Nrollouts]
 
-	plot_stuff = False
+	plot_stuff = True
 	if plot_stuff:
-		hdl_fig_ker, hdl_splots_ker = plt.subplots(2,figsize=(12,8),sharex=True)
+		hdl_fig_ker, hdl_splots_ker = plt.subplots(3,figsize=(12,8),sharex=True)
 		# hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
 		for ss in range(Nrollouts):
 			hdl_splots_ker[0].plot(xpred[:,0],f_samples[:,ss],lw=2.,color="crimson",alpha=0.2)
@@ -102,6 +102,20 @@ def generate_data(plot_stuff=False,block_plot=False):
 		hdl_splots_ker[1].set_xticks([xmin,0.0,xmax])
 		hdl_splots_ker[1].set_yticks([])
 
+
+		pdb.set_trace()
+		ker_from_samples = f_samples @ f_samples.T / Nrollouts
+		hdl_splots_ker[1].imshow(ker_from_samples,extent=extent_plot_xpred,origin="lower",cmap=plt.get_cmap(COLOR_MAP),vmin=ker_from_samples.min(),vmax=ker_from_samples.max(),interpolation='nearest')
+		hdl_splots_ker[1].set_xlim([xmin,xmax])
+		hdl_splots_ker[1].set_ylim([xmin,xmax])
+		hdl_splots_ker[1].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
+		hdl_splots_ker[1].set_ylabel(r"$x_t^\prime$",fontsize=fontsize_labels)
+		hdl_splots_ker[1].set_title(r"$k(x_t,x^\prime_t)$ {0:s}".format("Kernel suppressed polys"),fontsize=fontsize_labels)
+		hdl_splots_ker[1].set_xticks([xmin,0.0,xmax])
+		hdl_splots_ker[1].set_yticks([])
+
+
+		plt.show(block=True)
 		plt.show(block=block_plot)
 
 	# # Concatenate all inputs and outputs to create a callable function:
@@ -130,7 +144,7 @@ def main(cfg):
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_80.pickle ./kernel_fit_reconstruction/
 
-	my_seed = 83
+	my_seed = 84
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 

@@ -60,9 +60,6 @@ def construct_reconstruction_loss(inverse_fourier_toolbox,xpred,fx_true,sigma_no
 
 	return loss_integrand
 
-
-
-
 def construct_log_integrand_with_offset(inverse_fourier_toolbox,xpred,fx_true,sigma_noise_stddev,loss_min,use_rme_of_integrand_as_loss=False):
 
 	def log_integrand_with_offset(omega_in,Dw):

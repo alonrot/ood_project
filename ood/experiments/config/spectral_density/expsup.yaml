@@ -1,0 +1,4 @@
+expsup:
+  x_lim_min: -5.0
+  x_lim_max: +5.0
+  Nsteps_integration: 10

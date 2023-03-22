@@ -104,6 +104,8 @@ def load_data(cfg):
 @hydra.main(config_path="./config",config_name="config")
 def main_train_model(cfg: dict):
 
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023_gpflow/trajs_ind_traj_81.pickle ./data_quadruped_experiments_03_13_2023_gpflow/
+
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -357,8 +359,8 @@ def main_test_model(cfg: dict):
 	# Receding horizon predictions:
 	plotting_receding_horizon_predictions = True
 	savedata = True
-	recompute = True
-	# recompute = False
+	# recompute = True
+	recompute = False
 	path2save_receding_horizon = path2project+"/data_quadruped_experiments_03_13_2023_gpflow"
 	file_name = "trajs_ind_traj_{0:d}.pickle".format(my_seed)
 	if plotting_receding_horizon_predictions and recompute:
@@ -417,7 +419,8 @@ def main_test_model(cfg: dict):
 		# file_name = "trajs_ind_traj_48.pickle" # Using trajectory from altered model; trained GPflow model: model_12
 		# file_name = "trajs_ind_traj_12.pickle" # Using coregionalization, no linear kernel, and trajectory from altered model; trained GPflow model: model_13_coregionalization_True; -> training ended prematurely; not working
 		# file_name = "trajs_ind_traj_72.pickle" # Using coregionalization, with linear kernel, and trajectory from altered model; trained GPflow model: model_13_coregionalization_True; -> no big difference wrt trajs_ind_traj_48
-		file_name = "trajs_ind_traj_80.pickle"
+		# file_name = "trajs_ind_traj_80.pickle"
+		file_name = "trajs_ind_traj_81.pickle" # Long horizon, hybridrobotics
 
 		# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023_gpflow/trajs_ind_traj_80.pickle .
 
@@ -470,6 +473,8 @@ def main_test_model(cfg: dict):
 		plt.show(block=False)
 		plt.pause(0.5)
 		plt_pause_sec = 0.01
+
+		pdb.set_trace()
 		
 
 		for tt in range(Nsteps_tot):

@@ -26,11 +26,26 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 		# self.delta_omegas = self.add_weight(shape=(Nomegas,), initializer=initializer(shape=(Nomegas,)), trainable=True, name="delta_omegas")
 		self.delta_dw_voxels_pre_activation = self.add_weight(shape=(Nomegas,1), initializer=tf.keras.initializers.Constant(value=0.0), trainable=True, name="delta_omegas_pre_activation")
 
-		# Frequencies locations:
-		initializer_omegas = tf.keras.initializers.RandomUniform(minval=-omega_lim, maxval=omega_lim)
-		regularizer_omegas = tf.keras.regularizers.L1(l1=0.01) # https://www.tensorflow.org/api_docs/python/tf/keras/regularizers/L1
-		# regularizer_omegas = tf.keras.regularizers.L2(l2=100.) # https://www.tensorflow.org/api_docs/python/tf/keras/regularizers/L1
-		self.omegas_weights = self.add_weight(shape=(Nomegas,self.dim_in), initializer=initializer_omegas, regularizer=regularizer_omegas, trainable=True, name="omegas_weights")
+
+
+		self.dbg_flag = False
+		if self.dbg_flag:
+
+			# # Frequencies locations:
+			# initializer_omegas = tf.keras.initializers.RandomUniform(minval=-omega_lim, maxval=omega_lim)
+			# regularizer_omegas = tf.keras.regularizers.L1(l1=0.01) # https://www.tensorflow.org/api_docs/python/tf/keras/regularizers/L1
+			# # regularizer_omegas = tf.keras.regularizers.L2(l2=100.) # https://www.tensorflow.org/api_docs/python/tf/keras/regularizers/L1
+			# self.omegas_weights = self.add_weight(shape=(Nomegas,self.dim_in), initializer=initializer_omegas, regularizer=regularizer_omegas, trainable=True, name="omegas_weights")
+			pass
+		else:
+
+			# Frequencies locations:
+			initializer_omegas = tf.keras.initializers.RandomUniform(minval=-omega_lim, maxval=omega_lim)
+			# regularizer_omegas = tf.keras.regularizers.L1(l1=0.01) # https://www.tensorflow.org/api_docs/python/tf/keras/regularizers/L1
+			# regularizer_omegas = tf.keras.regularizers.L2(l2=100.) # https://www.tensorflow.org/api_docs/python/tf/keras/regularizers/L1
+			# self.omegas_weights = self.add_weight(shape=(Nomegas,self.dim_in), initializer=initializer_omegas, regularizer=regularizer_omegas, trainable=True, name="omegas_weights")
+			self.omegas_weights = self.add_weight(shape=(Nomegas,self.dim_in), initializer=initializer_omegas, trainable=True, name="omegas_weights")
+
 
 		# Integration step dX:
 		self.delta_dX_voxels_preactivation = self.add_weight(shape=(Xtest.shape[0],1), initializer=tf.keras.initializers.Constant(value=0.0), trainable=True, name="delta_statespace_preactivation")
@@ -50,6 +65,11 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 		# omegas_weights_withinlims = self.omega_lim*tf.keras.activations.tanh(self.omegas_weights)
 		# omegas_weights_withinlims = self.omegas_weights
 		# return omegas_weights_withinlims
+
+		if self.dbg_flag:
+
+
+
 		return self.omegas_weights
 
 	def get_delta_omegas(self):

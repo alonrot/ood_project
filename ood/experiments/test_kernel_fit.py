@@ -167,7 +167,8 @@ def train_reconstruction(cfg):
 		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_in]
 		Ytrain = tf.identity(Ytrain_deltas)		
 
-	delta_statespace = 1.0 / Xtrain.shape[0]
+	# delta_statespace = 1.0 / Xtrain.shape[0]
+	delta_statespace = 1.0 / Npred
 
 	spectral_density_list = []
 	spectral_density_list += [ExponentiallySuppressedPolynomialsFromData(cfg=cfg.spectral_density.expsup,cfg_sampler=cfg.sampler.hmc,dim=dim_ctx,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain)]

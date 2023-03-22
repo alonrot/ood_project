@@ -131,8 +131,8 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 			if loss_value <= stop_loss_val:
 				done = True
 			
-			if loss_value < loss_value_best:
-				loss_value_best = loss_value
+			if tf.squeeze(loss_value).numpy() < loss_value_best:
+				loss_value_best = tf.squeeze(loss_value).numpy()
 				trainable_weights_best = self.get_weights()
 			
 

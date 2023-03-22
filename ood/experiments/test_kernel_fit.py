@@ -130,7 +130,7 @@ def main(cfg):
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_80.pickle ./kernel_fit_reconstruction/
 
-	my_seed = 80
+	my_seed = 81
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -167,7 +167,7 @@ def main(cfg):
 		Nepochs = 6200
 		Nsamples_omega = 1500
 	
-	omega_lim = 3.0
+	omega_lim = 4.0
 	Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 	# Dw_coarse = 1.0 / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 
@@ -298,7 +298,7 @@ def main(cfg):
 
 	savefig = True
 	if savefig:
-		path2save_fig = "{0:s}/{1:s}/state_transition_seed_{2:d}.png".format(path2project,path2folder,my_seed)
+		path2save_fig = "{0:s}/{1:s}/reconstruction_plots{2:d}.png".format(path2project,path2folder,my_seed)
 		logger.info("Saving fig at {0:s} ...".format(path2save_fig))
 		hdl_fig.savefig(path2save_fig,bbox_inches='tight',dpi=300,transparent=True)
 		logger.info("Done saving fig!")

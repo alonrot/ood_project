@@ -130,7 +130,7 @@ def main(cfg):
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_80.pickle ./kernel_fit_reconstruction/
 
-	my_seed = 81
+	my_seed = 82
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -164,12 +164,12 @@ def main(cfg):
 	Nepochs = 1000
 	Nsamples_omega = 300
 	if using_hybridrobotics:
-		Nepochs = 6200
-		Nsamples_omega = 1500
+		Nepochs = 60000
+		Nsamples_omega = 300
 	
 	omega_lim = 4.0
-	Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
-	# Dw_coarse = 1.0 / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
+	# Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
+	Dw_coarse = 1.0 / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 
 	fx_optimized_omegas_and_voxels = np.zeros((Xtrain.shape[0],dim_out))
 	Sw_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
@@ -178,7 +178,7 @@ def main(cfg):
 	delta_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
 	delta_statespace_trainedNN = np.zeros((dim_out,Xtrain.shape[0],1))
 
-	learning_rate = 1e-2
+	learning_rate = 1e-1
 	stop_loss_val = 1./Ytrain.shape[0]
 	# stop_loss_val = 0.01
 	lengthscale_loss = 0.01

@@ -72,7 +72,7 @@ def generate_data(plot_stuff=False,block_plot=False):
 	# Nrollouts = 60
 	Nrollouts = 20
 	
-	Npred = 71
+	Npred = 120
 	
 	xmin = -7.0
 	xmax = +7.0

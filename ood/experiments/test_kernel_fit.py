@@ -69,7 +69,8 @@ def squash(x):
 def generate_data(plot_stuff=False,block_plot=False):
 
 	
-	Nrollouts = 60
+	# Nrollouts = 60
+	Nrollouts = 20
 	
 	Npred = 71
 	

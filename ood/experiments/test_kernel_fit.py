@@ -69,9 +69,9 @@ def squash(x):
 def generate_data(plot_stuff=False,block_plot=False):
 
 	
-	Nrollouts = 20
+	Nrollouts = 60
 	
-	Npred = 300
+	Npred = 71
 	
 	xmin = -7.0
 	xmax = +7.0
@@ -86,7 +86,7 @@ def generate_data(plot_stuff=False,block_plot=False):
 
 	f_samples = kXX_chol @ mvn0_samples.T # [Npred,Nrollouts]
 
-	plot_stuff = True
+	plot_stuff = False
 	if plot_stuff:
 		hdl_fig_ker, hdl_splots_ker = plt.subplots(3,figsize=(12,8),sharex=True)
 		# hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
@@ -100,19 +100,18 @@ def generate_data(plot_stuff=False,block_plot=False):
 		hdl_splots_ker[1].set_ylabel(r"$x_t^\prime$",fontsize=fontsize_labels)
 		hdl_splots_ker[1].set_title(r"$k(x_t,x^\prime_t)$ {0:s}".format("Kernel suppressed polys"),fontsize=fontsize_labels)
 		hdl_splots_ker[1].set_xticks([xmin,0.0,xmax])
-		hdl_splots_ker[1].set_yticks([])
+		hdl_splots_ker[1].set_yticks([xmin,0.0,xmax])
 
 
-		pdb.set_trace()
 		ker_from_samples = f_samples @ f_samples.T / Nrollouts
-		hdl_splots_ker[1].imshow(ker_from_samples,extent=extent_plot_xpred,origin="lower",cmap=plt.get_cmap(COLOR_MAP),vmin=ker_from_samples.min(),vmax=ker_from_samples.max(),interpolation='nearest')
-		hdl_splots_ker[1].set_xlim([xmin,xmax])
-		hdl_splots_ker[1].set_ylim([xmin,xmax])
-		hdl_splots_ker[1].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
-		hdl_splots_ker[1].set_ylabel(r"$x_t^\prime$",fontsize=fontsize_labels)
-		hdl_splots_ker[1].set_title(r"$k(x_t,x^\prime_t)$ {0:s}".format("Kernel suppressed polys"),fontsize=fontsize_labels)
-		hdl_splots_ker[1].set_xticks([xmin,0.0,xmax])
-		hdl_splots_ker[1].set_yticks([])
+		hdl_splots_ker[2].imshow(ker_from_samples,extent=extent_plot_xpred,origin="lower",cmap=plt.get_cmap(COLOR_MAP),vmin=ker_from_samples.min(),vmax=ker_from_samples.max(),interpolation='nearest')
+		hdl_splots_ker[2].set_xlim([xmin,xmax])
+		hdl_splots_ker[2].set_ylim([xmin,xmax])
+		hdl_splots_ker[2].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
+		hdl_splots_ker[2].set_ylabel(r"$x_t^\prime$",fontsize=fontsize_labels)
+		hdl_splots_ker[2].set_title(r"$k(x_t,x^\prime_t)$ {0:s}".format("Kernel suppressed polys"),fontsize=fontsize_labels)
+		hdl_splots_ker[2].set_xticks([xmin,0.0,xmax])
+		hdl_splots_ker[2].set_yticks([xmin,0.0,xmax])
 
 
 		plt.show(block=True)
@@ -127,7 +126,8 @@ def generate_data(plot_stuff=False,block_plot=False):
 
 	# Append a contextual variable:
 
-	theta_cntxt_vals = 4.*np.pi*np.random.rand(Nrollouts,1)
+	# theta_cntxt_vals = 8.*np.pi*np.random.rand(Nrollouts,1)
+	theta_cntxt_vals = np.reshape(np.linspace(0,8.*np.pi,Nrollouts),(-1,1))
 	theta_cntxt_vec = theta_cntxt_vals @ np.ones((1,Npred))
 	theta_cntxt_vec = np.reshape(theta_cntxt_vec,(-1,1))
 	xpred_training = np.concatenate([xpred]*Nrollouts,axis=0)
@@ -136,18 +136,17 @@ def generate_data(plot_stuff=False,block_plot=False):
 	Xtrain = xpred_training_cntxt
 	Ytrain = Ytrain = tf.convert_to_tensor(ypred_training,dtype=tf.float32)
 
-	return Xtrain, Ytrain, xpred, Nrollouts
+	return Xtrain, Ytrain, xpred, Nrollouts, kXX
 
 
 @hydra.main(config_path="./config",config_name="config")
-def main(cfg):
+def train_reconstruction(cfg):
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_80.pickle ./kernel_fit_reconstruction/
 
-	my_seed = 84
+	my_seed = 85
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
-
 
 	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
 	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
@@ -158,7 +157,7 @@ def main(cfg):
 
 	path2folder = "kernel_fit_reconstruction"
 
-	Xtrain, Ytrain, xpred, Nrollouts = generate_data(plot_stuff=False,block_plot=False)
+	Xtrain, Ytrain, xpred, Nrollouts, kXX = generate_data(plot_stuff=False,block_plot=False)
 
 	Npred = xpred.shape[0]
 	xmin = xpred[0,0]
@@ -170,12 +169,10 @@ def main(cfg):
 
 	delta_statespace = 1.0 / Xtrain.shape[0]
 
-
 	spectral_density_list = []
 	spectral_density_list += [ExponentiallySuppressedPolynomialsFromData(cfg=cfg.spectral_density.expsup,cfg_sampler=cfg.sampler.hmc,dim=dim_ctx,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain)]
 
-
-	Nepochs = 10
+	Nepochs = 100
 	Nsamples_omega = 300
 	if using_hybridrobotics:
 		Nepochs = 60000
@@ -253,7 +250,8 @@ def main(cfg):
 							Nsamples_omega=Nsamples_omega,
 							Xtrain=Xtrain,
 							Ytrain=Ytrain,
-							path2data=path2data)
+							path2data=path2data,
+							kXX=kXX)
 		
 
 		logger.info("Saving learned omegas, S_w, varphi_w, delta_w, delta_xt at {0:s} ...".format(path2data))
@@ -330,6 +328,12 @@ def main(cfg):
 	else:
 		plt.pause(1)
 		plt.show(block=False)
+
+
+
+def test_resulting_kernel():
+
+	pass
 
 
 

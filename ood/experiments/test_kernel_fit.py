@@ -144,7 +144,7 @@ def train_reconstruction(cfg):
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_80.pickle ./kernel_fit_reconstruction/
 
-	my_seed = 85
+	my_seed = 86
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -176,7 +176,7 @@ def train_reconstruction(cfg):
 	Nsamples_omega = 750
 	if using_hybridrobotics:
 		Nepochs = 60000
-		Nsamples_omega = 450
+		Nsamples_omega = 400
 	
 	omega_lim = 6.0
 	# Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
@@ -189,7 +189,7 @@ def train_reconstruction(cfg):
 	delta_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
 	delta_statespace_trainedNN = np.zeros((dim_out,Xtrain.shape[0],1))
 
-	learning_rate = 1e-3
+	learning_rate = 1e-2
 	# learning_rate = 0.0005
 	stop_loss_val = 1./Ytrain.shape[0]
 	# stop_loss_val = 0.01

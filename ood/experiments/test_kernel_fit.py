@@ -128,6 +128,8 @@ def generate_data(plot_stuff=False,block_plot=False):
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg):
 
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_80.pickle ./kernel_fit_reconstruction/
+
 	my_seed = 80
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
@@ -294,8 +296,15 @@ def main(cfg):
 	hdl_splots_reconstruct[2].set_xticks([-omega_lim,0,omega_lim])
 	hdl_splots_reconstruct[2].set_yticks([-omega_lim,0,omega_lim])
 
-	plt.show(block=True)
-
+	savefig = True
+	if savefig:
+		path2save_fig = "{0:s}/{1:s}/state_transition_seed_{2:d}.png".format(path2project,path2folder,my_seed)
+		logger.info("Saving fig at {0:s} ...".format(path2save_fig))
+		hdl_fig.savefig(path2save_fig,bbox_inches='tight',dpi=300,transparent=True)
+		logger.info("Done saving fig!")
+	else:
+		plt.pause(1)
+		plt.show(block=False)
 
 
 

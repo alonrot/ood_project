@@ -172,11 +172,11 @@ def train_reconstruction(cfg):
 	spectral_density_list = []
 	spectral_density_list += [ExponentiallySuppressedPolynomialsFromData(cfg=cfg.spectral_density.expsup,cfg_sampler=cfg.sampler.hmc,dim=dim_ctx,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain)]
 
-	Nepochs = 100
-	Nsamples_omega = 300
+	Nepochs = 1000
+	Nsamples_omega = 750
 	if using_hybridrobotics:
 		Nepochs = 60000
-		Nsamples_omega = 500
+		Nsamples_omega = 1000
 	
 	omega_lim = 4.0
 	# Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
@@ -189,7 +189,7 @@ def train_reconstruction(cfg):
 	delta_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
 	delta_statespace_trainedNN = np.zeros((dim_out,Xtrain.shape[0],1))
 
-	learning_rate = 1e-1
+	learning_rate = 1e-2
 	stop_loss_val = 1./Ytrain.shape[0]
 	# stop_loss_val = 0.01
 	lengthscale_loss = 0.01

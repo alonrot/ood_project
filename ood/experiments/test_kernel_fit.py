@@ -144,7 +144,7 @@ def train_reconstruction(cfg):
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_80.pickle ./kernel_fit_reconstruction/
 
-	my_seed = 86
+	my_seed = 87
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 

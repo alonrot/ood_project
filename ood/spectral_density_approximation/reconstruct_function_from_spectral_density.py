@@ -67,6 +67,7 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 		# return omegas_weights_withinlims
 
 		if self.dbg_flag:
+			pass
 
 
 

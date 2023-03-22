@@ -24,7 +24,7 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 
 		# initializer = tf.keras.initializers.RandomUniform(minval=0., maxval=1.)
 		# self.delta_omegas = self.add_weight(shape=(Nomegas,), initializer=initializer(shape=(Nomegas,)), trainable=True, name="delta_omegas")
-		self.delta_dw_voxels_pre_activation = self.add_weight(shape=(Nomegas,1), initializer=tf.keras.initializers.Constant(value=0.0), trainable=True, name="delta_omegas_pre_activation")
+		# self.delta_dw_voxels_pre_activation = self.add_weight(shape=(Nomegas,1), initializer=tf.keras.initializers.Constant(value=0.0), trainable=True, name="delta_omegas_pre_activation")
 
 
 
@@ -54,7 +54,11 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 			omega_grid = tf.meshgrid(*omega_per_dim,indexing="ij")
 			self.omegas_weights = tf.concat([tf.reshape(omega_grid_el,(-1,1)) for omega_grid_el in omega_grid],axis=1)
 
+			self.delta_dw_voxels_pre_activation = self.add_weight(shape=(1), initializer=tf.keras.initializers.Constant(value=0.0), trainable=True, name="delta_omegas_pre_activation")
+
 		else:
+
+			self.delta_dw_voxels_pre_activation = self.add_weight(shape=(Nomegas,1), initializer=tf.keras.initializers.Constant(value=0.0), trainable=True, name="delta_omegas_pre_activation")
 
 			# Frequencies locations:
 			initializer_omegas = tf.keras.initializers.RandomUniform(minval=-omega_lim, maxval=omega_lim)
@@ -90,7 +94,7 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 		return self.omegas_weights*fac_per_dim
 
 	def get_delta_omegas(self):
-		delta_omegas = tf.math.exp(self.Dw_voxel_val)*tf.keras.activations.sigmoid(self.delta_dw_voxels_pre_activation) # Squeeze to (0,1)
+		delta_omegas = tf.math.exp(self.Dw_voxel_val)*tf.keras.activations.sigmoid(self.delta_dw_voxels_pre_activation*tf.ones((self.Nomegas_for_regular_grid,1))) # Squeeze to (0,1)
 		return delta_omegas
 
 	def get_delta_statespace(self):

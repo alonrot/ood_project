@@ -28,15 +28,32 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 
 
 
-		self.dbg_flag = False
+		self.dbg_flag = True
 		if self.dbg_flag:
+
+			assert dim_in == 2
+			
+			assert (int(np.sqrt(Nomegas) + 0.5) ** 2 == Nomegas), "Nomegas must be a power of 2"
 
 			# # Frequencies locations:
 			# initializer_omegas = tf.keras.initializers.RandomUniform(minval=-omega_lim, maxval=omega_lim)
 			# regularizer_omegas = tf.keras.regularizers.L1(l1=0.01) # https://www.tensorflow.org/api_docs/python/tf/keras/regularizers/L1
 			# # regularizer_omegas = tf.keras.regularizers.L2(l2=100.) # https://www.tensorflow.org/api_docs/python/tf/keras/regularizers/L1
 			# self.omegas_weights = self.add_weight(shape=(Nomegas,self.dim_in), initializer=initializer_omegas, regularizer=regularizer_omegas, trainable=True, name="omegas_weights")
-			pass
+			
+			self.Nomegas_for_regular_grid = Nomegas
+			log_L_for_regular_grid_init = tf.zeros(self.dim_in)
+			self.log_L_for_regular_grid = self.add_weight(shape=(self.dim_in), initializer=tf.keras.initializers.Constant(value=log_L_for_regular_grid_init), trainable=True, name="L_for_regular_grid")
+
+			omega_per_dim =[]
+			Nomegas_per_dim = int(np.sqrt(Nomegas))
+			for ii in range(log_L_for_regular_grid_init.shape[0]):
+				omega_lim_per_dim = 2.*math.pi / tf.math.exp(log_L_for_regular_grid_init[ii])
+				omega_per_dim += [tf.linspace(-omega_lim_per_dim,omega_lim_per_dim,Nomegas_per_dim)]
+
+			omega_grid = tf.meshgrid(*omega_per_dim,indexing="ij")
+			self.omegas_weights = tf.concat([tf.reshape(omega_grid_el,(-1,1)) for omega_grid_el in omega_grid],axis=1)
+
 		else:
 
 			# Frequencies locations:
@@ -66,12 +83,11 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 		# omegas_weights_withinlims = self.omegas_weights
 		# return omegas_weights_withinlims
 
+		fac_per_dim = 1
 		if self.dbg_flag:
-			pass
+			fac_per_dim = tf.reshape(1./tf.math.exp(self.log_L_for_regular_grid),(1,-1))
 
-
-
-		return self.omegas_weights
+		return self.omegas_weights*fac_per_dim
 
 	def get_delta_omegas(self):
 		delta_omegas = tf.math.exp(self.Dw_voxel_val)*tf.keras.activations.sigmoid(self.delta_dw_voxels_pre_activation) # Squeeze to (0,1)

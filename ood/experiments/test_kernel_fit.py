@@ -144,7 +144,7 @@ def train_reconstruction(cfg):
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_80.pickle ./kernel_fit_reconstruction/
 
-	my_seed = 87
+	my_seed = 88
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -173,10 +173,10 @@ def train_reconstruction(cfg):
 	spectral_density_list += [ExponentiallySuppressedPolynomialsFromData(cfg=cfg.spectral_density.expsup,cfg_sampler=cfg.sampler.hmc,dim=dim_ctx,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain)]
 
 	Nepochs = 1000
-	Nsamples_omega = 750
+	Nsamples_omega = 20**2
 	if using_hybridrobotics:
 		Nepochs = 60000
-		Nsamples_omega = 400
+		Nsamples_omega = 20**2
 	
 	omega_lim = 6.0
 	# Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]

@@ -144,7 +144,7 @@ def train_reconstruction(cfg):
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_80.pickle ./kernel_fit_reconstruction/
 
-	my_seed = 89
+	my_seed = 91
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
@@ -167,22 +167,22 @@ def train_reconstruction(cfg):
 		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_in]
 		Ytrain = tf.identity(Ytrain_deltas)		
 
-	# delta_statespace = 1.0 / Xtrain.shape[0]
-	delta_statespace = 1.0 / Npred
+	delta_statespace = 1.0 / Xtrain.shape[0]
+	# delta_statespace = 1.0 / Npred
 
 	spectral_density_list = []
 	spectral_density_list += [ExponentiallySuppressedPolynomialsFromData(cfg=cfg.spectral_density.expsup,cfg_sampler=cfg.sampler.hmc,dim=dim_ctx,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain)]
 
 
 	Nepochs = 1000
-	Nsamples_omega = 15**2
+	# Nsamples_omega = 15**2
+	Nsamples_omega = 300
 	if using_hybridrobotics:
 		Nepochs = 60000
-		Nsamples_omega = 15**2
 	
 	omega_lim = 6.0
-	Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
-	# Dw_coarse = 1.0 / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
+	# Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
+	Dw_coarse = 1.0 / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 
 	fx_optimized_omegas_and_voxels = np.zeros((Xtrain.shape[0],dim_out))
 	Sw_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
@@ -191,7 +191,7 @@ def train_reconstruction(cfg):
 	delta_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
 	delta_statespace_trainedNN = np.zeros((dim_out,Xtrain.shape[0],1))
 
-	learning_rate = 1e-3
+	learning_rate = 1e-2
 	# learning_rate = 0.0005
 	stop_loss_val = 1./Ytrain.shape[0]
 	# stop_loss_val = 0.01

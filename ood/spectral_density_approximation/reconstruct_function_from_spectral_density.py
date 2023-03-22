@@ -28,7 +28,7 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 
 
 
-		self.dbg_flag = True
+		self.dbg_flag = False
 		if self.dbg_flag:
 
 			assert dim_in == 2
@@ -94,7 +94,10 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 		return self.omegas_weights*fac_per_dim
 
 	def get_delta_omegas(self):
-		delta_omegas = tf.math.exp(self.Dw_voxel_val)*tf.keras.activations.sigmoid(self.delta_dw_voxels_pre_activation*tf.ones((self.Nomegas_for_regular_grid,1))) # Squeeze to (0,1)
+		if self.dbg_flag:
+			delta_omegas = tf.math.exp(self.Dw_voxel_val)*tf.keras.activations.sigmoid(self.delta_dw_voxels_pre_activation*tf.ones((self.Nomegas_for_regular_grid,1))) # Squeeze to (0,1)
+		else:
+			delta_omegas = tf.math.exp(self.Dw_voxel_val)*tf.keras.activations.sigmoid(self.delta_dw_voxels_pre_activation) # Squeeze to (0,1)
 		return delta_omegas
 
 	def get_delta_statespace(self):

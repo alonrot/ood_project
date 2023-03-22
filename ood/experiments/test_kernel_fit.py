@@ -172,6 +172,7 @@ def train_reconstruction(cfg):
 	spectral_density_list = []
 	spectral_density_list += [ExponentiallySuppressedPolynomialsFromData(cfg=cfg.spectral_density.expsup,cfg_sampler=cfg.sampler.hmc,dim=dim_ctx,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain)]
 
+	
 	Nepochs = 1000
 	Nsamples_omega = 20**2
 	if using_hybridrobotics:

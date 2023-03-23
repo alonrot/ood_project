@@ -317,7 +317,7 @@ def train_reconstruction(cfg):
 	hdl_splots_reconstruct[2].set_title(r"${0:s}$".format("\\varphi(\omega)"),fontsize=fontsize_labels)
 	hdl_splots_reconstruct[2].set_xlabel(r"$\omega$",fontsize=fontsize_labels)
 	hdl_splots_reconstruct[2].set_ylabel(r"$\omega_{\theta}$",fontsize=fontsize_labels)
-	hdl_splots_reconstruct[2].plot(omegas_trainedNN[0,:,0],omegas_trainedNN[0,:,1],marker=".",color="navy",markersize=7,linestyle="None")
+	hdl_splots_reconstruct[2].plot(omegas_trainedNN[0,:,0],omegas_trainedNN[0,:,1],marker="o",color="navy",markersize=7,linestyle="None")
 
 
 	hdl_splots_reconstruct[1].set_xlim([-omega_lim,omega_lim])
@@ -480,6 +480,6 @@ if __name__ == "__main__":
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
-	# train_reconstruction()
+	train_reconstruction()
 
-	test_resulting_kernel()
+	# test_resulting_kernel()

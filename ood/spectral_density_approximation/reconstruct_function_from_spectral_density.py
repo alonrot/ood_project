@@ -138,7 +138,7 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 		# 																		decay_rate=0.9)
 
 
-		learning_rate_sche = tf.keras.optimizers.schedules.CosineDecayRestart(	initial_learning_rate=learning_rate,
+		learning_rate_sche = tf.keras.optimizers.schedules.CosineDecayRestarts(	initial_learning_rate=learning_rate,
 																				first_decay_steps=5000,
 																				t_mul=2.0,
 																				m_mul=1.0,

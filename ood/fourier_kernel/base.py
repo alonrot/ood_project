@@ -80,6 +80,7 @@ class InverseFourierTransformKernelToolbox():
 		X: [Npoints,self.dim_in]
 		Xp: [Npoints,self.dim_in]
 		"""
+		using_deltas = False
 		
 		assert self.spectral_values is not None, "Call self.update_integration_parameters() first"
 		assert self.varphi_values is not None, "Call self.update_integration_parameters() first"
@@ -98,13 +99,12 @@ class InverseFourierTransformKernelToolbox():
 
 
 		Nthetas = PhiX.shape[0]//Npred
-		use_functions = False
+		use_functions = True
 		if use_functions:
 
 			fX_vec = tf.reduce_sum(self.get_features_mat(X) * tf.transpose(self.spectral_values*self.dw_voxel_vec),axis=1,keepdims=True) # [Npoints_x, 1]
 			fXp_vec = tf.reduce_sum(self.get_features_mat(Xp) * tf.transpose(self.spectral_values*self.dw_voxel_vec),axis=1,keepdims=True) # [Npoints_x, 1]
 
-			using_deltas = False
 			if using_deltas:
 				fX_vec += X[:,0:1]
 				fXp_vec += X[:,0:1]
@@ -139,7 +139,8 @@ class InverseFourierTransformKernelToolbox():
 		ker_XX_thi_thj_in_cols = tf.split(ker_XX_thi_thj,num_or_size_splits=Nthetas,axis=1)
 
 		# Compute kXX:
-
+		only_diag = True
+		# only_diag = False
 		kXX = np.zeros((Npred,Npred))
 		ii = 0; jj = 0;
 		for ker_XX_thi_thj_in_cols_element in ker_XX_thi_thj_in_cols:
@@ -149,7 +150,7 @@ class InverseFourierTransformKernelToolbox():
 
 			for ker_XX_thi_thj_in_cols_element_in_rows_element in ker_XX_thi_thj_in_cols_element_in_rows:
 
-				if use_functions:
+				if only_diag:
 					if ii == jj:
 						kXX += ker_XX_thi_thj_in_cols_element_in_rows_element.numpy()
 

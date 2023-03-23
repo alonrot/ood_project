@@ -40,7 +40,7 @@ dim_out = 1
 # COLOR_MAP = "gist_heat"
 COLOR_MAP = "copper"
 
-my_seed = 93
+my_seed = 95
 
 def ker_fun(x,xp,alpha):
 	"""
@@ -174,7 +174,6 @@ def train_reconstruction(cfg):
 	spectral_density_list = []
 	spectral_density_list += [ExponentiallySuppressedPolynomialsFromData(cfg=cfg.spectral_density.expsup,cfg_sampler=cfg.sampler.hmc,dim=dim_ctx,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain)]
 
-
 	Nepochs = 1000
 	# Nsamples_omega = 15**2
 	Nsamples_omega = 500
@@ -201,6 +200,8 @@ def train_reconstruction(cfg):
 	loss_reconstruction_evolution = np.zeros((dim_out,Nepochs))
 	spectral_density_optimized_list = [None]*dim_out
 	# pdb.set_trace()
+
+
 	for jj in range(dim_out):
 
 		logger.info("Reconstruction for channel {0:d} / {1:d} ...".format(jj+1,dim_out))
@@ -275,11 +276,14 @@ def train_reconstruction(cfg):
 
 	hdl_fig, hdl_splots_reconstruct = plt.subplots(1,3,figsize=(30,10),sharex=False)
 	extent_plot_omegas = [-omega_lim,omega_lim,-omega_lim,omega_lim] #  scalars (left, right, bottom, top)
-	fx_true_testing = Ytrain + Xtrain[:,0:dim_in]
+	if using_deltas:
+		fx_true_testing = Ytrain + Xtrain[:,0:dim_in]
+	else:
+		fx_true_testing = Ytrain
+	
 	for ii in range(Nrollouts):
 		fx_true_testing_loc = fx_true_testing[ii*Npred:(ii+1)*Npred,0]
 		fx_optimized_voxels_coarse_loc = fx_optimized_omegas_and_voxels[ii*Npred:(ii+1)*Npred,0] # The reconstructed function is the same for all Nsamples_nominal_dynsys
-
 
 		hdl_splots_reconstruct[0].plot(xpred,fx_true_testing_loc,lw=1,color="crimson",alpha=0.35,label="True",linestyle="None",marker=".",markersize=5)
 		# hdl_splots_reconstruct[0].plot(xpred,fx_reconstructed,lw=2,color="navy",alpha=0.5)
@@ -341,7 +345,7 @@ def train_reconstruction(cfg):
 @hydra.main(config_path="./config",config_name="config")
 def test_resulting_kernel(cfg):
 
-	generate_data()
+	# generate_data()
 
 	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
 	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
@@ -380,6 +384,13 @@ def test_resulting_kernel(cfg):
 	path2data = data_dict["path2data"]
 	kXX = data_dict["kXX"]
 
+
+	mvn0_samples, f_samples = None, None
+	if "f_samples" in data_dict.keys():
+		f_samples = data_dict["f_samples"]
+	if "mvn0_samples" in data_dict.keys():
+		mvn0_samples = data_dict["mvn0_samples"]
+
 	Npred = xpred.shape[0]
 	xmin = xpred[0,0]
 	xmax = xpred[-1,0]
@@ -393,6 +404,18 @@ def test_resulting_kernel(cfg):
 	
 
 	kXX_thetas = inverse_fourier_toolbox_channel.get_kerXX_with_variable_integration_step_assume_context_var(X=Xtrain,Xp=Xtrain,Npred=Npred)
+
+	fx_vec_reconstructed = inverse_fourier_toolbox_channel.get_fx_with_variable_integration_step(xpred=Xtrain)
+	# fx_vec_reconstructed += Xtrain[:,0:1]
+
+
+	# axd = plt.figure(layout="constrained").subplot_mosaic(
+	# 	"""
+	# 	ABD
+	# 	CCD
+	# 	"""
+	# )
+	# pdb.set_trace()
 
 
 	hdl_fig_ker, hdl_splots_ker = plt.subplots(1,2,figsize=(12,8))
@@ -416,6 +439,37 @@ def test_resulting_kernel(cfg):
 	hdl_splots_ker[1].set_xticks([xmin,0.0,xmax])
 	hdl_splots_ker[1].set_yticks([xmin,0.0,xmax])
 
+
+	hdl_fig_fx, hdl_splots_fx = plt.subplots(2,1,figsize=(12,8))
+	fx_vec_reconstructed_rs = np.reshape(fx_vec_reconstructed,(Nrollouts,xpred.shape[0]))
+	for rr in range(Nrollouts):
+		if f_samples is not None: hdl_splots_fx[0].plot(xpred[:,0],f_samples[:,rr],lw=3,color="crimson",alpha=0.2,label="True",linestyle="-")
+		hdl_splots_fx[0].plot(xpred[:,0],fx_vec_reconstructed_rs[rr,:],lw=1,color="navy",alpha=0.7,label="Reconstructed",linestyle="-")
+
+	hdl_splots_fx[0].set_xlim([xmin,xmax])
+	hdl_splots_fx[0].set_ylim([xmin,xmax])
+	hdl_splots_fx[0].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
+	hdl_splots_fx[0].set_ylabel(r"$f(x_t)$",fontsize=fontsize_labels)
+	hdl_splots_fx[0].set_title(r"Reconstructed function",fontsize=fontsize_labels)
+	hdl_splots_fx[0].set_xticks([xmin,0.0,xmax])
+	hdl_splots_fx[0].set_yticks([xmin,0.0,xmax])
+
+	kXX_thetas_chol = np.linalg.cholesky(kXX_thetas + 1e-6*np.eye(kXX_thetas.shape[0])) # [Npred,Npred]
+	if mvn0_samples is None:
+		mvn0_samples = np.random.randn(Nrollouts,xpred.shape[0])
+	f_samples_new_with_kernel_with_thetas = kXX_thetas_chol @ mvn0_samples.T # [Npred,Nrollouts]
+
+	for rr in range(Nrollouts):
+		hdl_splots_fx[1].plot(xpred[:,0],f_samples_new_with_kernel_with_thetas[:,rr],lw=1,color="navy",alpha=0.3,label="Reconstructed",linestyle="-")
+
+	hdl_splots_fx[1].set_xlim([xmin,xmax])
+	hdl_splots_fx[1].set_ylim([xmin,xmax])
+	hdl_splots_fx[1].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
+	hdl_splots_fx[1].set_ylabel(r"$f(x_t)$",fontsize=fontsize_labels)
+	hdl_splots_fx[1].set_title(r"Reconstructed function",fontsize=fontsize_labels)
+	hdl_splots_fx[1].set_xticks([xmin,0.0,xmax])
+	hdl_splots_fx[1].set_yticks([xmin,0.0,xmax])
+
 	plt.show(block=True)
 
 
@@ -426,6 +480,6 @@ if __name__ == "__main__":
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
-	train_reconstruction()
+	# train_reconstruction()
 
-	# test_resulting_kernel()
+	test_resulting_kernel()

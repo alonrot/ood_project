@@ -33,11 +33,11 @@ matplotlib.rc('font',**{'family':'serif','serif':['Computer Modern Roman']})
 plt.rc('legend',fontsize=fontsize_labels//2)
 
 
-# using_hybridrobotics = False
-using_hybridrobotics = True
+# Counter to save data:
+counter = 1001
 
-# path2folder = "dubins_car_reconstruction"
-path2folder = "data_quadruped_experiments_03_13_2023"
+path2folder = "dubins_car_reconstruction"
+# path2folder = "data_quadruped_experiments_03_13_2023"
 
 using_deltas = True
 # using_deltas = False
@@ -104,6 +104,9 @@ def reconstruct(cfg):
 
 	savefig = True
 
+	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
+	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
+
 	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
 	if using_hybridrobotics:
 		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
@@ -125,6 +128,8 @@ def reconstruct(cfg):
 		for jj in range(dim_out):
 			spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
 
+
+	# pdb.set_trace()
 
 	# Testing dataset (we use the training dataset)
 	xpred_testing = tf.identity(Xtrain)
@@ -219,7 +224,8 @@ def reconstruct(cfg):
 	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_regular_Xgrid_and_omega_grid.pickle"
 	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_regular_Xgrid_irregular_omega_grid.pickle"
 	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_from_data_Nepochs{0:d}.pickle".format(Nepochs)
-	path2save = "{0:s}/{1:s}/learning_data_Nepochs{2:d}.pickle".format(path2project,path2folder,Nepochs)
+	# path2save = "{0:s}/{1:s}/learning_data_Nepochs{2:d}.pickle".format(path2project,path2folder,Nepochs)
+	path2save = "{0:s}/{1:s}/learning_data_counter_{2:d}.pickle".format(path2project,path2folder,counter)
 	if save_data:
 
 		data2save = dict(	omegas_trainedNN=omegas_trainedNN,
@@ -316,7 +322,8 @@ def reconstruct(cfg):
 	
 
 	if savefig:
-		path2save_fig = "{0:s}/{1:s}/spectral_density_Nepochs{2:d}.png".format(path2project,path2folder,Nepochs)
+		# path2save_fig = "{0:s}/{1:s}/spectral_density_Nepochs{2:d}.png".format(path2project,path2folder,Nepochs)
+		path2save_fig = "{0:s}/{1:s}/spectral_density_counter_{2:d}.png".format(path2project,path2folder,Nepochs)
 		logger.info("Saving fig at {0:s} ...".format(path2save_fig))
 		hdl_fig.savefig(path2save_fig,bbox_inches='tight',dpi=300,transparent=True)
 		logger.info("Done saving fig!")
@@ -369,7 +376,8 @@ def reconstruct(cfg):
 		lgnd.legendHandles[1]._legmarker.set_markersize(20)
 
 		if savefig:
-			path2save_fig = "{0:s}/{1:s}/state_transition_Nepochs{2:d}.png".format(path2project,path2folder,Nepochs)
+			# path2save_fig = "{0:s}/{1:s}/state_transition_Nepochs{2:d}.png".format(path2project,path2folder,Nepochs)
+			path2save_fig = "{0:s}/{1:s}/state_transition_counter_{2:d}.png".format(path2project,path2folder,Nepochs)
 			logger.info("Saving fig at {0:s} ...".format(path2save_fig))
 			hdl_fig.savefig(path2save_fig,bbox_inches='tight',dpi=300,transparent=True)
 			logger.info("Done saving fig!")
@@ -434,7 +442,8 @@ def reconstruct(cfg):
 
 
 		if savefig:
-			path2save_fig = "{0:s}/{1:s}/state_trajectories_Nepochs{2:d}.png".format(path2project,path2folder,Nepochs)
+			# path2save_fig = "{0:s}/{1:s}/state_trajectories_Nepochs{2:d}.png".format(path2project,path2folder,Nepochs)
+			path2save_fig = "{0:s}/{1:s}/state_trajectories_counter_{2:d}.png".format(path2project,path2folder,Nepochs)
 			logger.info("Saving fig at {0:s} ...".format(path2save_fig))
 			hdl_fig.savefig(path2save_fig,bbox_inches='tight',dpi=300,transparent=True)
 			logger.info("Done saving fig!")
@@ -457,7 +466,8 @@ def reconstruct(cfg):
 
 
 		if savefig:
-			path2save_fig = "{0:s}/{1:s}/reconstruction_loss_Nepochs{2:d}.png".format(path2project,path2folder,Nepochs)
+			# path2save_fig = "{0:s}/{1:s}/reconstruction_loss_Nepochs{2:d}.png".format(path2project,path2folder,Nepochs)
+			path2save_fig = "{0:s}/{1:s}/reconstruction_loss_counter_{2:d}.png".format(path2project,path2folder,Nepochs)
 			logger.info("Saving fig at {0:s} ...".format(path2save_fig))
 			hdl_fig.savefig(path2save_fig,bbox_inches='tight',dpi=300,transparent=True)
 			logger.info("Done saving fig!")

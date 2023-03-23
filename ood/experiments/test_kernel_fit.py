@@ -71,8 +71,8 @@ def squash(x):
 def generate_data(plot_stuff=False,block_plot=False):
 
 	
-	Nrollouts = 60
-	# Nrollouts = 40
+	# Nrollouts = 60
+	Nrollouts = 40
 	# Nrollouts = 20
 	
 	Npred = 120
@@ -90,6 +90,7 @@ def generate_data(plot_stuff=False,block_plot=False):
 
 	f_samples = kXX_chol @ mvn0_samples.T # [Npred,Nrollouts]
 
+	# plot_stuff = True
 	plot_stuff = False
 	if plot_stuff:
 		hdl_fig_ker, hdl_splots_ker = plt.subplots(3,figsize=(12,8),sharex=True)
@@ -176,7 +177,7 @@ def train_reconstruction(cfg):
 
 	Nepochs = 1000
 	# Nsamples_omega = 15**2
-	Nsamples_omega = 350
+	Nsamples_omega = 500
 	if using_hybridrobotics:
 		Nepochs = 100000
 	
@@ -340,7 +341,7 @@ def train_reconstruction(cfg):
 @hydra.main(config_path="./config",config_name="config")
 def test_resulting_kernel(cfg):
 
-	# generate_data()
+	generate_data()
 
 	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
 	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
@@ -350,7 +351,8 @@ def test_resulting_kernel(cfg):
 		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
 
 	
-	file_name = "learning_data_seed_91.pickle"
+	# file_name = "learning_data_seed_91.pickle" # with only 20 rollouts, like 300 omegas
+	file_name = "learning_data_seed_93.pickle" # with 60 rollouts; poor
 	
 
 	path2folder = "kernel_fit_reconstruction"
@@ -426,4 +428,4 @@ if __name__ == "__main__":
 
 	train_reconstruction()
 
-	# test_resulting_kernel(my_seed)
+	# test_resulting_kernel()

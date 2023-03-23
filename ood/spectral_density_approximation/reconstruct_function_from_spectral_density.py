@@ -62,10 +62,10 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 
 			# Frequencies locations:
 			initializer_omegas = tf.keras.initializers.RandomUniform(minval=-omega_lim, maxval=omega_lim)
-			regularizer_omegas = tf.keras.regularizers.L1(l1=0.01) # https://www.tensorflow.org/api_docs/python/tf/keras/regularizers/L1
+			# regularizer_omegas = tf.keras.regularizers.L1(l1=0.01) # https://www.tensorflow.org/api_docs/python/tf/keras/regularizers/L1
 			# regularizer_omegas = tf.keras.regularizers.L2(l2=100.) # https://www.tensorflow.org/api_docs/python/tf/keras/regularizers/L1
-			self.omegas_weights = self.add_weight(shape=(Nomegas,self.dim_in), initializer=initializer_omegas, regularizer=regularizer_omegas, trainable=True, name="omegas_weights")
-			# self.omegas_weights = self.add_weight(shape=(Nomegas,self.dim_in), initializer=initializer_omegas, trainable=True, name="omegas_weights")
+			# self.omegas_weights = self.add_weight(shape=(Nomegas,self.dim_in), initializer=initializer_omegas, regularizer=regularizer_omegas, trainable=True, name="omegas_weights")
+			self.omegas_weights = self.add_weight(shape=(Nomegas,self.dim_in), initializer=initializer_omegas, trainable=True, name="omegas_weights")
 
 
 		# Integration step dX:

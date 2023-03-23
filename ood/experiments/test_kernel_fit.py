@@ -28,8 +28,8 @@ matplotlib.rc('text', usetex=True)
 matplotlib.rc('font',**{'family':'serif','serif':['Computer Modern Roman']})
 plt.rc('legend',fontsize=fontsize_labels+2)
 
-using_deltas = True
-# using_deltas = False
+# using_deltas = True
+using_deltas = False
 
 eps_ = 1e-3
 dim_in = 1
@@ -39,6 +39,8 @@ dim_out = 1
 # COLOR_MAP = "seismic"
 # COLOR_MAP = "gist_heat"
 COLOR_MAP = "copper"
+
+my_seed = 93
 
 def ker_fun(x,xp,alpha):
 	"""
@@ -69,8 +71,9 @@ def squash(x):
 def generate_data(plot_stuff=False,block_plot=False):
 
 	
-	# Nrollouts = 60
-	Nrollouts = 20
+	Nrollouts = 60
+	# Nrollouts = 40
+	# Nrollouts = 20
 	
 	Npred = 120
 	
@@ -137,17 +140,13 @@ def generate_data(plot_stuff=False,block_plot=False):
 	Xtrain = xpred_training_cntxt
 	Ytrain = Ytrain = tf.convert_to_tensor(ypred_training,dtype=tf.float32)
 
-	return Xtrain, Ytrain, xpred, Nrollouts, kXX
+	return Xtrain, Ytrain, xpred, Nrollouts, kXX, f_samples, mvn0_samples
 
 
 @hydra.main(config_path="./config",config_name="config")
 def train_reconstruction(cfg):
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_80.pickle ./kernel_fit_reconstruction/
-
-	my_seed = 91
-	np.random.seed(seed=my_seed)
-	tf.random.set_seed(seed=my_seed)
 
 	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
 	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
@@ -158,7 +157,7 @@ def train_reconstruction(cfg):
 
 	path2folder = "kernel_fit_reconstruction"
 
-	Xtrain, Ytrain, xpred, Nrollouts, kXX = generate_data(plot_stuff=False,block_plot=False)
+	Xtrain, Ytrain, xpred, Nrollouts, kXX, f_samples, mvn0_samples = generate_data(plot_stuff=False,block_plot=False)
 
 	Npred = xpred.shape[0]
 	xmin = xpred[0,0]
@@ -177,7 +176,7 @@ def train_reconstruction(cfg):
 
 	Nepochs = 1000
 	# Nsamples_omega = 15**2
-	Nsamples_omega = 300
+	Nsamples_omega = 400
 	if using_hybridrobotics:
 		Nepochs = 60000
 	
@@ -231,7 +230,7 @@ def train_reconstruction(cfg):
 		fx_optimized_omegas_and_voxels[:,jj:jj+1] = reconstructor_fx_deltas_and_omegas.reconstruct_function_at(xpred=Xtrain)
 
 		if using_deltas:
-			fx_optimized_omegas_and_voxels[:,jj:jj+1] += Xtrain[:,jj:jj+1]
+			fx_optimized_omegas_and_voxels[:,jj:jj+1] += Xtrain[:,0:dim_in]
 
 
 	# Save relevant quantities:
@@ -255,7 +254,9 @@ def train_reconstruction(cfg):
 							Xtrain=Xtrain,
 							Ytrain=Ytrain,
 							path2data=path2data,
-							kXX=kXX)
+							kXX=kXX,
+							f_samples=f_samples,
+							mvn0_samples=mvn0_samples)
 		
 
 		logger.info("Saving learned omegas, S_w, varphi_w, delta_w, delta_xt at {0:s} ...".format(path2data))
@@ -335,13 +336,93 @@ def train_reconstruction(cfg):
 
 
 
-def test_resulting_kernel():
+@hydra.main(config_path="./config",config_name="config")
+def test_resulting_kernel(cfg):
+
+	# generate_data()
+
+	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
+	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
+
+	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
+	if using_hybridrobotics:
+		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
+
+	
+	file_name = "learning_data_seed_91.pickle"
+	
+
+	path2folder = "kernel_fit_reconstruction"
+	path2load_full = "{0:s}/{1:s}/{2:s}".format(path2project,path2folder,file_name)
+	file = open(path2load_full, 'rb')
+	data_dict = pickle.load(file)
+	file.close()
+
+	omegas_trainedNN = tf.convert_to_tensor(data_dict["omegas_trainedNN"][0,...],dtype=tf.float32)
+	Sw_omegas_trainedNN = tf.convert_to_tensor(data_dict["Sw_omegas_trainedNN"][0,...],dtype=tf.float32)
+	varphi_omegas_trainedNN = tf.convert_to_tensor(data_dict["varphi_omegas_trainedNN"][0,...],dtype=tf.float32)
+	delta_omegas_trainedNN = tf.convert_to_tensor(data_dict["delta_omegas_trainedNN"][0,...],dtype=tf.float32)
+	delta_statespace_trainedNN = tf.convert_to_tensor(data_dict["delta_statespace_trainedNN"][0,...],dtype=tf.float32)
+
+	xpred = data_dict["xpred"]
+	Nrollouts = data_dict["Nrollouts"]
+	spectral_density_list = data_dict["spectral_density_list"]
+	dim_ctx = data_dict["dim_ctx"]
+	Dw_coarse = data_dict["Dw_coarse"]
+	delta_statespace = data_dict["delta_statespace"]
+	omega_lim = data_dict["omega_lim"]
+	Nsamples_omega = data_dict["Nsamples_omega"]
+	Xtrain = data_dict["Xtrain"]
+	Ytrain = data_dict["Ytrain"]
+	path2data = data_dict["path2data"]
+	kXX = data_dict["kXX"]
+
+	Npred = xpred.shape[0]
+	xmin = xpred[0,0]
+	xmax = xpred[-1,0]
 
 
-	pass
+	inverse_fourier_toolbox_channel = InverseFourierTransformKernelToolbox(spectral_density=spectral_density_list[0],dim=dim_ctx)
+	inverse_fourier_toolbox_channel.update_integration_parameters(	omega_locations=omegas_trainedNN,
+																	dw_voxel_vec=delta_omegas_trainedNN,
+																	dX_voxel_vec=delta_statespace_trainedNN)
+	inverse_fourier_toolbox_channel.spectral_density.update_Wsamples_as(Sw_points=Sw_omegas_trainedNN,phiw_points=varphi_omegas_trainedNN,W_points=omegas_trainedNN,dw_vec=delta_omegas_trainedNN,dX_vec=delta_statespace_trainedNN)
+	
+
+	kXX_thetas = inverse_fourier_toolbox_channel.get_kerXX_with_variable_integration_step_assume_context_var(X=Xtrain,Xp=Xtrain,Npred=Npred)
+
+
+	hdl_fig_ker, hdl_splots_ker = plt.subplots(1,2,figsize=(12,8))
+	# hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
+	extent_plot_xpred = [xmin,xmax,xmin,xmax] #  scalars (left, right, bottom, top)
+	hdl_splots_ker[0].imshow(kXX,extent=extent_plot_xpred,origin="lower",cmap=plt.get_cmap(COLOR_MAP),vmin=kXX.min(),vmax=kXX.max(),interpolation='nearest')
+	hdl_splots_ker[0].set_xlim([xmin,xmax])
+	hdl_splots_ker[0].set_ylim([xmin,xmax])
+	hdl_splots_ker[0].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
+	hdl_splots_ker[0].set_ylabel(r"$x_t^\prime$",fontsize=fontsize_labels)
+	hdl_splots_ker[0].set_title(r"$k(x_t,x^\prime_t)$ {0:s}".format("Kernel suppressed polys"),fontsize=fontsize_labels)
+	hdl_splots_ker[0].set_xticks([xmin,0.0,xmax])
+	hdl_splots_ker[0].set_yticks([xmin,0.0,xmax])
+
+	hdl_splots_ker[1].imshow(kXX_thetas,extent=extent_plot_xpred,origin="lower",cmap=plt.get_cmap(COLOR_MAP),vmin=kXX_thetas.min(),vmax=kXX_thetas.max(),interpolation='nearest')
+	hdl_splots_ker[1].set_xlim([xmin,xmax])
+	hdl_splots_ker[1].set_ylim([xmin,xmax])
+	hdl_splots_ker[1].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
+	hdl_splots_ker[1].set_ylabel(r"$x_t^\prime$",fontsize=fontsize_labels)
+	hdl_splots_ker[1].set_title(r"$k(x_t,x^\prime_t)$ {0:s}".format("Kernel suppressed polys"),fontsize=fontsize_labels)
+	hdl_splots_ker[1].set_xticks([xmin,0.0,xmax])
+	hdl_splots_ker[1].set_yticks([xmin,0.0,xmax])
+
+	plt.show(block=True)
 
 
 
 if __name__ == "__main__":
 
+
+	np.random.seed(seed=my_seed)
+	tf.random.set_seed(seed=my_seed)
+
 	train_reconstruction()
+
+	# test_resulting_kernel(my_seed)

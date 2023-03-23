@@ -75,6 +75,101 @@ class InverseFourierTransformKernelToolbox():
 		return fx_vec
 
 
+	def get_kerXX_with_variable_integration_step_assume_context_var(self,X,Xp,Npred):
+		"""
+		X: [Npoints,self.dim_in]
+		Xp: [Npoints,self.dim_in]
+		"""
+		
+		assert self.spectral_values is not None, "Call self.update_integration_parameters() first"
+		assert self.varphi_values is not None, "Call self.update_integration_parameters() first"
+		assert self.dw_voxel_vec is not None, "Call self.update_integration_parameters() first"
+		assert self.omega_locations is not None, "Call self.update_integration_parameters() first"
+
+
+		nuj = tf.transpose(self.spectral_values*self.dw_voxel_vec) # [1,Npoints_w]
+
+		PhiX = self.get_features_mat(X) * tf.math.sqrt(nuj) # [Npoints_x, Npoints_w]
+
+		PhiXp = self.get_features_mat(Xp) * tf.math.sqrt(nuj) # [Npoints_x, Npoints_w]
+
+		
+		ker_XX_thi_thj = PhiX @ tf.transpose(PhiX)
+
+
+		Nthetas = PhiX.shape[0]//Npred
+		use_functions = False
+		if use_functions:
+
+			fX_vec = tf.reduce_sum(self.get_features_mat(X) * tf.transpose(self.spectral_values*self.dw_voxel_vec),axis=1,keepdims=True) # [Npoints_x, 1]
+			fXp_vec = tf.reduce_sum(self.get_features_mat(Xp) * tf.transpose(self.spectral_values*self.dw_voxel_vec),axis=1,keepdims=True) # [Npoints_x, 1]
+
+			using_deltas = False
+			if using_deltas:
+				fX_vec += X[:,0:1]
+				fXp_vec += X[:,0:1]
+
+			ker_XX_thi_thj = fX_vec @ tf.transpose(fXp_vec)
+
+			same_way = False
+			if same_way:
+				fX_vec_rp = tf.transpose(tf.reshape(fX_vec,(Nthetas,Npred))) # [Npoints,Nrollouts] (Npoints = Npred ; Nrollouts = Nthetas)
+				fXp_vec_rp = tf.transpose(tf.reshape(fXp_vec,(Nthetas,Npred))) # [Npoints,Nrollouts] (Npoints = Npred ; Nrollouts = Nthetas)
+
+				kXX = fX_vec_rp @ tf.transpose(fXp_vec_rp) / Nthetas
+
+				self.spectral_values = None
+				self.varphi_values = None
+				self.dw_voxel_vec = None
+				self.omega_locations = None
+
+
+				hdl_fig_ker, hdl_splots_ker = plt.subplots(3,figsize=(12,8),sharex=True)
+				# hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
+				for ss in range(Nthetas):
+					hdl_splots_ker[0].plot(X[0:Npred,0],fX_vec_rp[:,ss],lw=2.,color="crimson",alpha=0.2)
+
+				plt.show(block=False)
+
+				return kXX.numpy()
+
+
+
+		
+		ker_XX_thi_thj_in_cols = tf.split(ker_XX_thi_thj,num_or_size_splits=Nthetas,axis=1)
+
+		# Compute kXX:
+
+		kXX = np.zeros((Npred,Npred))
+		ii = 0; jj = 0;
+		for ker_XX_thi_thj_in_cols_element in ker_XX_thi_thj_in_cols:
+
+			ker_XX_thi_thj_in_cols_element_in_rows = tf.split(ker_XX_thi_thj_in_cols_element,num_or_size_splits=Nthetas,axis=0)
+
+
+			for ker_XX_thi_thj_in_cols_element_in_rows_element in ker_XX_thi_thj_in_cols_element_in_rows:
+
+				if use_functions:
+					if ii == jj:
+						kXX += ker_XX_thi_thj_in_cols_element_in_rows_element.numpy()
+
+				else:
+					kXX += ker_XX_thi_thj_in_cols_element_in_rows_element.numpy()
+
+				jj += 1
+
+			ii += 1
+
+		kXX = kXX / Nthetas**2
+
+		# Reset to None to ensure that self.update_integration_parameters() is being called
+		# NOTE: Change this by having a "allow_parameters_update" flag
+
+
+
+		return kXX
+
+
 
 
 	# def update_spectral_density_and_angle(self,omegapred,Dw=None):

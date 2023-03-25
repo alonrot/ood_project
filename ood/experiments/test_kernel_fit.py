@@ -40,7 +40,7 @@ dim_out = 1
 # COLOR_MAP = "gist_heat"
 COLOR_MAP = "copper"
 
-my_seed = 95
+my_seed = 98
 
 def ker_fun(x,xp,alpha):
 	"""
@@ -109,6 +109,8 @@ def generate_data(plot_stuff=False,block_plot=False):
 
 
 		ker_from_samples = f_samples @ f_samples.T / Nrollouts
+		# ker_from_samples = tf.reduce_sum(f_samples * f_samples,axis=1) / Nrollouts
+		# pdb.set_trace()
 		hdl_splots_ker[2].imshow(ker_from_samples,extent=extent_plot_xpred,origin="lower",cmap=plt.get_cmap(COLOR_MAP),vmin=ker_from_samples.min(),vmax=ker_from_samples.max(),interpolation='nearest')
 		hdl_splots_ker[2].set_xlim([xmin,xmax])
 		hdl_splots_ker[2].set_ylim([xmin,xmax])
@@ -176,7 +178,8 @@ def train_reconstruction(cfg):
 
 	Nepochs = 1000
 	# Nsamples_omega = 15**2
-	Nsamples_omega = 500
+	# Nsamples_omega = 500
+	Nsamples_omega = 100
 	if using_hybridrobotics:
 		Nepochs = 100000
 	
@@ -345,7 +348,7 @@ def train_reconstruction(cfg):
 @hydra.main(config_path="./config",config_name="config")
 def test_resulting_kernel(cfg):
 
-	# generate_data()
+	generate_data()
 
 	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
 	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
@@ -356,7 +359,9 @@ def test_resulting_kernel(cfg):
 
 	
 	# file_name = "learning_data_seed_91.pickle" # with only 20 rollouts, like 300 omegas
-	file_name = "learning_data_seed_93.pickle" # with 60 rollouts; poor
+	# file_name = "learning_data_seed_93.pickle" # with 60 rollouts; poor
+	# file_name = "learning_data_seed_94.pickle" # with 40 rollouts
+	file_name = "learning_data_seed_95.pickle" # with 40 rollouts; good
 	
 
 	path2folder = "kernel_fit_reconstruction"
@@ -385,6 +390,11 @@ def test_resulting_kernel(cfg):
 	kXX = data_dict["kXX"]
 
 
+	logger.info("\n\n")
+	logger.info("Nrollouts: {0:d}".format(Nrollouts))
+	logger.info("omega_lim: {0:f}".format(omega_lim))
+	logger.info("Nsamples_omega: {0:d}".format(Nsamples_omega))
+
 	mvn0_samples, f_samples = None, None
 	if "f_samples" in data_dict.keys():
 		f_samples = data_dict["f_samples"]
@@ -403,7 +413,9 @@ def test_resulting_kernel(cfg):
 	inverse_fourier_toolbox_channel.spectral_density.update_Wsamples_as(Sw_points=Sw_omegas_trainedNN,phiw_points=varphi_omegas_trainedNN,W_points=omegas_trainedNN,dw_vec=delta_omegas_trainedNN,dX_vec=delta_statespace_trainedNN)
 	
 
-	kXX_thetas = inverse_fourier_toolbox_channel.get_kerXX_with_variable_integration_step_assume_context_var(X=Xtrain,Xp=Xtrain,Npred=Npred)
+	# kXX_thetas = inverse_fourier_toolbox_channel.get_kerXX_with_variable_integration_step_assume_context_var(X=Xtrain,Xp=Xtrain,Npred=Npred)
+	kXX_thetas = inverse_fourier_toolbox_channel.get_kerXX_with_variable_integration_step_assume_context_var_non_iid(X=Xtrain,Xp=Xtrain,Npred=Npred)
+	kXX_thetas = kXX_thetas.numpy()
 
 	fx_vec_reconstructed = inverse_fourier_toolbox_channel.get_fx_with_variable_integration_step(xpred=Xtrain)
 	# fx_vec_reconstructed += Xtrain[:,0:1]
@@ -454,7 +466,7 @@ def test_resulting_kernel(cfg):
 	hdl_splots_fx[0].set_xticks([xmin,0.0,xmax])
 	hdl_splots_fx[0].set_yticks([xmin,0.0,xmax])
 
-	kXX_thetas_chol = np.linalg.cholesky(kXX_thetas + 1e-6*np.eye(kXX_thetas.shape[0])) # [Npred,Npred]
+	kXX_thetas_chol = np.linalg.cholesky(kXX_thetas + 1e-5*np.eye(kXX_thetas.shape[0])) # [Npred,Npred]
 	if mvn0_samples is None:
 		mvn0_samples = np.random.randn(Nrollouts,xpred.shape[0])
 	f_samples_new_with_kernel_with_thetas = kXX_thetas_chol @ mvn0_samples.T # [Npred,Nrollouts]

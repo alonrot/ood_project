@@ -74,6 +74,40 @@ class InverseFourierTransformKernelToolbox():
 
 		return fx_vec
 
+	def get_kerXX_with_variable_integration_step_assume_context_var_non_iid(self,X,Xp,Npred):
+		"""
+		X: [Npoints,self.dim_in], where Npoints are [Npred, Npred, ..., Npred], with Npred repeated Nrollouts times, i.e.., once per each theta
+		Xp: [Npoints,self.dim_in], where Npoints are [Npred, Npred, ..., Npred], with Npred repeated Nrollouts times, i.e.., once per each theta
+		"""
+		using_deltas = False
+		
+		assert self.spectral_values is not None, "Call self.update_integration_parameters() first"
+		assert self.varphi_values is not None, "Call self.update_integration_parameters() first"
+		assert self.dw_voxel_vec is not None, "Call self.update_integration_parameters() first"
+		assert self.omega_locations is not None, "Call self.update_integration_parameters() first"
+
+		PhiX = self.get_features_mat(X) # [Npoints_x, Nomegas]
+		PhiXp = self.get_features_mat(Xp) # [Npoints_x, Nomegas]
+
+		Nthetas = PhiX.shape[0]//Npred
+		Nomegas = PhiX.shape[1]
+
+		PhiX_th = tf.reshape(PhiX,(Nthetas,Npred,Nomegas)) # [Nthetas, Npoints_x, Nomegas] -> [nr of contextual variables, nr. of input datapoints/queries, nr. of features ]
+		PhiXp_th = tf.reshape(PhiX,(Nthetas,Npred,Nomegas)) # [Nthetas, Npoints_x, Nomegas] -> [nr of contextual variables, nr. of input datapoints/queries, nr. of features ]
+
+		# We acknowledge cross-correlations between the weights of the features of the Bayesian linear model:
+		nuj = tf.transpose(self.spectral_values*self.dw_voxel_vec) # [1,Nomegas]
+		nu_ij = tf.transpose(nuj) @ nuj # [Nomegas,Nomegas]
+
+		# We ket one kernel per contextual variable theta_l:
+		kXX_l = PhiX_th @ nu_ij @ tf.transpose(PhiXp_th,perm=[0,2,1])
+
+		# We ignore cross-correlations between contextual variables:
+		kXX = tf.reduce_mean(kXX_l,axis=0)
+
+		return kXX
+
+
 
 	def get_kerXX_with_variable_integration_step_assume_context_var(self,X,Xp,Npred):
 		"""
@@ -89,6 +123,8 @@ class InverseFourierTransformKernelToolbox():
 
 
 		nuj = tf.transpose(self.spectral_values*self.dw_voxel_vec) # [1,Npoints_w]
+		# nuj = tf.transpose(self.spectral_values) # [1,Npoints_w]
+		# nuj = 1.0 # [1,Npoints_w]
 
 		PhiX = self.get_features_mat(X) * tf.math.sqrt(nuj) # [Npoints_x, Npoints_w]
 
@@ -111,17 +147,17 @@ class InverseFourierTransformKernelToolbox():
 
 			ker_XX_thi_thj = fX_vec @ tf.transpose(fXp_vec)
 
-			same_way = False
+			same_way = True
 			if same_way:
 				fX_vec_rp = tf.transpose(tf.reshape(fX_vec,(Nthetas,Npred))) # [Npoints,Nrollouts] (Npoints = Npred ; Nrollouts = Nthetas)
 				fXp_vec_rp = tf.transpose(tf.reshape(fXp_vec,(Nthetas,Npred))) # [Npoints,Nrollouts] (Npoints = Npred ; Nrollouts = Nthetas)
 
 				kXX = fX_vec_rp @ tf.transpose(fXp_vec_rp) / Nthetas
 
-				self.spectral_values = None
-				self.varphi_values = None
-				self.dw_voxel_vec = None
-				self.omega_locations = None
+				# self.spectral_values = None
+				# self.varphi_values = None
+				# self.dw_voxel_vec = None
+				# self.omega_locations = None
 
 
 				hdl_fig_ker, hdl_splots_ker = plt.subplots(3,figsize=(12,8),sharex=True)
@@ -139,8 +175,8 @@ class InverseFourierTransformKernelToolbox():
 		ker_XX_thi_thj_in_cols = tf.split(ker_XX_thi_thj,num_or_size_splits=Nthetas,axis=1)
 
 		# Compute kXX:
-		only_diag = True
-		# only_diag = False
+		# only_diag = True
+		only_diag = False
 		kXX = np.zeros((Npred,Npred))
 		ii = 0; jj = 0;
 		for ker_XX_thi_thj_in_cols_element in ker_XX_thi_thj_in_cols:

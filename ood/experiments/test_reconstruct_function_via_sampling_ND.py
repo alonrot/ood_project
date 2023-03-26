@@ -34,10 +34,11 @@ plt.rc('legend',fontsize=fontsize_labels//2)
 
 
 # Counter to save data:
-counter = 1001
+counter = 1002
 
 path2folder = "dubins_car_reconstruction"
 # path2folder = "data_quadruped_experiments_03_13_2023"
+# path2folder = "data_quadruped_experiments_03_25_2023"
 
 using_deltas = True
 # using_deltas = False
@@ -111,7 +112,7 @@ def reconstruct(cfg):
 	if using_hybridrobotics:
 		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
 
-	assert path2folder in ["dubins_car_reconstruction","data_quadruped_experiments_03_13_2023"]
+	assert path2folder in ["dubins_car_reconstruction","data_quadruped_experiments_03_13_2023","data_quadruped_experiments_03_25_2023"]
 
 	# Load data:
 	if path2folder == "dubins_car_reconstruction":

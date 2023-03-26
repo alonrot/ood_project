@@ -40,7 +40,7 @@ dim_out = 1
 # COLOR_MAP = "gist_heat"
 COLOR_MAP = "copper"
 
-my_seed = 98
+my_seed = 99
 
 def ker_fun(x,xp,alpha):
 	"""
@@ -149,7 +149,8 @@ def generate_data(plot_stuff=False,block_plot=False):
 @hydra.main(config_path="./config",config_name="config")
 def train_reconstruction(cfg):
 
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_80.pickle ./kernel_fit_reconstruction/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_98.pickle ./kernel_fit_reconstruction/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/reconstruction_plots98.png ./kernel_fit_reconstruction/
 
 	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
 	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
@@ -179,7 +180,7 @@ def train_reconstruction(cfg):
 	Nepochs = 1000
 	# Nsamples_omega = 15**2
 	# Nsamples_omega = 500
-	Nsamples_omega = 100
+	Nsamples_omega = 200
 	if using_hybridrobotics:
 		Nepochs = 100000
 	
@@ -288,9 +289,10 @@ def train_reconstruction(cfg):
 		fx_true_testing_loc = fx_true_testing[ii*Npred:(ii+1)*Npred,0]
 		fx_optimized_voxels_coarse_loc = fx_optimized_omegas_and_voxels[ii*Npred:(ii+1)*Npred,0] # The reconstructed function is the same for all Nsamples_nominal_dynsys
 
-		hdl_splots_reconstruct[0].plot(xpred,fx_true_testing_loc,lw=1,color="crimson",alpha=0.35,label="True",linestyle="None",marker=".",markersize=5)
+		hdl_splots_reconstruct[0].plot(xpred,fx_true_testing_loc,lw=3,color="crimson",alpha=0.2,label="True",linestyle="-")
 		# hdl_splots_reconstruct[0].plot(xpred,fx_reconstructed,lw=2,color="navy",alpha=0.5)
-		hdl_splots_reconstruct[0].plot(xpred,fx_optimized_voxels_coarse_loc,lw=1,color="navy",alpha=0.7,label="Reconstructed",linestyle="None",marker=".",markersize=5)
+		hdl_splots_reconstruct[0].plot(xpred,fx_optimized_voxels_coarse_loc,lw=1,color="navy",alpha=0.7,label="Reconstructed",linestyle="-")
+
 
 	# hdl_splots_reconstruct[0].plot(Xtrain,fx_optimized_omegas_and_voxels[:,0],lw=1)
 	# hdl_splots_reconstruct[0].plot(Xtrain,fx_discrete_grid,lw=1)
@@ -300,14 +302,14 @@ def train_reconstruction(cfg):
 	hdl_splots_reconstruct[0].set_xticks([xmin,0,xmax])
 	hdl_splots_reconstruct[0].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
 	hdl_splots_reconstruct[0].set_ylabel(r"$f(x_t;\theta_i)$",fontsize=fontsize_labels)
-	hdl_splots_reconstruct[0].set_title(r"Reconstruction; $M=20$",fontsize=fontsize_labels)
+	hdl_splots_reconstruct[0].set_title("Reconstruction; M = {0:d}".format(Nsamples_omega),fontsize=fontsize_labels)
 	
 	S_vec_plotting = np.reshape(Sw_vec,(Ndiv_omega_for_analysis,Ndiv_omega_for_analysis),order="F")
 	hdl_splots_reconstruct[1].imshow(S_vec_plotting,extent=extent_plot_omegas,origin="lower",cmap=plt.get_cmap(COLOR_MAP),vmin=S_vec_plotting.min(),vmax=S_vec_plotting.max(),interpolation='nearest')
 	hdl_splots_reconstruct[1].set_title(r"${0:s}$".format("S(\omega)"),fontsize=fontsize_labels)
 	hdl_splots_reconstruct[1].set_xlabel(r"$\omega$",fontsize=fontsize_labels)
 	hdl_splots_reconstruct[1].set_ylabel(r"$\omega_{\theta}$",fontsize=fontsize_labels)
-	hdl_splots_reconstruct[1].plot(omegas_trainedNN[0,:,0],omegas_trainedNN[0,:,1],marker=".",color="navy",markersize=7,linestyle="None")
+	hdl_splots_reconstruct[1].plot(omegas_trainedNN[0,:,0],omegas_trainedNN[0,:,1],marker="o",color="darkgreen",markersize=7,linestyle="None")
 
 
 	# Varphi:
@@ -320,7 +322,7 @@ def train_reconstruction(cfg):
 	hdl_splots_reconstruct[2].set_title(r"${0:s}$".format("\\varphi(\omega)"),fontsize=fontsize_labels)
 	hdl_splots_reconstruct[2].set_xlabel(r"$\omega$",fontsize=fontsize_labels)
 	hdl_splots_reconstruct[2].set_ylabel(r"$\omega_{\theta}$",fontsize=fontsize_labels)
-	hdl_splots_reconstruct[2].plot(omegas_trainedNN[0,:,0],omegas_trainedNN[0,:,1],marker="o",color="navy",markersize=7,linestyle="None")
+	hdl_splots_reconstruct[2].plot(omegas_trainedNN[0,:,0],omegas_trainedNN[0,:,1],marker="o",color="darkgreen",markersize=7,linestyle="None")
 
 
 	hdl_splots_reconstruct[1].set_xlim([-omega_lim,omega_lim])
@@ -361,7 +363,8 @@ def test_resulting_kernel(cfg):
 	# file_name = "learning_data_seed_91.pickle" # with only 20 rollouts, like 300 omegas
 	# file_name = "learning_data_seed_93.pickle" # with 60 rollouts; poor
 	# file_name = "learning_data_seed_94.pickle" # with 40 rollouts
-	file_name = "learning_data_seed_95.pickle" # with 40 rollouts; good
+	# file_name = "learning_data_seed_95.pickle" # with 40 rollouts; good; Nomegas: 500
+	file_name = "learning_data_seed_98.pickle" # with 40 rollouts; good; Nomegas: 100
 	
 
 	path2folder = "kernel_fit_reconstruction"
@@ -411,7 +414,7 @@ def test_resulting_kernel(cfg):
 																	dw_voxel_vec=delta_omegas_trainedNN,
 																	dX_voxel_vec=delta_statespace_trainedNN)
 	inverse_fourier_toolbox_channel.spectral_density.update_Wsamples_as(Sw_points=Sw_omegas_trainedNN,phiw_points=varphi_omegas_trainedNN,W_points=omegas_trainedNN,dw_vec=delta_omegas_trainedNN,dX_vec=delta_statespace_trainedNN)
-	
+
 
 	# kXX_thetas = inverse_fourier_toolbox_channel.get_kerXX_with_variable_integration_step_assume_context_var(X=Xtrain,Xp=Xtrain,Npred=Npred)
 	kXX_thetas = inverse_fourier_toolbox_channel.get_kerXX_with_variable_integration_step_assume_context_var_non_iid(X=Xtrain,Xp=Xtrain,Npred=Npred)
@@ -492,6 +495,6 @@ if __name__ == "__main__":
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
-	train_reconstruction()
+	# train_reconstruction()
 
-	# test_resulting_kernel()
+	test_resulting_kernel()

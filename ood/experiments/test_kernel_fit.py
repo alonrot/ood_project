@@ -495,6 +495,6 @@ if __name__ == "__main__":
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
-	# train_reconstruction()
+	train_reconstruction()
 
-	test_resulting_kernel()
+	# test_resulting_kernel()

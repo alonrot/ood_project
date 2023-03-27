@@ -134,7 +134,6 @@ def compute_predictions(cfg: dict):
 	if using_hybridrobotics:
 		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
 
-
 	# fix_pickle_datafile(cfg,path2project,path2folder)
 
 	# file_name = "reconstruction_data_2023_03_26_21_55_08.pickle" # Trained model on hybridrob for 50000 iters; data subsampled at 10 Hz
@@ -178,13 +177,13 @@ def compute_predictions(cfg: dict):
 
 	if using_hybridrobotics:
 		# Nhorizon_rec = 40
-		Nhorizon_rec = 30
+		Nhorizon_rec = 40
 		# Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
 		# Nsteps_tot = z_vec_real.shape[0] // 2
 		Nsteps_tot = z_vec_real.shape[0]
-		Nsteps_tot = 40
+		# Nsteps_tot = 40
 		Nepochs = 200
-		Nrollouts = 15
+		Nrollouts = 20
 		Nchunks = 4
 	else:
 
@@ -367,6 +366,8 @@ if __name__ == "__main__":
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/predicted_trajs_55.pickle ./data_quadruped_experiments_03_25_2023/
 	# export PYTHONPATH=$PYTHONPATH:/Users/alonrot/work/code_projects_WIP/ood_project/ood/predictions_module/build
+
+	# scp -P 4444 -r ./data_quadruped_experiments_03_25_2023/from_hybridrob/reconstruction_data_2023_03_27_01_23_40.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/from_hybridrob/
 
 
 

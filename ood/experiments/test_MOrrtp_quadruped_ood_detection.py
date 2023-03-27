@@ -337,6 +337,9 @@ def main(cfg: dict):
 
 	else:
 
+		# ==============================================================
+		# With Quadruped data from data_quadruped_experiments_03_13_2023
+		# ==============================================================
 		# file_name = "predicted_trajs_50.pickle" # using deltas, reconstruction loss trained on mac, predictions done on mac
 		# file_name = "predicted_trajs_51.pickle" # using deltas, reconstruction loss trained on mac, predictions done on mac, longer horizon, more noise
 		# file_name = "predicted_trajs_52.pickle" # using deltas, reconstruction loss trained on mac, predictions done on mac, longer horizon, more noise

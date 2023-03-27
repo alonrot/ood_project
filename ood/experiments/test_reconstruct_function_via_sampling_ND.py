@@ -112,6 +112,8 @@ def load_quadruped_experiments_03_25_2023(path2project):
 
 	Xtrain = data_dict["Xtrain"]
 	Ytrain = data_dict["Ytrain"]
+	state_and_control_full_list = data_dict["state_and_control_full_list"]
+	state_next_full_list = data_dict["state_next_full_list"]
 	dim_x = Ytrain.shape[1]
 	dim_u = Xtrain.shape[1] - dim_x
 	Nsteps = Xtrain.shape[0]
@@ -127,7 +129,7 @@ def load_quadruped_experiments_03_25_2023(path2project):
 	Xtrain = tf.cast(Xtrain,dtype=tf.float32)
 	Ytrain = tf.cast(Ytrain,dtype=tf.float32)
 
-	return Xtrain, Ytrain, dim_in, dim_out, Nsteps, Ntrajs, path2data
+	return Xtrain, Ytrain, dim_in, dim_out, Nsteps, Ntrajs, path2data, state_and_control_full_list, state_next_full_list
 
 
 
@@ -165,7 +167,7 @@ def reconstruct(cfg):
 			spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
 
 	if path2folder == "data_quadruped_experiments_03_25_2023":
-		Xtrain, Ytrain, dim_in, dim_out, Nsteps, Ntrajs, path2data = load_quadruped_experiments_03_25_2023(path2project) # Actual quadruped - Experiments March 25
+		Xtrain, Ytrain, dim_in, dim_out, Nsteps, Ntrajs, path2data, state_and_control_full_list, state_next_full_list = load_quadruped_experiments_03_25_2023(path2project) # Actual quadruped - Experiments March 25
 
 		spectral_density_list = [None]*dim_out
 		for jj in range(dim_out):
@@ -251,6 +253,13 @@ def reconstruct(cfg):
 							varphi_omegas_trainedNN=varphi_omegas_trainedNN,
 							delta_omegas_trainedNN=delta_omegas_trainedNN,
 							delta_statespace_trainedNN=delta_statespace_trainedNN,
+							spectral_density_list=spectral_density_optimized_list,
+							omega_lim=omega_lim,
+							Nsamples_omega=Nsamples_omega,
+							Xtrain=Xtrain,
+							Ytrain=Ytrain,
+							state_and_control_full_list=state_and_control_full_list,
+							state_next_full_list=state_next_full_list,
 							path2data=path2data)
 		
 		logger.info("Saving learned omegas, S_w, varphi_w, delta_w, delta_xt at {0:s} ...".format(path2save))

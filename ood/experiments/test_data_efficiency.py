@@ -237,7 +237,8 @@ def compute_model_error(cfg):
 		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
 
 
-	file_name = "reconstruction_data_2023_03_26_22_41_28.pickle" # Ratio: 1.0 | Nepochs: 5000
+	# file_name = "reconstruction_data_2023_03_26_22_41_28.pickle" # Our model | Ratio: 1.0 | Nepochs: 5000
+	file_name = "reconstruction_data_2023_03_26_22_48_31.pickle" # Our model | Ratio: 0.25 | Nepochs: 5000
 	path2load_full = "{0:s}/{1:s}/{2:s}".format(path2project,path2folder,file_name)
 	file = open(path2load_full, 'rb')
 	data_dict = pickle.load(file)
@@ -324,9 +325,9 @@ def compute_model_error(cfg):
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg):
 
-	reconstruct_for_ratio(cfg,ratio=0.25)
+	# reconstruct_for_ratio(cfg,ratio=0.25)
 
-	# compute_model_error(cfg)
+	compute_model_error(cfg)
 
 
 
@@ -336,9 +337,10 @@ if __name__ == "__main__":
 	main()
 
 
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/reconstruction_data_2023_03_26_22_41_28.pickle ./data_efficiency_test_with_dubinscar/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/reconstruction_data_2023_03_26_22_48_31.pickle ./data_efficiency_test_with_dubinscar/
 
 
+	# python test_data_efficiency.py gpmodel.using_hybridrobotics=False
 
 
 

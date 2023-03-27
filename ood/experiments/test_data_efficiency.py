@@ -254,8 +254,8 @@ def train_gpssm(cfg,ratio):
 	Xtrain, Ytrain, Xtest, Ytest, dim_in, dim_out, Nsteps, path2data = load_data_dubins_car(path2project,ratio) # Dubins car
 
 	# Based on: https://gpflow.github.io/GPflow/develop/notebooks/advanced/multioutput.html#
-	MAXITER = reduce_in_tests(1000)
-	# MAXITER = 10
+	# MAXITER = reduce_in_tests(2000)
+	MAXITER = 2
 
 	N = Xtrain.shape[0]  # number of points
 	D = Xtrain.shape[1]  # number of input dimensions
@@ -370,6 +370,17 @@ def train_gpssm(cfg,ratio):
 	pickle.dump(data2save,file)
 	file.close()
 	logger.info("Done!")
+
+
+	path2log_file = "{0:s}/{1:s}/gpssm_trained_model_gpflow_log_file_{2:s}.txt".format(path2project,path2folder,name_file_date)
+	logger.info("Writing ratio to log file at {0:s} ...".format(path2log_file))
+	file = open(path2log_file, 'w')
+	file.write("ratio: {0:2.2f}".format(ratio))
+	file.close()
+	logger.info("Done!")
+
+	return name_file_date
+
 
 def load_MOrrtp_model(cfg,path2project,file_name):
 
@@ -585,8 +596,14 @@ def main(cfg):
 
 	# Training models:
 	# train_MOrrtp_by_reconstructing(cfg,ratio=0.25)
-	train_gpssm(cfg,ratio=0.5)
 
+	ratio_list = [0.25,0.5,0.75,1.0]
+	name_file_date = []
+	for ratio in ratio_list:
+		name_file_date += [train_gpssm(cfg,ratio=ratio)]
+
+	logger.info("name_file_date: {0:s}".format(str(name_file_date)))
+	logger.info("ratio_list: {0:s}".format(str(ratio_list)))
 
 	# # Assessing model performance:
 	# dict_all = get_dictionary_log()

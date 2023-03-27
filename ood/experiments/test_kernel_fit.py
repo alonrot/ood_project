@@ -42,7 +42,7 @@ COLOR_MAP = "copper"
 
 my_seed = 100 # keep it at 100
 
-saving_counter = 105
+saving_counter = 106
 
 def ker_fun(x,xp,alpha):
 	"""
@@ -73,7 +73,7 @@ def squash(x):
 def generate_data(plot_stuff=False,block_plot=False):
 
 	
-	Nrollouts = 50
+	Nrollouts = 60
 	# Nrollouts = 40
 	# Nrollouts = 20
 	
@@ -151,8 +151,8 @@ def generate_data(plot_stuff=False,block_plot=False):
 @hydra.main(config_path="./config",config_name="config")
 def train_reconstruction(cfg):
 
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_104.pickle ./kernel_fit_reconstruction/
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/reconstruction_plots104.png ./kernel_fit_reconstruction/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_105.pickle ./kernel_fit_reconstruction/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/reconstruction_plots105.png ./kernel_fit_reconstruction/
 
 	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
 	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
@@ -184,8 +184,8 @@ def train_reconstruction(cfg):
 	Nsamples_omega = 500
 	# Nsamples_omega = 20
 	if using_hybridrobotics:
-		Nepochs = 100000
-		# Nepochs = 10000
+		# Nepochs = 100000
+		Nepochs = 11000
 	
 	omega_lim = 6.0
 	# Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
@@ -527,7 +527,9 @@ def plotting_results(cfg):
 		# file_name = "learning_data_seed_100.pickle" # with 40 rollouts; good; Nomegas: 300
 		# file_name = "learning_data_seed_101.pickle" # with 40 rollouts; good; Nomegas: 400
 		# file_name = "learning_data_seed_102.pickle" # with 40 rollouts; good; Nomegas: 100 (repeated with same noise seed)
-		file_name = "learning_data_seed_103.pickle" # with 40 rollouts; good; Nomegas: 20
+		# file_name = "learning_data_seed_103.pickle" # with 40 rollouts; good; Nomegas: 20
+		# file_name = "learning_data_seed_104.pickle" # with 60 rollouts; poor; Nomegas: 700
+		file_name = "learning_data_seed_105.pickle" # with 50 rollouts; better; Nomegas: 500
 
 		# Upcoming:
 
@@ -551,8 +553,8 @@ def plotting_results(cfg):
 		kXX_prog_min = kXX_orig_cc0.min()
 		kXX_prog_max = kXX_orig_cc0.max()
 
-		titles_list = [r"$k(x,x^\prime)$",r"$k_{\mathrm{100}}(x,x^\prime)$",r"$k_{\mathrm{300}}(x,x^\prime)$",r"$k_{\mathrm{400}}(x,x^\prime)$"]
-		file_name_list = ["learning_data_seed_103.pickle","learning_data_seed_102.pickle","learning_data_seed_101.pickle"] # Nomegas = [20, 100, 400]
+		titles_list = [r"$k(x,x^\prime)$",r"$k_{\mathrm{20}}(x,x^\prime)$",r"$k_{\mathrm{100}}(x,x^\prime)$",r"$k_{\mathrm{400}}(x,x^\prime)$"]
+		file_name_list = ["learning_data_seed_103.pickle","learning_data_seed_102.pickle","learning_data_seed_101.pickle"]
 		hdl_fig_ker_fit, hdl_splots_ker_fit = plt.subplots(3,len(file_name_list)+1,figsize=(12,8))
 		
 		# for file_name in file_name_list:

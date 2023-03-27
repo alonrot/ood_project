@@ -175,7 +175,6 @@ def compute_predictions(cfg):
 	z_vec_real = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj][:,0:dim_x],dtype=tf.float32)
 	u_vec_tf = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj][:,dim_x::],dtype=tf.float32)
 
-	pdb.set_trace()
 	if using_hybridrobotics:
 		# Nhorizon_rec = 40
 		Nhorizon_rec = 40

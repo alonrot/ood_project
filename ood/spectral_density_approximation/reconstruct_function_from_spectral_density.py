@@ -131,7 +131,7 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 
 		return loss_val
 
-	def train(self,Nepochs,learning_rate,stop_loss_val,lengthscale_loss,print_every=400):
+	def train(self,Nepochs,learning_rate,stop_loss_val,lengthscale_loss,print_every=100):
 
 		# learning_rate_sche = tf.keras.optimizers.schedules.LearningRateSchedule(initial_learning_rate=learning_rate,
 		# 																		decay_steps=10000,

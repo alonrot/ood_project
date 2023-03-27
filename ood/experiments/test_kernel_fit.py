@@ -42,7 +42,7 @@ COLOR_MAP = "copper"
 
 my_seed = 100 # keep it at 100
 
-saving_counter = 104
+saving_counter = 105
 
 def ker_fun(x,xp,alpha):
 	"""
@@ -73,7 +73,7 @@ def squash(x):
 def generate_data(plot_stuff=False,block_plot=False):
 
 	
-	Nrollouts = 60
+	Nrollouts = 50
 	# Nrollouts = 40
 	# Nrollouts = 20
 	
@@ -151,8 +151,8 @@ def generate_data(plot_stuff=False,block_plot=False):
 @hydra.main(config_path="./config",config_name="config")
 def train_reconstruction(cfg):
 
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_103.pickle ./kernel_fit_reconstruction/
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/reconstruction_plots103.png ./kernel_fit_reconstruction/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_104.pickle ./kernel_fit_reconstruction/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/reconstruction_plots104.png ./kernel_fit_reconstruction/
 
 	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
 	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
@@ -181,7 +181,7 @@ def train_reconstruction(cfg):
 
 	Nepochs = 1000
 	# Nsamples_omega = 15**2
-	Nsamples_omega = 700
+	Nsamples_omega = 500
 	# Nsamples_omega = 20
 	if using_hybridrobotics:
 		Nepochs = 100000
@@ -484,23 +484,23 @@ def test_resulting_kernel(cfg,file_name,plot_and_block=True):
 	return kXX, kXX_thetas, f_samples, fx_vec_reconstructed_rs, f_samples_new_with_kernel_with_thetas, xpred, Nsamples_omega, ker_call
 
 
-def little_gp_regression(kXX,ftrue,xpred,Xevals,ker_call):
+def little_gp_regression(kxx,ind_Xevals,Yevals):
 
-	Yevals = np.interp(Xevals[:,0],xpred[:,0],ftrue)
+	# kXX_thetas_chol = np.linalg.cholesky(kXX + 1e-5*np.eye(kXX.shape[0])) # [Npred,Npred]
 
-	kXX_thetas_chol = np.linalg.cholesky(kXX + 1e-5*np.eye(kXX.shape[0])) # [Npred,Npred]
+	# kxX = ker_call(xpred,Xevals)
+	# kxx = ker_call(xpred,xpred)
 
-	kxpredX = ker_call(xpred,Xevals)
+	kxX = kxx[:,ind_Xevals]
 
-	G = kxpredX @ kXX_thetas_chol
+	kXX = kxX[ind_Xevals,:]
 
+	kXX_inv = np.linalg.inv(kXX + 1e-8*np.eye(kXX.shape[0]))
+	meanpred = kxX @ kXX_inv @ Yevals
+	covpred_mat = kxx - kxX @ kXX_inv @ kxX.T
+	stdpred = np.sqrt(np.diag(covpred_mat))
 
-
-
-	meanpred = np.linalg.solve
-
-
-
+	return meanpred, stdpred, 
 
 @hydra.main(config_path="./config",config_name="config")
 def plotting_results(cfg):
@@ -538,10 +538,20 @@ def plotting_results(cfg):
 		# Extract relevant quantities from one of the files:
 		kXX_orig_cc0, _, f_samples_orig_cc0, _, _, xpred_orig_cc0, Nsamples_omega, ker_call = test_resulting_kernel(cfg,"learning_data_seed_102.pickle",plot_and_block=False)
 
+		rr_ind = 0
+		ftrue = f_samples_orig_cc0[:,rr_ind]
+		ind_Xevals = np.ones(xpred_orig_cc0.shape[0]) != 1.0
+		for ind in [10,50,90]:
+			ind_Xevals[ind] = True
+		
+		Xevals = xpred_orig_cc0[ind_Xevals,0:1]
+		Yevals = np.reshape(np.interp(Xevals[:,0],xpred_orig_cc0[:,0],ftrue),(-1,1))
+		meanpred_orig_cc0, stdpred_orig_cc0 = little_gp_regression(kXX_orig_cc0,ind_Xevals,Yevals)
+
 		kXX_prog_min = kXX_orig_cc0.min()
 		kXX_prog_max = kXX_orig_cc0.max()
 
-		titles_list = [r"$k_(x,x^\prime)$",r"$k_{\mathrm{100}}(x,x^\prime)$",r"$k_{\mathrm{300}}(x,x^\prime)$",r"$k_{\mathrm{400}}(x,x^\prime)$"]
+		titles_list = [r"$k(x,x^\prime)$",r"$k_{\mathrm{100}}(x,x^\prime)$",r"$k_{\mathrm{300}}(x,x^\prime)$",r"$k_{\mathrm{400}}(x,x^\prime)$"]
 		file_name_list = ["learning_data_seed_103.pickle","learning_data_seed_102.pickle","learning_data_seed_101.pickle"] # Nomegas = [20, 100, 400]
 		hdl_fig_ker_fit, hdl_splots_ker_fit = plt.subplots(3,len(file_name_list)+1,figsize=(12,8))
 		
@@ -551,9 +561,11 @@ def plotting_results(cfg):
 			if cc == 0:
 				kXX_thetas, f_samples_orig, xpred = kXX_orig_cc0, f_samples_orig_cc0, xpred_orig_cc0
 				fx_vec_reconstructed_rs, f_samples_new_with_kernel_with_thetas = None, None
+				meanpred, stdpred = meanpred_orig_cc0, stdpred_orig_cc0
 			else:
 				file_name = file_name_list[cc-1]
 				_, kXX_thetas, f_samples_orig, fx_vec_reconstructed_rs, f_samples_new_with_kernel_with_thetas, xpred, Nsamples_omega, ker_call = test_resulting_kernel(cfg,file_name,plot_and_block=False)
+				meanpred, stdpred = little_gp_regression(kXX_thetas,ind_Xevals,Yevals)
 
 			xmin = xpred[0,0]
 			xmax = xpred[-1,0]
@@ -585,11 +597,23 @@ def plotting_results(cfg):
 			hdl_splots_ker_fit[1,cc].set_yticks([])
 			# hdl_splots_ker_fit[1,cc].set_title(r"Reconstructed function",fontsize=fontsize_labels)
 
-			for rr in range(Nrollouts):
-				if cc > 0: hdl_splots_ker_fit[2,cc].plot(xpred[:,0],f_samples_new_with_kernel_with_thetas[:,rr],lw=0.5,color="navy",alpha=0.3,label="Reconstructed",linestyle="-")
+
+			# Samples from the reconstructued kernel:
+			# for rr in range(Nrollouts):
+			# 	if cc > 0: hdl_splots_ker_fit[2,cc].plot(xpred[:,0],f_samples_new_with_kernel_with_thetas[:,rr],lw=0.5,color="navy",alpha=0.3,label="Reconstructed",linestyle="-")
+			# hdl_splots_ker_fit[2,cc].set_ylim([xmin,xmax])
+
+
+			# Little GP fit:
+			hdl_splots_ker_fit[2,cc].plot(xpred[:,0],ftrue,linestyle="-",color="grey",lw=2,alpha=0.4)
+			hdl_splots_ker_fit[2,cc].plot(xpred[:,0],meanpred[:,0],linestyle="-",color="navy",lw=2,alpha=0.4)
+			hdl_splots_ker_fit[2,cc].fill_between(xpred[:,0],meanpred[:,0] - 2.*stdpred,meanpred[:,0] + 2.*stdpred,color="navy",alpha=0.2)
+			hdl_splots_ker_fit[2,cc].plot(Xevals[:,0],Yevals[:,0],color="darkgreen",marker=".",markersize=5,linestyle="None")
+			hdl_splots_ker_fit[2,cc].set_ylim([-8.0,2.0])
+
+
 
 			hdl_splots_ker_fit[2,cc].set_xlim([xmin,xmax])
-			hdl_splots_ker_fit[2,cc].set_ylim([xmin,xmax])
 			hdl_splots_ker_fit[2,cc].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
 			# hdl_splots_ker_fit[2,cc].set_ylabel(r"$f(x_t)$",fontsize=fontsize_labels)
 			hdl_splots_ker_fit[2,cc].set_xticks([])
@@ -603,15 +627,16 @@ def plotting_results(cfg):
 			hdl_splots_ker_fit[-1,cc].set_xticks([xmin,0.0,xmax])
 			hdl_splots_ker_fit[-1,cc].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
 
-		for rr in range(3):
+		for rr in range(2):
 			hdl_splots_ker_fit[rr,0].set_yticks([xmin,0.0,xmax])
+		hdl_splots_ker_fit[-1,0].set_yticks([-8.0,0.0,2.0])
 
 		hdl_splots_ker_fit[0,0].set_ylabel(r"$x_t^\prime$",fontsize=fontsize_labels)
 		hdl_splots_ker_fit[1,0].set_ylabel(r"$f(x_t)$",fontsize=fontsize_labels)
-		hdl_splots_ker_fit[2,1].set_ylabel(r"$f(x_t)$",fontsize=fontsize_labels)
+		hdl_splots_ker_fit[2,0].set_ylabel(r"$f(x_t)$",fontsize=fontsize_labels)
 		
 
-		hdl_splots_ker_fit[-1,0].axis("off")
+		# hdl_splots_ker_fit[-1,0].axis("off")
 
 		plt.show(block=True)
 
@@ -623,6 +648,6 @@ if __name__ == "__main__":
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
-	train_reconstruction()
+	# train_reconstruction()
 
-	# plotting_results()
+	plotting_results()

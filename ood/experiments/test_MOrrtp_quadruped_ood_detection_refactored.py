@@ -174,10 +174,52 @@ def compute_predictions(cfg):
 	ind_which_traj = 0
 	z_vec_real = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj][:,0:dim_x],dtype=tf.float32)
 	u_vec_tf = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj][:,dim_x::],dtype=tf.float32)
+	zu_vec = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj],dtype=tf.float32)
+
+	# Predictions:
+	MO_mean_pred, MO_std_pred = rrtp_MO.predict_at_locations(zu_vec)
+	# pdb.set_trace()
+	deltas_real = state_next_full_list[ind_which_traj] - state_and_control_full_list[ind_which_traj][:,0:dim_x]
+
+	plot_state_transition_reconstruction = False
+	if plot_state_transition_reconstruction:
+		hdl_fig, hdl_splots_next_state = plt.subplots(dim_out,1,figsize=(16,14),sharex=False,sharey=False)
+		hdl_fig.suptitle(r"State transition - Reconstructed; $\Delta x_{t+1,d} = f_d(x_t)$",fontsize=fontsize_labels)
+		hdl_splots_next_state = np.reshape(hdl_splots_next_state,(-1,1))
+
+		assert using_deltas == True
+
+		for jj in range(dim_out):
+			ind_xt_sorted = np.argsort(deltas_real[:,jj])
+			delta_fx_next_sorted = deltas_real[ind_xt_sorted,jj]
+			delta_MO_mean_test_sorted = MO_mean_pred.numpy()[ind_xt_sorted,jj]
+
+			hdl_splots_next_state[jj,0].plot(delta_fx_next_sorted,linestyle="-",color="crimson",alpha=0.3,lw=3.0,label="Training data")
+			hdl_splots_next_state[jj,0].plot(delta_MO_mean_test_sorted,linestyle="-",color="navy",alpha=0.7,lw=1.0,label="Reconstructed")
+
+		hdl_splots_next_state[0,0].set_ylabel(r"$\Delta f_1(x_t)$",fontsize=fontsize_labels)
+		hdl_splots_next_state[1,0].set_ylabel(r"$\Delta f_2(x_t)$",fontsize=fontsize_labels)
+		hdl_splots_next_state[2,0].set_ylabel(r"$\Delta f_3(x_t)$",fontsize=fontsize_labels)
+
+		# hdl_splots_next_state[0,0].set_xlabel(r"$x_{t,1}$",fontsize=fontsize_labels)
+		# hdl_splots_next_state[1,0].set_xlabel(r"$x_{t,2}$",fontsize=fontsize_labels)
+		# hdl_splots_next_state[2,0].set_xlabel(r"$x_{t,3}$",fontsize=fontsize_labels)
+
+		# hdl_splots_next_state[0,0].set_title("Reconstructed dynamics",fontsize=fontsize_labels)
+		# hdl_splots_next_state[0,1].set_title("True dynamics",fontsize=fontsize_labels)
+		# hdl_splots_next_state[-1,0].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
+		# hdl_splots_next_state[-1,1].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
+		# 
+		lgnd = hdl_splots_next_state[-1,0].legend(loc="best",fontsize=fontsize_labels)
+		lgnd.legendHandles[0]._legmarker.set_markersize(20)
+		lgnd.legendHandles[1]._legmarker.set_markersize(20)
+
+		plt.show(block=True)
+
 
 	if using_hybridrobotics:
 		# Nhorizon_rec = 40
-		Nhorizon_rec = 40
+		Nhorizon_rec = 15
 		# Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
 		# Nsteps_tot = z_vec_real.shape[0] // 2
 		Nsteps_tot = z_vec_real.shape[0]
@@ -255,19 +297,23 @@ def compute_predictions(cfg):
 		file.close()
 
 	
-def plot_predictions(file_name):
+def plot_predictions(cfg,file_name):
 
-	path2save_full = "{0:s}/{1:s}".format(path2save_receding_horizon,file_name)
-	file = open(path2save_full, 'rb')
+	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
+	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
+
+	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
+	if using_hybridrobotics:
+		path2project = "/home/amarco/code_projects/ood_project/ood/experiments"
+
+	path2load = "{0:s}/{1:s}/{2:s}".format(path2project,path2folder,file_name)
+	file = open(path2load, 'rb')
 	data_dict = pickle.load(file)
 	file.close()
 
 	x_traj_pred_all_vec = data_dict["x_traj_pred_all_vec"] # [Nsteps_tot,Nrollouts,Nhorizon_rec,dim_x]
-	z_vec_tf = data_dict["z_vec_tf"]
-	z_vec_changed_dyn_tf = data_dict["z_vec_changed_dyn_tf"]
 	z_vec_real = data_dict["z_vec_real"]
 	loss_val_per_step = data_dict["loss_val_per_step"]
-
 	# pdb.set_trace()
 
 	Nsteps_tot = x_traj_pred_all_vec.shape[0]
@@ -283,8 +329,7 @@ def plot_predictions(file_name):
 	hdl_fig_pred_sampling_rec, hdl_splots_sampling_rec = plt.subplots(1,2,figsize=(17,7),sharex=False)
 	# hdl_fig_pred_sampling_rec.suptitle("Simulated trajectory predictions ...", fontsize=fontsize_labels)
 	# hdl_splots_sampling_rec[0].plot(z_vec_real[0:tt+1,0],z_vec_real[0:tt+1,1],linestyle="-",color="navy",lw=2.0,label="Real traj - nominal dynamics",alpha=0.3)
-	hdl_splots_sampling_rec[0].plot(z_vec_tf[:,0],z_vec_tf[:,1],linestyle="-",color="navy",lw=2.0,label="With nominal dynamics",alpha=0.7)
-	if z_vec_changed_dyn_tf is not None: hdl_splots_sampling_rec[0].plot(z_vec_changed_dyn_tf[:,0],z_vec_changed_dyn_tf[:,1],linestyle="-",color="navy",lw=2.0,label="With changed dynamics",alpha=0.15)
+	hdl_splots_sampling_rec[0].plot(z_vec_real[:,0],z_vec_real[:,1],linestyle="-",color="navy",lw=2.0,label="With nominal dynamics",alpha=0.7)
 	tt = 0
 	hdl_plt_dubins_real, = hdl_splots_sampling_rec[0].plot(z_vec_real[tt,0],z_vec_real[tt,1],marker="*",markersize=14,color="darkgreen",label="Tracking experimental data - Quadruped")
 	# hdl_splots_sampling_rec[0].set_xlim([-6.0,5.0])
@@ -353,9 +398,8 @@ def main(cfg):
 	# ==============================================================
 	# With Quadruped data from data_quadruped_experiments_03_25_2023
 	# ==============================================================
-	# file_name = "predicted_trajs_78.pickle"
-
-	# plot_predictions(file_name)
+	# file_name = "predicted_trajs_2023_03_27_02_02_52.pickle"
+	# plot_predictions(cfg,file_name)
 
 
 
@@ -370,4 +414,4 @@ if __name__ == "__main__":
 	# scp -P 4444 -r ./data_quadruped_experiments_03_25_2023/from_hybridrob/reconstruction_data_2023_03_27_01_23_40.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/from_hybridrob/
 
 
-
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023//predicted_trajs_2023_03_27_02_02_52.pickle ./data_quadruped_experiments_03_25_2023/

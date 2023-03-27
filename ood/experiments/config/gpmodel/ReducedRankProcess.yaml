@@ -39,13 +39,22 @@ hyperpars:
   #   value_init: 0.01
   #   learn: False
 
-  # Quadruped (using deltas)
+  # # Quadruped (using deltas)
+  # prior_variance: 1.0
+  # prior_mean_factor: 1.0
+  # noise_std_process:
+  #   # value_init: 0.1
+  #   # value_init: 0.05
+  #   value_init: 0.0025
+  #   learn: False
+
+  # Quadruped (using deltas; data_quadruped_experiments_03_25_2023)
   prior_variance: 1.0
   prior_mean_factor: 1.0
   noise_std_process:
     # value_init: 0.1
     # value_init: 0.05
-    value_init: 0.0025
+    value_init: 0.0005
     learn: False
 
 

@@ -40,7 +40,7 @@ dim_out = 1
 # COLOR_MAP = "gist_heat"
 COLOR_MAP = "copper"
 
-my_seed = 99
+my_seed = 100
 
 def ker_fun(x,xp,alpha):
 	"""
@@ -180,7 +180,7 @@ def train_reconstruction(cfg):
 	Nepochs = 1000
 	# Nsamples_omega = 15**2
 	# Nsamples_omega = 500
-	Nsamples_omega = 200
+	Nsamples_omega = 300
 	if using_hybridrobotics:
 		Nepochs = 100000
 	
@@ -365,6 +365,10 @@ def test_resulting_kernel(cfg):
 	# file_name = "learning_data_seed_94.pickle" # with 40 rollouts
 	# file_name = "learning_data_seed_95.pickle" # with 40 rollouts; good; Nomegas: 500
 	file_name = "learning_data_seed_98.pickle" # with 40 rollouts; good; Nomegas: 100
+
+	# Upcoming:
+	# file_name = "learning_data_seed_99.pickle" # with 40 rollouts; good; Nomegas: 200
+	# file_name = "learning_data_seed_100.pickle" # with 40 rollouts; good; Nomegas: 300
 	
 
 	path2folder = "kernel_fit_reconstruction"

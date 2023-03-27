@@ -6,6 +6,7 @@ from matplotlib import cm
 import matplotlib
 import numpy as np
 import scipy
+from datetime import datetime
 from scipy import stats
 from scipy import integrate
 from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity, ParaboloidSpectralDensity, KinkSharpSpectralDensity, VanDerPolSpectralDensity, DubinsCarSpectralDensity, QuadrupedSpectralDensity
@@ -97,6 +98,8 @@ def load_data_dubins_car(path2project,ratio):
 def reconstruct(cfg):
 
 	savefig = True
+
+	name_file_date = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 
 	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
 	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
@@ -193,8 +196,7 @@ def reconstruct(cfg):
 	# Save relevant quantities:
 	save_data = True
 	# save_data = False
-	name_file_data = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-	path2save = "{0:s}/{1:s}/reconstruction_data_{2:d}.pickle".format(path2project,path2folder,name_file_data)
+	path2save = "{0:s}/{1:s}/reconstruction_data_{2:s}.pickle".format(path2project,path2folder,name_file_date)
 	if save_data:
 
 		data2save = dict(	omegas_trainedNN=omegas_trainedNN,

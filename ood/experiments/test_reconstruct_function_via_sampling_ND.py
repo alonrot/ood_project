@@ -6,6 +6,7 @@ from matplotlib import cm
 import matplotlib
 import numpy as np
 import scipy
+from datetime import datetime
 from scipy import stats
 from scipy import integrate
 from lqrker.spectral_densities import SquaredExponentialSpectralDensity, MaternSpectralDensity, KinkSpectralDensity, ParaboloidSpectralDensity, KinkSharpSpectralDensity, VanDerPolSpectralDensity, DubinsCarSpectralDensity, QuadrupedSpectralDensity
@@ -32,13 +33,16 @@ matplotlib.rc('font',**{'family':'serif','serif':['Computer Modern Roman']})
 # plt.rc('legend',fontsize=fontsize_labels+2)
 plt.rc('legend',fontsize=fontsize_labels//2)
 
+# COLOR_MAP = "seismic"
+# COLOR_MAP = "gist_heat"
+COLOR_MAP = "copper"
 
 # Counter to save data:
-counter = 1002
+counter = 1012
 
-path2folder = "dubins_car_reconstruction"
+# path2folder = "dubins_car_reconstruction"
 # path2folder = "data_quadruped_experiments_03_13_2023"
-# path2folder = "data_quadruped_experiments_03_25_2023"
+path2folder = "data_quadruped_experiments_03_25_2023"
 
 using_deltas = True
 # using_deltas = False
@@ -98,12 +102,41 @@ def load_quadruped_experiments_03_13_2023(path2project):
 	return Xtrain, Ytrain, dim_in, dim_out, Nsteps, Ntrajs, path2data
 
 
+def load_quadruped_experiments_03_25_2023(path2project):
+
+	path2data = "{0:s}/data_quadruped_experiments_03_25_2023/joined_go1trajs_trimmed_2023_03_25.pickle".format(path2project)
+	logger.info("Loading {0:s} ...".format(path2data))
+	file = open(path2data, 'rb')
+	data_dict = pickle.load(file)
+	file.close()
+
+	Xtrain = data_dict["Xtrain"]
+	Ytrain = data_dict["Ytrain"]
+	dim_x = Ytrain.shape[1]
+	dim_u = Xtrain.shape[1] - dim_x
+	Nsteps = Xtrain.shape[0]
+	Ntrajs = None
+
+	dim_in = dim_x + dim_u
+	dim_out = dim_x
+
+	if using_deltas:
+		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
+		Ytrain = tf.identity(Ytrain_deltas)
+
+	Xtrain = tf.cast(Xtrain,dtype=tf.float32)
+	Ytrain = tf.cast(Ytrain,dtype=tf.float32)
+
+	return Xtrain, Ytrain, dim_in, dim_out, Nsteps, Ntrajs, path2data
+
 
 
 @hydra.main(config_path="./config",config_name="config")
 def reconstruct(cfg):
 
 	savefig = True
+
+	name_file_date = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 
 	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
 	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
@@ -129,6 +162,13 @@ def reconstruct(cfg):
 		for jj in range(dim_out):
 			spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
 
+	if path2folder == "data_quadruped_experiments_03_25_2023":
+		Xtrain, Ytrain, dim_in, dim_out, Nsteps, Ntrajs, path2data = load_quadruped_experiments_03_25_2023(path2project) # Actual quadruped - Experiments March 25
+
+		spectral_density_list = [None]*dim_out
+		for jj in range(dim_out):
+			spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
+
 
 	# pdb.set_trace()
 
@@ -136,39 +176,21 @@ def reconstruct(cfg):
 	xpred_testing = tf.identity(Xtrain)
 	fx_true_testing = tf.identity(Ytrain)
 
-	# pdb.set_trace()
-
-	# # Discrete grid:
-	# # L = 200.0; Ndiv = 5 # 5**5=3125 # works
-	# # L = 100.0; Ndiv = 3 # 3**5=243 # reasonable for being just Ndiv=3
-	# # L = 50.0; Ndiv = 5 # 5**5=3125
-	# L = 10.0; Ndiv = 3 # 5**5=3125
-	# cfg.gpmodel.hyperpars.weights_features.Nfeat = Ndiv**dim_in
-	# assert Ndiv % 2 != 0 and Ndiv > 2, "Ndiv must be an odd positive integer"
-	# j_indices = CommonUtils.create_Ndim_grid(xmin=-(Ndiv-1)//2,xmax=(Ndiv-1)//2,Ndiv=Ndiv,dim=dim_in) # [Ndiv**dim_x,dim_x]
-	# omegas_weights = tf.cast((math.pi/L) * j_indices,dtype=tf.float32)
-	# # _, _, omegas_weights = spectral_density.get_Wpoints_discrete(L,Ndiv,normalize_density_numerically=False,reshape_for_plotting=False)
-	# Nsamples_omega = omegas_weights.shape[0]
-
-
-	xmax_testing = tf.reduce_max(Xtrain)
-	xmin_testing = tf.reduce_min(Xtrain)
-	Ndiv_testing = Xtrain.shape[0]
-	# delta_statespace = (xmax_testing-xmin_testing)**dim_in / Ndiv_testing
-	delta_statespace = 1.0 / Ndiv_testing
+	delta_statespace = 1.0 / Xtrain.shape[0]
 
 	Nepochs = 13
 	Nsamples_omega = 30
 	if using_hybridrobotics:
-		Nepochs = 6200
+		Nepochs = 100000
 		Nsamples_omega = 1500
 	
-	omega_lim = 3.0
+	omega_lim = 5.0
 	Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 	# Dw_coarse = 1.0 / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 
 	extent_plot_statespace = [xpred_testing[0,0],xpred_testing[-1,0],xpred_testing[0,1],xpred_testing[-1,1]] #  scalars (left, right, bottom, top)
 	fx_optimized_omegas_and_voxels = np.zeros((xpred_testing.shape[0],dim_out))
+	delta_fx_next_optimized_omegas_and_voxels = np.zeros((xpred_testing.shape[0],dim_out))
 	Sw_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
 	varphi_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
 	omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,dim_in))
@@ -213,20 +235,13 @@ def reconstruct(cfg):
 		fx_optimized_omegas_and_voxels[:,jj:jj+1] = reconstructor_fx_deltas_and_omegas.reconstruct_function_at(xpred=xpred_testing)
 
 		if using_deltas:
+			delta_fx_next_optimized_omegas_and_voxels[:,jj:jj+1] = fx_optimized_omegas_and_voxels[:,jj:jj+1]
 			fx_optimized_omegas_and_voxels[:,jj:jj+1] += xpred_testing[:,jj:jj+1]
 
 
 	# Save relevant quantities:
 	save_data = True
-	# save_data = False
-	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid_omegalim1p0_omegas_within_lims.pickle"
-	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid_omegalim0p5.pickle"
-	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_irregular_grid.pickle"
-	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_regular_Xgrid_and_omega_grid.pickle"
-	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_regular_Xgrid_irregular_omega_grid.pickle"
-	# path2save = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubinscar_learned_spectral_density_parameters_from_data_Nepochs{0:d}.pickle".format(Nepochs)
-	# path2save = "{0:s}/{1:s}/learning_data_Nepochs{2:d}.pickle".format(path2project,path2folder,Nepochs)
-	path2save = "{0:s}/{1:s}/learning_data_counter_{2:d}.pickle".format(path2project,path2folder,counter)
+	path2save = "{0:s}/{1:s}/reconstruction_data_{2:s}.pickle".format(path2project,path2folder,name_file_date)
 	if save_data:
 
 		data2save = dict(	omegas_trainedNN=omegas_trainedNN,
@@ -247,14 +262,13 @@ def reconstruct(cfg):
 	Discrete grid of omega in the first two dimensions for plotting purposes. Slicing the rest to zero
 	"""
 
-	Ndiv_omega_for_analysis = 71
-	if using_hybridrobotics: Ndiv_omega_for_analysis = 121
+	Ndiv_omega_for_analysis = 131
+	if using_hybridrobotics: Ndiv_omega_for_analysis = 151
 	omegapred_analysis = CommonUtils.create_Ndim_grid(xmin=-omega_lim,xmax=omega_lim,Ndiv=Ndiv_omega_for_analysis,dim=2) # [Ndiv**dim_in,dim_in]
 
 	omegapred_analysis_fist_two_dims = tf.concat([omegapred_analysis,tf.zeros((omegapred_analysis.shape[0],3))],axis=1)
 
-	COLOR_MAP = "summer"
-	hdl_fig, hdl_splots_omegas = plt.subplots(dim_out,3,figsize=(14,10),sharex=False)
+	hdl_fig, hdl_splots_omegas = plt.subplots(dim_out,2,figsize=(14,10),sharex=False)
 	hdl_fig.suptitle(r"Spectral density, phase and integrand for each channel; Dubins car kernel",fontsize=fontsize_labels)
 	
 	extent_plot_omegas = [omegapred_analysis[0,0],omegapred_analysis[-1,0],omegapred_analysis[0,1],omegapred_analysis[-1,1]] #  scalars (left, right, bottom, top)
@@ -303,28 +317,26 @@ def reconstruct(cfg):
 
 
 
-		# Plotting the integrand (without the voxels, obviously):
-		# fx_integrand_averaged_states_jj_plotting = np.reshape(fx_integrand_averaged_states_jj,(Ndiv_omega_for_analysis,Ndiv_omega_for_analysis),order="F")
-		# hdl_splots_omegas[jj,2].imshow(fx_integrand_averaged_states_jj_plotting,extent=extent_plot_omegas,origin="upper",cmap=plt.get_cmap(COLOR_MAP),vmin=fx_integrand_averaged_states_jj_plotting.min(),vmax=fx_integrand_averaged_states_jj_plotting.max(),interpolation='nearest')
-		my_title = "(1/T)\sum_t g_{0:d}(x_t;\omega)".format(jj+1)
-		hdl_splots_omegas[jj,2].set_title(r"${0:s}$".format(my_title),fontsize=fontsize_labels)
-		hdl_splots_omegas[jj,2].set_xlim([-omega_lim,omega_lim])
-		hdl_splots_omegas[jj,2].set_ylim([-omega_lim,omega_lim])
-		hdl_splots_omegas[jj,2].set_xticks([-omega_lim,0,omega_lim])
-		hdl_splots_omegas[jj,2].set_yticks([-omega_lim,0,omega_lim])
+		# # Plotting the integrand (without the voxels, obviously):
+		# # fx_integrand_averaged_states_jj_plotting = np.reshape(fx_integrand_averaged_states_jj,(Ndiv_omega_for_analysis,Ndiv_omega_for_analysis),order="F")
+		# # hdl_splots_omegas[jj,2].imshow(fx_integrand_averaged_states_jj_plotting,extent=extent_plot_omegas,origin="upper",cmap=plt.get_cmap(COLOR_MAP),vmin=fx_integrand_averaged_states_jj_plotting.min(),vmax=fx_integrand_averaged_states_jj_plotting.max(),interpolation='nearest')
+		# my_title = "(1/T)\sum_t g_{0:d}(x_t;\omega)".format(jj+1)
+		# hdl_splots_omegas[jj,2].set_title(r"${0:s}$".format(my_title),fontsize=fontsize_labels)
+		# hdl_splots_omegas[jj,2].set_xlim([-omega_lim,omega_lim])
+		# hdl_splots_omegas[jj,2].set_ylim([-omega_lim,omega_lim])
+		# hdl_splots_omegas[jj,2].set_xticks([-omega_lim,0,omega_lim])
+		# hdl_splots_omegas[jj,2].set_yticks([-omega_lim,0,omega_lim])
 
 		# Add the resulting omegas:
-		hdl_splots_omegas[jj,0].plot(omegas_trainedNN[jj,:,0],omegas_trainedNN[jj,:,1],marker=".",color="indigo",markersize=2,linestyle="None")
-		hdl_splots_omegas[jj,1].plot(omegas_trainedNN[jj,:,0],omegas_trainedNN[jj,:,1],marker=".",color="indigo",markersize=2,linestyle="None")
+		hdl_splots_omegas[jj,0].plot(omegas_trainedNN[jj,:,0],omegas_trainedNN[jj,:,1],marker="o",color="darkgreen",markersize=5,linestyle="None",alpha=0.7)
+		hdl_splots_omegas[jj,1].plot(omegas_trainedNN[jj,:,0],omegas_trainedNN[jj,:,1],marker="o",color="darkgreen",markersize=5,linestyle="None",alpha=0.7)
 
 		if jj == dim_out-1: hdl_splots_omegas[jj,0].set_xlabel(r"$\omega_1$",fontsize=fontsize_labels)
 		if jj == dim_out-1: hdl_splots_omegas[jj,1].set_xlabel(r"$\omega_1$",fontsize=fontsize_labels)
-		if jj == dim_out-1: hdl_splots_omegas[jj,2].set_xlabel(r"$\omega_1$",fontsize=fontsize_labels)
 	
 
 	if savefig:
-		# path2save_fig = "{0:s}/{1:s}/spectral_density_Nepochs{2:d}.png".format(path2project,path2folder,Nepochs)
-		path2save_fig = "{0:s}/{1:s}/spectral_density_counter_{2:d}.png".format(path2project,path2folder,Nepochs)
+		path2save_fig = "{0:s}/{1:s}/spectral_density_{2:s}.png".format(path2project,path2folder,name_file_date)
 		logger.info("Saving fig at {0:s} ...".format(path2save_fig))
 		hdl_fig.savefig(path2save_fig,bbox_inches='tight',dpi=300,transparent=True)
 		logger.info("Done saving fig!")
@@ -336,32 +348,28 @@ def reconstruct(cfg):
 	plot_state_transition_reconstruction = True
 	if plot_state_transition_reconstruction:
 		hdl_fig, hdl_splots_next_state = plt.subplots(dim_out,1,figsize=(16,14),sharex=False,sharey=False)
-		hdl_fig.suptitle(r"State transition - Reconstructed; $x_{t+1,d} = f_d(x_t)$",fontsize=fontsize_labels)
+		hdl_fig.suptitle(r"State transition - Reconstructed; $\Delta x_{t+1,d} = f_d(x_t)$",fontsize=fontsize_labels)
 		hdl_splots_next_state = np.reshape(hdl_splots_next_state,(-1,1))
 		xpred_testing_for_transition_plot = xpred_testing.numpy()[0:1000,:]
 
+		# We want the deltas actually:
 		if using_deltas:
-			fx_true_testing_plotting = fx_true_testing + xpred_testing[:,0:dim_out]
+			delta_fx_next = fx_true_testing
 		else:
-			fx_true_testing_plotting = fx_true_testing
+			delta_fx_next = fx_true_testing - xpred_testing[:,0:dim_out]
+			raise NotImplementedError
 
 		for jj in range(dim_out):
-			ind_xt_sorted = np.argsort(xpred_testing_for_transition_plot[:,jj])
-			xt_sorted = xpred_testing_for_transition_plot[ind_xt_sorted,jj]
-			
-			fx_optimized_omegas_and_voxels_sorted = fx_optimized_omegas_and_voxels[ind_xt_sorted,jj]
-			# hdl_splots_next_state[jj,0].plot(xt_sorted,fx_optimized_omegas_and_voxels_sorted,marker=".",markersize=3,linestyle="None",color="navy",alpha=0.3)
+			ind_xt_sorted = np.argsort(delta_fx_next[:,jj])
+			delta_fx_next_sorted = delta_fx_next.numpy()[ind_xt_sorted,jj]
+			delta_fx_next_optimized_omegas_and_voxels_sorted = delta_fx_next_optimized_omegas_and_voxels[ind_xt_sorted,jj]
 
-			# fx_true_testing_sorted = fx_true_testing.numpy()[ind_xt_sorted,jj]
-			fx_true_testing_sorted = fx_true_testing_plotting.numpy()[ind_xt_sorted,jj]
-			hdl_splots_next_state[jj,0].plot(xt_sorted,fx_true_testing_sorted,marker=".",markersize=3,linestyle="None",color="navy",alpha=0.3,label="True")
-			hdl_splots_next_state[jj,0].plot(xt_sorted,fx_optimized_omegas_and_voxels_sorted,marker=".",markersize=3,linestyle="None",color="crimson",alpha=0.3,label="Reconstructed")
+			hdl_splots_next_state[jj,0].plot(delta_fx_next_sorted,linestyle="-",color="crimson",alpha=0.3,lw=3.0,label="Training data")
+			hdl_splots_next_state[jj,0].plot(delta_fx_next_optimized_omegas_and_voxels_sorted,linestyle="-",color="navy",alpha=0.7,lw=1.0,label="Reconstructed")
 
-			hdl_splots_next_state[jj,0].set_xlim([xt_sorted.min(),xt_sorted.max()])
-
-		hdl_splots_next_state[0,0].set_ylabel(r"$f_1(x_t)$",fontsize=fontsize_labels)
-		hdl_splots_next_state[1,0].set_ylabel(r"$f_2(x_t)$",fontsize=fontsize_labels)
-		hdl_splots_next_state[2,0].set_ylabel(r"$f_3(x_t)$",fontsize=fontsize_labels)
+		hdl_splots_next_state[0,0].set_ylabel(r"$\Delta f_1(x_t)$",fontsize=fontsize_labels)
+		hdl_splots_next_state[1,0].set_ylabel(r"$\Delta f_2(x_t)$",fontsize=fontsize_labels)
+		hdl_splots_next_state[2,0].set_ylabel(r"$\Delta f_3(x_t)$",fontsize=fontsize_labels)
 
 		hdl_splots_next_state[0,0].set_xlabel(r"$x_{t,1}$",fontsize=fontsize_labels)
 		hdl_splots_next_state[1,0].set_xlabel(r"$x_{t,2}$",fontsize=fontsize_labels)
@@ -377,8 +385,7 @@ def reconstruct(cfg):
 		lgnd.legendHandles[1]._legmarker.set_markersize(20)
 
 		if savefig:
-			# path2save_fig = "{0:s}/{1:s}/state_transition_Nepochs{2:d}.png".format(path2project,path2folder,Nepochs)
-			path2save_fig = "{0:s}/{1:s}/state_transition_counter_{2:d}.png".format(path2project,path2folder,Nepochs)
+			path2save_fig = "{0:s}/{1:s}/state_transition_{2:s}.png".format(path2project,path2folder,name_file_date)
 			logger.info("Saving fig at {0:s} ...".format(path2save_fig))
 			hdl_fig.savefig(path2save_fig,bbox_inches='tight',dpi=300,transparent=True)
 			logger.info("Done saving fig!")
@@ -443,8 +450,7 @@ def reconstruct(cfg):
 
 
 		if savefig:
-			# path2save_fig = "{0:s}/{1:s}/state_trajectories_Nepochs{2:d}.png".format(path2project,path2folder,Nepochs)
-			path2save_fig = "{0:s}/{1:s}/state_trajectories_counter_{2:d}.png".format(path2project,path2folder,Nepochs)
+			path2save_fig = "{0:s}/{1:s}/state_trajectories_{2:s}.png".format(path2project,path2folder,name_file_date)
 			logger.info("Saving fig at {0:s} ...".format(path2save_fig))
 			hdl_fig.savefig(path2save_fig,bbox_inches='tight',dpi=300,transparent=True)
 			logger.info("Done saving fig!")
@@ -468,7 +474,7 @@ def reconstruct(cfg):
 
 		if savefig:
 			# path2save_fig = "{0:s}/{1:s}/reconstruction_loss_Nepochs{2:d}.png".format(path2project,path2folder,Nepochs)
-			path2save_fig = "{0:s}/{1:s}/reconstruction_loss_counter_{2:d}.png".format(path2project,path2folder,Nepochs)
+			path2save_fig = "{0:s}/{1:s}/reconstruction_loss_{2:s}.png".format(path2project,path2folder,name_file_date)
 			logger.info("Saving fig at {0:s} ...".format(path2save_fig))
 			hdl_fig.savefig(path2save_fig,bbox_inches='tight',dpi=300,transparent=True)
 			logger.info("Done saving fig!")

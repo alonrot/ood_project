@@ -151,8 +151,8 @@ def generate_data(plot_stuff=False,block_plot=False):
 @hydra.main(config_path="./config",config_name="config")
 def train_reconstruction(cfg):
 
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_105.pickle ./kernel_fit_reconstruction/
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/reconstruction_plots105.png ./kernel_fit_reconstruction/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_106.pickle ./kernel_fit_reconstruction/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/reconstruction_plots106.png ./kernel_fit_reconstruction/
 
 	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
 	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
@@ -529,7 +529,8 @@ def plotting_results(cfg):
 		# file_name = "learning_data_seed_102.pickle" # with 40 rollouts; good; Nomegas: 100 (repeated with same noise seed)
 		# file_name = "learning_data_seed_103.pickle" # with 40 rollouts; good; Nomegas: 20
 		# file_name = "learning_data_seed_104.pickle" # with 60 rollouts; poor; Nomegas: 700
-		file_name = "learning_data_seed_105.pickle" # with 50 rollouts; better; Nomegas: 500
+		# file_name = "learning_data_seed_105.pickle" # with 50 rollouts; better; Nomegas: 500
+		file_name = "learning_data_seed_105.pickle" # with 60 rollouts; good; omega_lim = 8.0; Nomegas: 500
 
 		# Upcoming:
 
@@ -650,6 +651,6 @@ if __name__ == "__main__":
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
-	train_reconstruction()
+	# train_reconstruction()
 
-	# plotting_results()
+	plotting_results()

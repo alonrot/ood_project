@@ -586,12 +586,12 @@ def main(cfg):
 	train_gpssm(cfg,ratio=0.25)
 
 
-	# Assessing model performance:
-	dict_all = get_dictionary_log()
-	log_evidence_tot, mse_tot = compute_model_error_for_selected_model(cfg,dict_all,which_model="gpssm",which_ratio="p25")
-	logger.info("log_evidence_tot: {0:f}".format(log_evidence_tot))
-	logger.info("mse_tot: {0:f}".format(mse_tot))
-	plt.show(block=True)
+	# # Assessing model performance:
+	# dict_all = get_dictionary_log()
+	# log_evidence_tot, mse_tot = compute_model_error_for_selected_model(cfg,dict_all,which_model="gpssm",which_ratio="p25")
+	# logger.info("log_evidence_tot: {0:f}".format(log_evidence_tot))
+	# logger.info("mse_tot: {0:f}".format(mse_tot))
+	# plt.show(block=True)
 
 
 

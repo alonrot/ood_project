@@ -187,7 +187,7 @@ def train_reconstruction(cfg):
 		# Nepochs = 100000
 		Nepochs = 11000
 	
-	omega_lim = 6.0
+	omega_lim = 8.0
 	# Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 	Dw_coarse = 1.0 / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 

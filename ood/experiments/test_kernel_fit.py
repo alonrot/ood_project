@@ -184,7 +184,8 @@ def train_reconstruction(cfg):
 	# Nsamples_omega = 500
 	Nsamples_omega = 20
 	if using_hybridrobotics:
-		Nepochs = 100000
+		# Nepochs = 100000
+		Nepochs = 10000
 	
 	omega_lim = 6.0
 	# Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]

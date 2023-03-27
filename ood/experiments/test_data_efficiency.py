@@ -110,8 +110,6 @@ def load_data_dubins_car(path2project,ratio):
 
 def train_MOrrtp_by_reconstructing(cfg,ratio):
 
-	savefig = True
-
 	name_file_date = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 
 	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
@@ -205,36 +203,42 @@ def train_MOrrtp_by_reconstructing(cfg,ratio):
 
 
 	# Save relevant quantities:
-	save_data = True
-	# save_data = False
+	data2save = dict(	omegas_trainedNN=omegas_trainedNN,
+						Sw_omegas_trainedNN=Sw_omegas_trainedNN,
+						varphi_omegas_trainedNN=varphi_omegas_trainedNN,
+						delta_omegas_trainedNN=delta_omegas_trainedNN,
+						delta_statespace_trainedNN=delta_statespace_trainedNN,
+						spectral_density_list=spectral_density_list,
+						Dw_coarse=Dw_coarse,
+						delta_statespace=delta_statespace,
+						omega_lim=omega_lim,
+						Nsamples_omega=Nsamples_omega,
+						Xtrain=Xtrain,
+						Ytrain=Ytrain,
+						Xtest=Xtest,
+						Ytest=Ytest,
+						ratio=ratio,
+						path2data=path2data)		
+	
 	path2save = "{0:s}/{1:s}/reconstruction_data_{2:s}.pickle".format(path2project,path2folder,name_file_date)
-	if save_data:
-
-		data2save = dict(	omegas_trainedNN=omegas_trainedNN,
-							Sw_omegas_trainedNN=Sw_omegas_trainedNN,
-							varphi_omegas_trainedNN=varphi_omegas_trainedNN,
-							delta_omegas_trainedNN=delta_omegas_trainedNN,
-							delta_statespace_trainedNN=delta_statespace_trainedNN,
-							spectral_density_list=spectral_density_list,
-							Dw_coarse=Dw_coarse,
-							delta_statespace=delta_statespace,
-							omega_lim=omega_lim,
-							Nsamples_omega=Nsamples_omega,
-							Xtrain=Xtrain,
-							Ytrain=Ytrain,
-							Xtest=Xtest,
-							Ytest=Ytest,
-							ratio=ratio,
-							path2data=path2data)		
-		
-		logger.info("Saving data at {0:s} ...".format(path2save))
-		file = open(path2save, 'wb')
-		pickle.dump(data2save,file)
-		file.close()
-		logger.info("Done!")
+	logger.info("Saving data at {0:s} ...".format(path2save))
+	file = open(path2save, 'wb')
+	pickle.dump(data2save,file)
+	file.close()
+	logger.info("Done!")
 
 
-	return data2save
+	path2log_file = "{0:s}/{1:s}/MOrrtp_trained_log_file_{2:s}.txt".format(path2project,path2folder,name_file_date)
+	logger.info("Writing ratio to log file at {0:s} ...".format(path2log_file))
+	file = open(path2log_file, 'w')
+	file.write("ratio: {0:2.2f}".format(ratio))
+	file.close()
+	logger.info("Done!")
+
+	plt.pause(2.0)
+
+
+	return name_file_date
 
 
 def train_gpssm(cfg,ratio):
@@ -581,11 +585,25 @@ def get_dictionary_log():
 	# # << GPSSM >>
 	# file_name = "gpssm_trained_model_gpflow_2023_03_27_14_03_22" # Ratio 1.0 | dbg
 	# file_name = "gpssm_trained_model_gpflow_2023_03_27_15_07_51" # Ratio 0.25 | on hybridrob
+	# dict_gpssm_standard = dict(	p25="gpssm_trained_model_gpflow_2023_03_27_15_29_39", # on hybridrob, 2000 iters
+	# 							p50="gpssm_trained_model_gpflow_2023_03_27_15_31_25", # on hybridrob, 2000 iters
+	# 							p75="gpssm_trained_model_gpflow_2023_03_27_15_34_09", # on hybridrob, 2000 iters
+	# 							p100="gpssm_trained_model_gpflow_2023_03_27_15_37_49") # on hybridrob, 2000 iters
 
 
 	# Selected dictionary:
-	dict_MOrrtp = dict(p25="reconstruction_data_2023_03_27_14_56_21.pickle",p100="reconstruction_data_2023_03_26_22_48_31.pickle")
-	dict_gpssm_standard = dict(p25="gpssm_trained_model_gpflow_2023_03_27_15_07_51",p100="gpssm_trained_model_gpflow_2023_03_27_14_03_22")
+	# dict_MOrrtp = dict(p25="reconstruction_data_2023_03_27_14_56_21.pickle",p100="reconstruction_data_2023_03_26_22_48_31.pickle")
+	dict_MOrrtp = dict(	p25="reconstruction_data_2023_03_27_15_58_28.pickle",
+						p50="reconstruction_data_2023_03_27_15_58_31.pickle",
+						p75="reconstruction_data_2023_03_27_15_58_33.pickle",
+						p100="reconstruction_data_2023_03_27_15_58_36.pickle")
+
+
+
+	dict_gpssm_standard = dict(	p25="gpssm_trained_model_gpflow_2023_03_27_15_29_39",
+								p50="gpssm_trained_model_gpflow_2023_03_27_15_31_25",
+								p75="gpssm_trained_model_gpflow_2023_03_27_15_34_09",
+								p100="gpssm_trained_model_gpflow_2023_03_27_15_37_49")
 	dict_all = dict(MOrrtp=dict_MOrrtp,gpssm=dict_gpssm_standard)
 
 	return dict_all
@@ -594,23 +612,44 @@ def get_dictionary_log():
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg):
 
-	# Training models:
-	# train_MOrrtp_by_reconstructing(cfg,ratio=0.25)
-
 	ratio_list = [0.25,0.5,0.75,1.0]
-	name_file_date = []
-	for ratio in ratio_list:
-		name_file_date += [train_gpssm(cfg,ratio=ratio)]
+	ratio_names_list = ["p25","p50","p75","p100"]
 
-	logger.info("name_file_date: {0:s}".format(str(name_file_date)))
-	logger.info("ratio_list: {0:s}".format(str(ratio_list)))
+	what2do = "train"
+	# what2do = "test"
 
-	# # Assessing model performance:
-	# dict_all = get_dictionary_log()
-	# log_evidence_tot, mse_tot = compute_model_error_for_selected_model(cfg,dict_all,which_model="gpssm",which_ratio="p25")
-	# logger.info("log_evidence_tot: {0:f}".format(log_evidence_tot))
-	# logger.info("mse_tot: {0:f}".format(mse_tot))
-	# plt.show(block=True)
+	# which_model="gpssm"
+	which_model="MOrrtp"
+
+
+	# Training models:
+	if what2do == "train":
+		name_file_date = []
+		for ratio in ratio_list:
+			if which_model == "gpssm": name_file_date += [train_gpssm(cfg,ratio=ratio)]
+			if which_model == "MOrrtp": name_file_date += [train_MOrrtp_by_reconstructing(cfg,ratio=ratio)]
+
+		logger.info("name_file_date: {0:s}".format(str(name_file_date)))
+		logger.info("ratio_list: {0:s}".format(str(ratio_list)))
+
+
+	# Assessing model performance:
+	if what2do == "test":
+		dict_all = get_dictionary_log()
+		log_evidence_tot_vec = np.zeros(len(ratio_list))
+		mse_tot_vec = np.zeros(len(ratio_list))
+		for tt in range(len(ratio_list)):
+			log_evidence_tot, mse_tot = compute_model_error_for_selected_model(cfg,dict_all,which_model=which_model,which_ratio=ratio_names_list[tt])
+			logger.info("log_evidence_tot: {0:f}".format(log_evidence_tot))
+			logger.info("mse_tot: {0:f}".format(mse_tot))
+
+			log_evidence_tot_vec[tt] = log_evidence_tot
+			mse_tot_vec[tt] = mse_tot
+
+		logger.info("log_evidence_tot_vec: {0:s}".format(str(log_evidence_tot_vec)))
+		logger.info("mse_tot_vec: {0:s}".format(str(mse_tot_vec)))
+		
+		plt.show(block=True)
 
 
 
@@ -625,7 +664,7 @@ if __name__ == "__main__":
 
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/reconstruction_data_2023_03_27_14_56_21.pickle ./data_efficiency_test_with_dubinscar/
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"gpssm_trained_model_gpflow_2023_03_27_15_07_51*" ./data_efficiency_test_with_dubinscar/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_15_37_49*" ./data_efficiency_test_with_dubinscar/
 
 
 	# python test_data_efficiency.py gpmodel.using_hybridrobotics=False

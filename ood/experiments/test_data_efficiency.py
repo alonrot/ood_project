@@ -69,6 +69,7 @@ def load_data_dubins_car(path2project,ratio):
 	Xdataset_batch = np.reshape(Xdataset,(-1,Nsteps,Xdataset.shape[1])) # [Ntrajs,Nsteps,dim_x+dim_u]
 	Ydataset_batch = np.reshape(Ydataset,(-1,Nsteps,Ydataset.shape[1])) # [Ntrajs,Nsteps,dim_x]
 
+	# Split dataset: LAst 10 trajectories will be for testing; the rest are traning data
 	Ntrajs4test = 10
 	Ntrajs4train = Xdataset_batch.shape[0] - Ntrajs4test
 	Xtest_batch = Xdataset_batch[-Ntrajs4test::,...] # [Ntrajs4test,Nsteps,dim_x+dim_u]
@@ -78,8 +79,8 @@ def load_data_dubins_car(path2project,ratio):
 	Ytrain_batch = Ydataset_batch[0:Ntrajs4train,...] # [Ntrajs4train,Nsteps,dim_x]
 
 	logger.info("Splitting dataset:")
-	logger.info(" * Testing with {0:d} trajectories".format(Ntrajs4test))
-	logger.info(" * Training with {0:d} trajectories".format(Ntrajs4train))
+	logger.info(" * Testing with {0:d} / {1:d} trajectories".format(Ntrajs4test,Xdataset_batch.shape[0]))
+	logger.info(" * Training with {0:d} / {1:d} trajectories".format(Ntrajs4train,Xdataset_batch.shape[0]))
 
 	# Return the trajectories vectorized:
 	Xtrain = np.reshape(Xtrain_batch,(-1,Xtrain_batch.shape[2]))
@@ -90,12 +91,12 @@ def load_data_dubins_car(path2project,ratio):
 	Ytest = np.reshape(Ytest_batch,(-1,Ytest_batch.shape[2]))
 
 
+	# Slice according to requested ratio:
 	assert ratio > 0.0 and ratio <= 1.0
 	Ntrain_max = int(Xtrain.shape[0] * ratio)
+	logger.info(" * Requested ratio: {0:2.2f} | Training with {1:d} / {2:d} datapoints".format(ratio,Ntrain_max,Xtrain.shape[0]))
 	Xtrain = Xtrain[0:Ntrain_max,:]
 	Ytrain = Ytrain[0:Ntrain_max,:]
-
-	logger.info(" * Requested ratio: {0:f} | Training with {1:d} / {2:d} ".format(ratio,Ntrain_max,Ntrajs4train))
 
 	if using_deltas:
 		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
@@ -564,6 +565,7 @@ def get_dictionary_log():
 	# file_name = "reconstruction_data_2023_03_26_22_48_31.pickle" # Ratio: 0.25 | Nepochs: 5000
 	# file_name = "reconstruction_data_2023_03_26_22_41_28.pickle" # Ratio: 1.0 | Nepochs: 5000
 	# file_name = "reconstruction_data_2023_03_27_14_51_36.pickle" # Ratio: 0.25 | Nepochs: 5000 | dbg
+	# file_name = "reconstruction_data_2023_03_27_14_56_21.pickle" # Ratio: 0.25 | Nepochs: 5000 | omega_lim = 5.0 | on hybridrob
 
 	# # << GPSSM >>
 	# file_name = "gpssm_trained_model_gpflow_2023_03_27_14_03_22" # Ratio 1.0 | dbg

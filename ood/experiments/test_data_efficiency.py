@@ -253,7 +253,7 @@ def train_gpssm(cfg,ratio):
 	Xtrain, Ytrain, Xtest, Ytest, dim_in, dim_out, Nsteps, path2data = load_data_dubins_car(path2project,ratio) # Dubins car
 
 	# Based on: https://gpflow.github.io/GPflow/develop/notebooks/advanced/multioutput.html#
-	MAXITER = reduce_in_tests(2000)
+	MAXITER = reduce_in_tests(1000)
 	# MAXITER = 10
 
 	N = Xtrain.shape[0]  # number of points
@@ -571,7 +571,7 @@ def get_dictionary_log():
 
 
 	# Selected dictionary:
-	dict_MOrrtp = dict(p25="reconstruction_data_2023_03_27_14_51_36.pickle",p100="reconstruction_data_2023_03_26_22_48_31.pickle")
+	dict_MOrrtp = dict(p25="reconstruction_data_2023_03_27_14_56_21.pickle",p100="reconstruction_data_2023_03_26_22_48_31.pickle")
 	dict_gpssm_standard = dict(p25="gpssm_trained_model_gpflow_2023_03_27_14_26_29",p100="gpssm_trained_model_gpflow_2023_03_27_14_03_22")
 	dict_all = dict(MOrrtp=dict_MOrrtp,gpssm=dict_gpssm_standard)
 
@@ -582,16 +582,16 @@ def get_dictionary_log():
 def main(cfg):
 
 	# Training models:
-	train_MOrrtp_by_reconstructing(cfg,ratio=0.25)
-	# train_gpssm(cfg,ratio=1.0)
+	# train_MOrrtp_by_reconstructing(cfg,ratio=0.25)
+	train_gpssm(cfg,ratio=0.25)
 
 
-	# # Assessing model performance:
-	# dict_all = get_dictionary_log()
-	# log_evidence_tot, mse_tot = compute_model_error_for_selected_model(cfg,dict_all,which_model="MOrrtp",which_ratio="p25")
-	# logger.info("log_evidence_tot: {0:f}".format(log_evidence_tot))
-	# logger.info("mse_tot: {0:f}".format(mse_tot))
-	# plt.show(block=True)
+	# Assessing model performance:
+	dict_all = get_dictionary_log()
+	log_evidence_tot, mse_tot = compute_model_error_for_selected_model(cfg,dict_all,which_model="gpssm",which_ratio="p25")
+	logger.info("log_evidence_tot: {0:f}".format(log_evidence_tot))
+	logger.info("mse_tot: {0:f}".format(mse_tot))
+	plt.show(block=True)
 
 
 
@@ -605,7 +605,7 @@ if __name__ == "__main__":
 	main()
 
 
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/reconstruction_data_2023_03_26_22_48_31.pickle ./data_efficiency_test_with_dubinscar/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/reconstruction_data_2023_03_27_14_56_21.pickle ./data_efficiency_test_with_dubinscar/
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"gpssm_trained_model_gpflow_2023_03_27_14_26_29*" ./data_efficiency_test_with_dubinscar/
 
 

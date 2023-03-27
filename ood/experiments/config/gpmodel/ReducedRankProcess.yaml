@@ -36,7 +36,7 @@ hyperpars:
   prior_variance: 1.0
   prior_mean_factor: 1.0
   noise_std_process:
-    value_init: 0.1
+    value_init: 0.01
     learn: False
 
   # # Quadruped (using deltas)

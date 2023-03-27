@@ -42,7 +42,7 @@ COLOR_MAP = "copper"
 
 my_seed = 100 # keep it at 100
 
-saving_counter = 103
+saving_counter = 104
 
 def ker_fun(x,xp,alpha):
 	"""
@@ -73,8 +73,8 @@ def squash(x):
 def generate_data(plot_stuff=False,block_plot=False):
 
 	
-	# Nrollouts = 60
-	Nrollouts = 40
+	Nrollouts = 60
+	# Nrollouts = 40
 	# Nrollouts = 20
 	
 	Npred = 120
@@ -151,8 +151,8 @@ def generate_data(plot_stuff=False,block_plot=False):
 @hydra.main(config_path="./config",config_name="config")
 def train_reconstruction(cfg):
 
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_102.pickle ./kernel_fit_reconstruction/
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/reconstruction_plots102.png ./kernel_fit_reconstruction/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_103.pickle ./kernel_fit_reconstruction/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/reconstruction_plots103.png ./kernel_fit_reconstruction/
 
 	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
 	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
@@ -181,11 +181,11 @@ def train_reconstruction(cfg):
 
 	Nepochs = 1000
 	# Nsamples_omega = 15**2
-	# Nsamples_omega = 500
-	Nsamples_omega = 20
+	Nsamples_omega = 500
+	# Nsamples_omega = 20
 	if using_hybridrobotics:
-		# Nepochs = 100000
-		Nepochs = 10000
+		Nepochs = 100000
+		# Nepochs = 10000
 	
 	omega_lim = 6.0
 	# Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
@@ -419,6 +419,10 @@ def test_resulting_kernel(cfg,file_name,plot_and_block=True):
 	# fx_vec_reconstructed += Xtrain[:,0:1]
 
 
+	# For plotting GP later:
+	def ker_call(X1,X2):
+		return inverse_fourier_toolbox_channel.get_kerXX_with_variable_integration_step_assume_context_var_non_iid(X=X1,Xp=X2,Npred=Npred).numpy()
+
 	# For plotting/return:
 	fx_vec_reconstructed_rs = np.reshape(fx_vec_reconstructed,(Nrollouts,xpred.shape[0]))
 	kXX_thetas_chol = np.linalg.cholesky(kXX_thetas + 1e-5*np.eye(kXX_thetas.shape[0])) # [Npred,Npred]
@@ -477,7 +481,25 @@ def test_resulting_kernel(cfg,file_name,plot_and_block=True):
 		plt.show(block=True)
 
 
-	return kXX, kXX_thetas, f_samples, fx_vec_reconstructed_rs, f_samples_new_with_kernel_with_thetas, xpred
+	return kXX, kXX_thetas, f_samples, fx_vec_reconstructed_rs, f_samples_new_with_kernel_with_thetas, xpred, Nsamples_omega, ker_call
+
+
+def little_gp_regression(kXX,ftrue,xpred,Xevals,ker_call):
+
+	Yevals = np.interp(Xevals[:,0],xpred[:,0],ftrue)
+
+	kXX_thetas_chol = np.linalg.cholesky(kXX + 1e-5*np.eye(kXX.shape[0])) # [Npred,Npred]
+
+	kxpredX = ker_call(xpred,Xevals)
+
+	G = kxpredX @ kXX_thetas_chol
+
+
+
+
+	meanpred = np.linalg.solve
+
+
 
 
 @hydra.main(config_path="./config",config_name="config")
@@ -504,22 +526,23 @@ def plotting_results(cfg):
 		# file_name = "learning_data_seed_99.pickle" # with 40 rollouts; good; Nomegas: 200
 		# file_name = "learning_data_seed_100.pickle" # with 40 rollouts; good; Nomegas: 300
 		# file_name = "learning_data_seed_101.pickle" # with 40 rollouts; good; Nomegas: 400
-		file_name = "learning_data_seed_102.pickle" # with 40 rollouts; good; Nomegas: 100
+		# file_name = "learning_data_seed_102.pickle" # with 40 rollouts; good; Nomegas: 100 (repeated with same noise seed)
+		file_name = "learning_data_seed_103.pickle" # with 40 rollouts; good; Nomegas: 20
 
 		# Upcoming:
-		# file_name = "learning_data_seed_102.pickle" # with 40 rollouts; good; Nomegas: 100 (repeated with same noise seed)
 
 		test_resulting_kernel(cfg,file_name,plot_and_block=True)
 
 	else:
 
 		# Extract relevant quantities from one of the files:
-		kXX_orig_cc0, _, f_samples_orig_cc0, _, _, xpred_orig_cc0 = test_resulting_kernel(cfg,"learning_data_seed_102.pickle",plot_and_block=False)
+		kXX_orig_cc0, _, f_samples_orig_cc0, _, _, xpred_orig_cc0, Nsamples_omega, ker_call = test_resulting_kernel(cfg,"learning_data_seed_102.pickle",plot_and_block=False)
 
 		kXX_prog_min = kXX_orig_cc0.min()
 		kXX_prog_max = kXX_orig_cc0.max()
 
-		file_name_list = ["learning_data_seed_102.pickle","learning_data_seed_100.pickle","learning_data_seed_101.pickle"] # Nomegas = [100, ]
+		titles_list = [r"$k_(x,x^\prime)$",r"$k_{\mathrm{100}}(x,x^\prime)$",r"$k_{\mathrm{300}}(x,x^\prime)$",r"$k_{\mathrm{400}}(x,x^\prime)$"]
+		file_name_list = ["learning_data_seed_103.pickle","learning_data_seed_102.pickle","learning_data_seed_101.pickle"] # Nomegas = [20, 100, 400]
 		hdl_fig_ker_fit, hdl_splots_ker_fit = plt.subplots(3,len(file_name_list)+1,figsize=(12,8))
 		
 		# for file_name in file_name_list:
@@ -530,7 +553,7 @@ def plotting_results(cfg):
 				fx_vec_reconstructed_rs, f_samples_new_with_kernel_with_thetas = None, None
 			else:
 				file_name = file_name_list[cc-1]
-				kXX_orig, kXX_thetas, f_samples_orig, fx_vec_reconstructed_rs, f_samples_new_with_kernel_with_thetas, xpred = test_resulting_kernel(cfg,file_name,plot_and_block=False)
+				_, kXX_thetas, f_samples_orig, fx_vec_reconstructed_rs, f_samples_new_with_kernel_with_thetas, xpred, Nsamples_omega, ker_call = test_resulting_kernel(cfg,file_name,plot_and_block=False)
 
 			xmin = xpred[0,0]
 			xmax = xpred[-1,0]
@@ -538,8 +561,8 @@ def plotting_results(cfg):
 			extent_plot_xpred = [xmin,xmax,xmin,xmax] #  scalars (left, right, bottom, top)
 
 			# Kernel:
-			# kXX_prog_min = kXX_thetas.min()
-			# kXX_prog_max = kXX_thetas.max()
+			kXX_prog_min = kXX_thetas.min()
+			kXX_prog_max = kXX_thetas.max()
 			hdl_splots_ker_fit[0,cc].imshow(kXX_thetas,extent=extent_plot_xpred,origin="lower",cmap=plt.get_cmap(COLOR_MAP),vmin=kXX_prog_min,vmax=kXX_prog_max,interpolation='nearest')
 			hdl_splots_ker_fit[0,cc].set_xlim([xmin,xmax])
 			hdl_splots_ker_fit[0,cc].set_ylim([xmin,xmax])
@@ -573,12 +596,12 @@ def plotting_results(cfg):
 			hdl_splots_ker_fit[2,cc].set_yticks([])
 			# hdl_splots_ker_fit[2,cc].set_title(r"New samples",fontsize=fontsize_labels)
 
+			hdl_splots_ker_fit[0,cc].set_title(titles_list[cc],fontsize=fontsize_labels)
 
-		titles_list = [r"$k(x,x^\prime)$",r"$k_{\mathrm{100}}(x,x^\prime)$",r"$k_{\mathrm{300}}(x,x^\prime)$",r"$k_{\mathrm{400}}(x,x^\prime)$"]
+		
 		for cc in range(len(file_name_list)+1):
 			hdl_splots_ker_fit[-1,cc].set_xticks([xmin,0.0,xmax])
 			hdl_splots_ker_fit[-1,cc].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
-			hdl_splots_ker_fit[0,cc].set_title(titles_list[cc],fontsize=fontsize_labels)
 
 		for rr in range(3):
 			hdl_splots_ker_fit[rr,0].set_yticks([xmin,0.0,xmax])

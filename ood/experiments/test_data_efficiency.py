@@ -95,6 +95,8 @@ def load_data_dubins_car(path2project,ratio):
 	Xtest = Xtest[0:Ntest_max,:]
 	Ytest = Ytest[0:Ntest_max,:]
 
+	logger.info(" * Requested ratio: {0:f} | Training with {1:d} / {2:d} ".format(ratio,Ntest_max,Ntrajs4train))
+
 	if using_deltas:
 		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
 		Ytrain = tf.identity(Ytrain_deltas)
@@ -565,12 +567,13 @@ def get_dictionary_log():
 	# file_name = "reconstruction_data_2023_03_26_22_41_28.pickle" # Ratio: 1.0 | Nepochs: 5000
 
 	# # << GPSSM >>
-	file_name = "gpssm_trained_model_gpflow_2023_03_27_14_03_22" # Ratio 1.0 | dbg
+	# file_name = "gpssm_trained_model_gpflow_2023_03_27_14_03_22" # Ratio 1.0 | dbg
+	file_name = "gpssm_trained_model_gpflow_2023_03_27_14_26_29" # Ratio 0.25
 
 
 	# Selected dictionary:
 	dict_MOrrtp = dict(p25="reconstruction_data_2023_03_26_22_48_31.pickle",p100="reconstruction_data_2023_03_26_22_48_31.pickle")
-	dict_gpssm_standard = dict(p25="gpssm_trained_model_gpflow_2023_03_27_14_20_01",p100="gpssm_trained_model_gpflow_2023_03_27_14_03_22")
+	dict_gpssm_standard = dict(p25="gpssm_trained_model_gpflow_2023_03_27_14_26_29",p100="gpssm_trained_model_gpflow_2023_03_27_14_03_22")
 	dict_all = dict(MOrrtp=dict_MOrrtp,gpssm=dict_gpssm_standard)
 
 	return dict_all
@@ -581,7 +584,7 @@ def main(cfg):
 
 	# Training models:
 	# train_MOrrtp_by_reconstructing(cfg,ratio=0.25)
-	train_gpssm(cfg,ratio=0.25)
+	train_gpssm(cfg,ratio=1.0)
 
 
 	# # Assessing model performance:

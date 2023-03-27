@@ -40,7 +40,9 @@ dim_out = 1
 # COLOR_MAP = "gist_heat"
 COLOR_MAP = "copper"
 
-my_seed = 100
+my_seed = 100 # keep it at 100
+
+saving_counter = 101
 
 def ker_fun(x,xp,alpha):
 	"""
@@ -149,8 +151,8 @@ def generate_data(plot_stuff=False,block_plot=False):
 @hydra.main(config_path="./config",config_name="config")
 def train_reconstruction(cfg):
 
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_99.pickle ./kernel_fit_reconstruction/
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/reconstruction_plots99.png ./kernel_fit_reconstruction/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_100.pickle ./kernel_fit_reconstruction/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/reconstruction_plots100.png ./kernel_fit_reconstruction/
 
 	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
 	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
@@ -180,7 +182,7 @@ def train_reconstruction(cfg):
 	Nepochs = 1000
 	# Nsamples_omega = 15**2
 	# Nsamples_omega = 500
-	Nsamples_omega = 300
+	Nsamples_omega = 400
 	if using_hybridrobotics:
 		Nepochs = 100000
 	
@@ -242,7 +244,7 @@ def train_reconstruction(cfg):
 
 	# Save relevant quantities:
 	save_data = True
-	path2data = "{0:s}/{1:s}/learning_data_seed_{2:d}.pickle".format(path2project,path2folder,my_seed)
+	path2data = "{0:s}/{1:s}/learning_data_seed_{2:d}.pickle".format(path2project,path2folder,saving_counter)
 	if save_data:
 
 		data2save = dict(	omegas_trainedNN=omegas_trainedNN,
@@ -337,7 +339,7 @@ def train_reconstruction(cfg):
 
 	savefig = True
 	if savefig:
-		path2save_fig = "{0:s}/{1:s}/reconstruction_plots{2:d}.png".format(path2project,path2folder,my_seed)
+		path2save_fig = "{0:s}/{1:s}/reconstruction_plots{2:d}.png".format(path2project,path2folder,saving_counter)
 		logger.info("Saving fig at {0:s} ...".format(path2save_fig))
 		hdl_fig.savefig(path2save_fig,bbox_inches='tight',dpi=300,transparent=True)
 		logger.info("Done saving fig!")
@@ -474,7 +476,7 @@ def test_resulting_kernel(cfg,file_name,plot_and_block=True):
 		plt.show(block=True)
 
 
-	return kXX, kXX_thetas, f_samples, fx_vec_reconstructed_rs, f_samples_new_with_kernel_with_thetas
+	return kXX, kXX_thetas, f_samples, fx_vec_reconstructed_rs, f_samples_new_with_kernel_with_thetas, xpred
 
 
 @hydra.main(config_path="./config",config_name="config")
@@ -488,47 +490,77 @@ def plotting_results(cfg):
 	# )
 	# pdb.set_trace()
 
+	# plot4paper = True
 	plot4paper = False
-
 
 	if not plot4paper:
 
 		# file_name = "learning_data_seed_91.pickle" # with only 20 rollouts, like 300 omegas
 		# file_name = "learning_data_seed_93.pickle" # with 60 rollouts; poor
 		# file_name = "learning_data_seed_94.pickle" # with 40 rollouts
-		file_name = "learning_data_seed_95.pickle" # with 40 rollouts; good; Nomegas: 500
+		# file_name = "learning_data_seed_95.pickle" # with 40 rollouts; good; Nomegas: 500
 		# file_name = "learning_data_seed_98.pickle" # with 40 rollouts; good; Nomegas: 100
 		# file_name = "learning_data_seed_99.pickle" # with 40 rollouts; good; Nomegas: 200
+		file_name = "learning_data_seed_100.pickle" # with 40 rollouts; good; Nomegas: 300
 
 		# Upcoming:
-		# file_name = "learning_data_seed_100.pickle" # with 40 rollouts; good; Nomegas: 300
 
 		test_resulting_kernel(cfg,file_name,plot_and_block=True)
 
 	else:
 
-		file_name_list = ["learning_data_seed_98.pickle","learning_data_seed_95.pickle"]
+		hdl_fig_ker_fit, hdl_splots_ker_fit = plt.subplots(3,4,figsize=(12,8))
+		file_name_list = ["learning_data_seed_98.pickle","learning_data_seed_99.pickle","learning_data_seed_95.pickle"]
+		
+		cc = 1
+		for file_name in file_name_list:
 
-		hdl_fig_ker, hdl_splots_ker = plt.subplots(1,2,figsize=(12,8))
-		# hdl_fig_pred.suptitle("Predictions ...", fontsize=16)
-		extent_plot_xpred = [xmin,xmax,xmin,xmax] #  scalars (left, right, bottom, top)
-		hdl_splots_ker[0].imshow(kXX,extent=extent_plot_xpred,origin="lower",cmap=plt.get_cmap(COLOR_MAP),vmin=kXX.min(),vmax=kXX.max(),interpolation='nearest')
-		hdl_splots_ker[0].set_xlim([xmin,xmax])
-		hdl_splots_ker[0].set_ylim([xmin,xmax])
-		hdl_splots_ker[0].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
-		hdl_splots_ker[0].set_ylabel(r"$x_t^\prime$",fontsize=fontsize_labels)
-		hdl_splots_ker[0].set_title(r"$k(x_t,x^\prime_t)$ {0:s}".format("Kernel suppressed polys"),fontsize=fontsize_labels)
-		hdl_splots_ker[0].set_xticks([xmin,0.0,xmax])
-		hdl_splots_ker[0].set_yticks([xmin,0.0,xmax])
+			kXX_orig, kXX_thetas, f_samples_orig, fx_vec_reconstructed_rs, f_samples_new_with_kernel_with_thetas, xpred = test_resulting_kernel(cfg,file_name,plot_and_block=False)
 
-		hdl_splots_ker[1].imshow(kXX_thetas,extent=extent_plot_xpred,origin="lower",cmap=plt.get_cmap(COLOR_MAP),vmin=kXX_thetas.min(),vmax=kXX_thetas.max(),interpolation='nearest')
-		hdl_splots_ker[1].set_xlim([xmin,xmax])
-		hdl_splots_ker[1].set_ylim([xmin,xmax])
-		hdl_splots_ker[1].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
-		hdl_splots_ker[1].set_ylabel(r"$x_t^\prime$",fontsize=fontsize_labels)
-		hdl_splots_ker[1].set_title(r"$k(x_t,x^\prime_t)$ {0:s}".format("Kernel suppressed polys"),fontsize=fontsize_labels)
-		hdl_splots_ker[1].set_xticks([xmin,0.0,xmax])
-		hdl_splots_ker[1].set_yticks([xmin,0.0,xmax])
+			xmin = xpred[0,0]
+			xmax = xpred[-1,0]
+
+			extent_plot_xpred = [xmin,xmax,xmin,xmax] #  scalars (left, right, bottom, top)
+
+			# Kernel:
+			hdl_splots_ker_fit[0,cc].imshow(kXX_thetas,extent=extent_plot_xpred,origin="lower",cmap=plt.get_cmap(COLOR_MAP),vmin=kXX_thetas.min(),vmax=kXX_thetas.max(),interpolation='nearest')
+			hdl_splots_ker_fit[0,cc].set_xlim([xmin,xmax])
+			hdl_splots_ker_fit[0,cc].set_ylim([xmin,xmax])
+			hdl_splots_ker_fit[0,cc].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
+			hdl_splots_ker_fit[0,cc].set_ylabel(r"$x_t^\prime$",fontsize=fontsize_labels)
+			hdl_splots_ker_fit[0,cc].set_title(r"$k(x_t,x^\prime_t)$ {0:s}".format("Kernel suppressed polys"),fontsize=fontsize_labels)
+			hdl_splots_ker_fit[0,cc].set_xticks([xmin,0.0,xmax])
+			hdl_splots_ker_fit[0,cc].set_yticks([xmin,0.0,xmax])
+
+			# Reconstruction:
+			Nrollouts = fx_vec_reconstructed_rs.shape[0]
+			for rr in range(Nrollouts):
+				hdl_splots_ker_fit[1,cc].plot(xpred[:,0],f_samples_orig[:,rr],lw=3,color="crimson",alpha=0.2,label="True",linestyle="-")
+				hdl_splots_ker_fit[1,cc].plot(xpred[:,0],fx_vec_reconstructed_rs[rr,:],lw=1,color="navy",alpha=0.7,label="Reconstructed",linestyle="-")
+
+			hdl_splots_ker_fit[1,cc].set_xlim([xmin,xmax])
+			hdl_splots_ker_fit[1,cc].set_ylim([xmin,xmax])
+			hdl_splots_ker_fit[1,cc].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
+			hdl_splots_ker_fit[1,cc].set_ylabel(r"$f(x_t)$",fontsize=fontsize_labels)
+			hdl_splots_ker_fit[1,cc].set_title(r"Reconstructed function",fontsize=fontsize_labels)
+			hdl_splots_ker_fit[1,cc].set_xticks([xmin,0.0,xmax])
+			hdl_splots_ker_fit[1,cc].set_yticks([xmin,0.0,xmax])
+
+			for rr in range(Nrollouts):
+				hdl_splots_ker_fit[2,cc].plot(xpred[:,0],f_samples_new_with_kernel_with_thetas[:,rr],lw=1,color="navy",alpha=0.3,label="Reconstructed",linestyle="-")
+
+			hdl_splots_ker_fit[2,cc].set_xlim([xmin,xmax])
+			hdl_splots_ker_fit[2,cc].set_ylim([xmin,xmax])
+			hdl_splots_ker_fit[2,cc].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
+			hdl_splots_ker_fit[2,cc].set_ylabel(r"$f(x_t)$",fontsize=fontsize_labels)
+			hdl_splots_ker_fit[2,cc].set_title(r"New samples",fontsize=fontsize_labels)
+			hdl_splots_ker_fit[2,cc].set_xticks([xmin,0.0,xmax])
+			hdl_splots_ker_fit[2,cc].set_yticks([xmin,0.0,xmax])
+
+
+			cc += 1
+
+		plt.show(block=True)
 
 
 
@@ -540,6 +572,6 @@ if __name__ == "__main__":
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
-	train_reconstruction()
+	# train_reconstruction()
 
-	# plotting_results()
+	plotting_results()

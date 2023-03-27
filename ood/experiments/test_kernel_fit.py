@@ -181,7 +181,7 @@ def train_reconstruction(cfg):
 
 	Nepochs = 1000
 	# Nsamples_omega = 15**2
-	Nsamples_omega = 500
+	Nsamples_omega = 700
 	# Nsamples_omega = 20
 	if using_hybridrobotics:
 		Nepochs = 100000

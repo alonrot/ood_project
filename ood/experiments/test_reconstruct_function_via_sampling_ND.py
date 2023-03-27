@@ -185,10 +185,10 @@ def reconstruct(cfg):
 	Nepochs = 13
 	Nsamples_omega = 30
 	if using_hybridrobotics:
-		Nepochs = 50000
-		Nsamples_omega = 1500
+		Nepochs = 60000
+		Nsamples_omega = 2000
 	
-	omega_lim = 5.0
+	omega_lim = 8.0
 	Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 	# Dw_coarse = 1.0 / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 
@@ -261,7 +261,7 @@ def reconstruct(cfg):
 							state_and_control_full_list=state_and_control_full_list,
 							state_next_full_list=state_next_full_list,
 							path2data=path2data)
-		
+
 		logger.info("Saving learned omegas, S_w, varphi_w, delta_w, delta_xt at {0:s} ...".format(path2save))
 		file = open(path2save, 'wb')
 		pickle.dump(data2save,file)

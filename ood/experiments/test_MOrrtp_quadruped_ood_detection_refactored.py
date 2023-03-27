@@ -170,19 +170,24 @@ def compute_predictions(cfg):
 	logger.info(" * Initializing GP model ...")
 	rrtp_MO = MultiObjectiveReducedRankProcess(dim_in,cfg,spectral_density_list,Xtrain,Ytrain,using_deltas=using_deltas)
 
-
 	ind_which_traj = 0
 	z_vec_real = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj][:,0:dim_x],dtype=tf.float32)
 	u_vec_tf = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj][:,dim_x::],dtype=tf.float32)
 	zu_vec = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj],dtype=tf.float32)
 
-	# Predictions:
-	MO_mean_pred, MO_std_pred = rrtp_MO.predict_at_locations(zu_vec)
-	# pdb.set_trace()
-	deltas_real = state_next_full_list[ind_which_traj] - state_and_control_full_list[ind_which_traj][:,0:dim_x]
+	analyze_data = False
+	if analyze_data:
 
-	plot_state_transition_reconstruction = False
-	if plot_state_transition_reconstruction:
+		# # Delta predictions:
+		# MO_mean_pred, MO_std_pred = rrtp_MO.predict_at_locations(zu_vec)
+		# deltas_real = state_next_full_list[ind_which_traj] - state_and_control_full_list[ind_which_traj][:,0:dim_x]
+
+
+		# Delta predictions (on the full dataset):
+		MO_mean_pred, MO_std_pred = rrtp_MO.predict_at_locations(Xtrain)
+		deltas_real = Ytrain.numpy()
+
+
 		hdl_fig, hdl_splots_next_state = plt.subplots(dim_out,1,figsize=(16,14),sharex=False,sharey=False)
 		hdl_fig.suptitle(r"State transition - Reconstructed; $\Delta x_{t+1,d} = f_d(x_t)$",fontsize=fontsize_labels)
 		hdl_splots_next_state = np.reshape(hdl_splots_next_state,(-1,1))
@@ -209,17 +214,59 @@ def compute_predictions(cfg):
 		# hdl_splots_next_state[0,1].set_title("True dynamics",fontsize=fontsize_labels)
 		# hdl_splots_next_state[-1,0].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
 		# hdl_splots_next_state[-1,1].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
-		# 
+
 		lgnd = hdl_splots_next_state[-1,0].legend(loc="best",fontsize=fontsize_labels)
 		lgnd.legendHandles[0]._legmarker.set_markersize(20)
 		lgnd.legendHandles[1]._legmarker.set_markersize(20)
 
+		
+		hdl_fig_data, hdl_splots_data = plt.subplots(5,1,figsize=(12,8),sharex=True)
+		hdl_fig_data.suptitle("Test trajectory for predictions",fontsize=fontsize_labels)
+		hdl_splots_data[0].set_title("Inputs",fontsize=fontsize_labels)
+		hdl_splots_data[0].plot(z_vec_real[:,0],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+		hdl_splots_data[1].plot(z_vec_real[:,1],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+		hdl_splots_data[2].plot(z_vec_real[:,2],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+		hdl_splots_data[3].plot(u_vec_tf[:,0],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+		hdl_splots_data[4].plot(u_vec_tf[:,1],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+
+
+		hdl_fig_data, hdl_splots_data = plt.subplots(5,2,figsize=(12,8),sharex=True)
+		hdl_fig_data.suptitle("Training data",fontsize=fontsize_labels)
+		hdl_splots_data[0,0].set_title("Inputs")
+		hdl_splots_data[0,0].plot(Xtrain[:,0],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+		hdl_splots_data[1,0].plot(Xtrain[:,1],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+		hdl_splots_data[2,0].plot(Xtrain[:,2],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+		hdl_splots_data[3,0].plot(Xtrain[:,3],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+		hdl_splots_data[4,0].plot(Xtrain[:,4],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+
+
+		hdl_splots_data[0,1].set_title("Outputs",fontsize=fontsize_labels)
+		for jj in range(dim_out):
+			hdl_splots_data[jj,1].plot(Ytrain[:,jj],lw=1,alpha=0.5,color="crimson")
+			hdl_splots_data[jj,1].plot(MO_mean_pred[:,jj],lw=1,alpha=0.5,color="navy")
+			hdl_splots_data[jj,1].plot(MO_mean_pred[:,jj] - 2.*MO_std_pred[:,jj],lw=1,color="navy",alpha=0.5)
+			hdl_splots_data[jj,1].plot(MO_mean_pred[:,jj] + 2.*MO_std_pred[:,jj],lw=1,color="navy",alpha=0.5)
+			# hdl_splots_data[jj,1].fill_between(MO_mean_pred[:,jj] - 2.*MO_std_pred[:,jj],MO_mean_pred[:,jj] + 2.*MO_std_pred[:,jj],color="navy",alpha=0.5)
+
+		# hdl_splots_data[1,1].plot(Ytrain[:,1],lw=1,alpha=0.5,color="crimson")
+		# hdl_splots_data[2,1].plot(Ytrain[:,2],lw=1,alpha=0.5,color="crimson")
+
+		# hdl_splots_data[1,1].plot(MO_mean_pred[:,1],lw=1,alpha=0.3,color="navy")
+		# hdl_splots_data[1,1].fill_between(MO_mean_pred[:,0] - 2.*MO_std_pred,MO_mean_pred[:,0] + 2.*MO_std_pred,color="navy",alpha=0.2)
+		
+		# hdl_splots_data[2,1].plot(MO_mean_pred[:,2],lw=1,alpha=0.3,color="navy")
+		# hdl_splots_data[2,1].fill_between(MO_mean_pred[:,0] - 2.*MO_std_pred,MO_mean_pred[:,0] + 2.*MO_std_pred,color="navy",alpha=0.2)
+
+
+
+
 		plt.show(block=True)
+
 
 
 	if using_hybridrobotics:
 		# Nhorizon_rec = 40
-		Nhorizon_rec = 15
+		Nhorizon_rec = 30
 		# Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
 		# Nsteps_tot = z_vec_real.shape[0] // 2
 		Nsteps_tot = z_vec_real.shape[0]
@@ -243,8 +290,8 @@ def compute_predictions(cfg):
 		# Nepochs = 50
 
 		Nhorizon_rec = 30
-		Nsteps_tot = 40
-		# Nsteps_tot = z_vec_real.shape[0]
+		# Nsteps_tot = 40
+		Nsteps_tot = z_vec_real.shape[0]
 		# Nsteps_tot = z_vec_real.shape[0] // 8
 		Nepochs = 200
 		Nrollouts = 15
@@ -278,7 +325,7 @@ def compute_predictions(cfg):
 	cov_beta_pred_chol_all_dim = tensors4predictions["cov_beta_pred_chol_all_dim"]
 
 
-	noise_mat = rrtp_MO.sample_mv0[...,0]
+	noise_mat = rrtp_MO.sample_mv0[...,0] # We slice matrix [Nrollouts,Nomegas,1]
 	predictions_module = Predictions(dim_in,dim_out,phi_samples_all_dim,W_samples_all_dim,mean_beta_pred_all_dim,cov_beta_pred_chol_all_dim,noise_mat,Nrollouts,Nhorizon_rec)
 	# predictions_module = None
 	
@@ -288,7 +335,7 @@ def compute_predictions(cfg):
 	loss_avg, x_traj_pred_all_vec, loss_val_per_step = rrtp_MO.get_elbo_loss_for_predictions_in_full_trajectory_with_certain_horizon(Nsteps_tot,Nhorizon_rec,when2sample="once_per_class_instantiation",predictions_module=predictions_module)
 
 	if savedata:
-		data2save = dict(x_traj_pred_all_vec=x_traj_pred_all_vec,u_vec_tf=u_vec_tf,z_vec_real=z_vec_real,loss_val_per_step=loss_val_per_step)
+		data2save = dict(x_traj_pred_all_vec=x_traj_pred_all_vec,u_vec_tf=u_vec_tf,z_vec_real=z_vec_real,loss_val_per_step=loss_val_per_step,Xtrain=Xtrain,Ytrain=Ytrain)
 		file_name = "predicted_trajs_{0:s}.pickle".format(name_file_date)
 		path2save_receding_horizon = "{0:s}/{1:s}/{2:s}".format(path2project,path2folder,file_name)
 		logger.info("Saving at {0:s} ...".format(path2save_receding_horizon))
@@ -330,6 +377,9 @@ def plot_predictions(cfg,file_name):
 	# hdl_fig_pred_sampling_rec.suptitle("Simulated trajectory predictions ...", fontsize=fontsize_labels)
 	# hdl_splots_sampling_rec[0].plot(z_vec_real[0:tt+1,0],z_vec_real[0:tt+1,1],linestyle="-",color="navy",lw=2.0,label="Real traj - nominal dynamics",alpha=0.3)
 	hdl_splots_sampling_rec[0].plot(z_vec_real[:,0],z_vec_real[:,1],linestyle="-",color="navy",lw=2.0,label="With nominal dynamics",alpha=0.7)
+	if "Xtrain" in data_dict.keys():
+		Xtrain = data_dict["Xtrain"]
+		hdl_splots_sampling_rec[0].plot(Xtrain[:,0],Xtrain[:,1],linestyle="-",color="grey",lw=0.5,alpha=0.3) # Overlay the entire training set
 	tt = 0
 	hdl_plt_dubins_real, = hdl_splots_sampling_rec[0].plot(z_vec_real[tt,0],z_vec_real[tt,1],marker="*",markersize=14,color="darkgreen",label="Tracking experimental data - Quadruped")
 	# hdl_splots_sampling_rec[0].set_xlim([-6.0,5.0])
@@ -398,8 +448,11 @@ def main(cfg):
 	# ==============================================================
 	# With Quadruped data from data_quadruped_experiments_03_25_2023
 	# ==============================================================
+	# All with recostructed model file_name = "reconstruction_data_2023_03_27_01_23_40.pickle"
 	# file_name = "predicted_trajs_2023_03_27_02_02_52.pickle"
 	# file_name = "predicted_trajs_2023_03_27_02_31_51.pickle"
+	# file_name = "predicted_trajs_2023_03_27_02_37_01.pickle" # Working alright, but could be better
+	# file_name = "predicted_trajs_2023_03_27_12_03_52.pickle" # Sampling rollouts no with Gaussian samples cutoff of 0.8; noise parameter in the model set to 0.005
 	# plot_predictions(cfg,file_name)
 
 
@@ -415,4 +468,4 @@ if __name__ == "__main__":
 	# scp -P 4444 -r ./data_quadruped_experiments_03_25_2023/from_hybridrob/reconstruction_data_2023_03_27_01_23_40.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/from_hybridrob/
 
 
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/predicted_trajs_2023_03_27_02_31_51.pickle ./data_quadruped_experiments_03_25_2023/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/predicted_trajs_2023_03_27_02_37_01.pickle ./data_quadruped_experiments_03_25_2023/

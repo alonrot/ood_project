@@ -569,12 +569,12 @@ def get_dictionary_log():
 
 	# # << GPSSM >>
 	# file_name = "gpssm_trained_model_gpflow_2023_03_27_14_03_22" # Ratio 1.0 | dbg
-	# file_name = "gpssm_trained_model_gpflow_2023_03_27_14_26_29" # Ratio 0.25 | on hybridrob
+	# file_name = "gpssm_trained_model_gpflow_2023_03_27_15_07_51" # Ratio 0.25 | on hybridrob
 
 
 	# Selected dictionary:
 	dict_MOrrtp = dict(p25="reconstruction_data_2023_03_27_14_56_21.pickle",p100="reconstruction_data_2023_03_26_22_48_31.pickle")
-	dict_gpssm_standard = dict(p25="gpssm_trained_model_gpflow_2023_03_27_14_26_29",p100="gpssm_trained_model_gpflow_2023_03_27_14_03_22")
+	dict_gpssm_standard = dict(p25="gpssm_trained_model_gpflow_2023_03_27_15_07_51",p100="gpssm_trained_model_gpflow_2023_03_27_14_03_22")
 	dict_all = dict(MOrrtp=dict_MOrrtp,gpssm=dict_gpssm_standard)
 
 	return dict_all
@@ -585,7 +585,7 @@ def main(cfg):
 
 	# Training models:
 	# train_MOrrtp_by_reconstructing(cfg,ratio=0.25)
-	train_gpssm(cfg,ratio=0.25)
+	train_gpssm(cfg,ratio=0.5)
 
 
 	# # Assessing model performance:
@@ -608,7 +608,7 @@ if __name__ == "__main__":
 
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/reconstruction_data_2023_03_27_14_56_21.pickle ./data_efficiency_test_with_dubinscar/
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"gpssm_trained_model_gpflow_2023_03_27_14_26_29*" ./data_efficiency_test_with_dubinscar/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"gpssm_trained_model_gpflow_2023_03_27_15_07_51*" ./data_efficiency_test_with_dubinscar/
 
 
 	# python test_data_efficiency.py gpmodel.using_hybridrobotics=False

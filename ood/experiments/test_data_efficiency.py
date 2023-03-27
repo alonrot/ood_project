@@ -91,11 +91,11 @@ def load_data_dubins_car(path2project,ratio):
 
 
 	assert ratio > 0.0 and ratio <= 1.0
-	Ntest_max = int(Xtest.shape[0] * ratio)
-	Xtest = Xtest[0:Ntest_max,:]
-	Ytest = Ytest[0:Ntest_max,:]
+	Ntrain_max = int(Xtrain.shape[0] * ratio)
+	Xtrain = Xtrain[0:Ntrain_max,:]
+	Ytrain = Ytrain[0:Ntrain_max,:]
 
-	logger.info(" * Requested ratio: {0:f} | Training with {1:d} / {2:d} ".format(ratio,Ntest_max,Ntrajs4train))
+	logger.info(" * Requested ratio: {0:f} | Training with {1:d} / {2:d} ".format(ratio,Ntrain_max,Ntrajs4train))
 
 	if using_deltas:
 		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
@@ -136,7 +136,7 @@ def train_MOrrtp_by_reconstructing(cfg,ratio):
 
 	Repeat for GPSSM with standard kernel. We hope to see that our model does better with less data
 
-	makse sure using_deltas = True
+	make sure using_deltas = True
 	"""
 
 	xpred_training = tf.identity(Xtrain)
@@ -150,7 +150,7 @@ def train_MOrrtp_by_reconstructing(cfg,ratio):
 		Nepochs = 5000
 		Nsamples_omega = 1500
 	
-	omega_lim = 3.0
+	omega_lim = 5.0
 	Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 	# Dw_coarse = 1.0 / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 
@@ -370,7 +370,7 @@ def train_gpssm(cfg,ratio):
 	file.close()
 	logger.info("Done!")
 
-def load_MOrrtp_model(path2project,file_name):
+def load_MOrrtp_model(cfg,path2project,file_name):
 
 	path2load_full = "{0:s}/{1:s}/{2:s}".format(path2project,path2folder,file_name)
 	file = open(path2load_full, 'rb')
@@ -447,8 +447,6 @@ def load_gpssm(path2project,file_name):
 
 	return MO_mean_test, MO_std_test, Ytest.numpy(), Xtest, Ytrain, Xtrain
 
-
-
 def compute_model_error_for_selected_model(cfg,dict_all,which_model="MOrrtp",which_ratio="p25"):
 
 	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
@@ -461,7 +459,7 @@ def compute_model_error_for_selected_model(cfg,dict_all,which_model="MOrrtp",whi
 	file_name = dict_all[which_model][which_ratio]
 
 	if which_model == "MOrrtp":
-		MO_mean_test, MO_std_test, Ytest, Xtest, Ytrain, Xtrain = load_MOrrtp_model(path2project,file_name)
+		MO_mean_test, MO_std_test, Ytest, Xtest, Ytrain, Xtrain = load_MOrrtp_model(cfg,path2project,file_name)
 	elif which_model == "gpssm":
 		MO_mean_test, MO_std_test, Ytest, Xtest, Ytrain, Xtrain = load_gpssm(path2project,file_name)
 
@@ -488,7 +486,7 @@ def compute_model_error_for_selected_model(cfg,dict_all,which_model="MOrrtp",whi
 			delta_fx_next_sorted = Ytest[ind_xt_sorted,jj]
 			delta_MO_mean_test_sorted = MO_mean_test.numpy()[ind_xt_sorted,jj]
 
-			hdl_splots_next_state[jj,0].plot(delta_fx_next_sorted,linestyle="-",color="crimson",alpha=0.3,lw=3.0,label="Training data")
+			hdl_splots_next_state[jj,0].plot(delta_fx_next_sorted,linestyle="-",color="crimson",alpha=0.3,lw=3.0,label="Test data")
 			hdl_splots_next_state[jj,0].plot(delta_MO_mean_test_sorted,linestyle="-",color="navy",alpha=0.7,lw=1.0,label="Reconstructed")
 
 		hdl_splots_next_state[0,0].set_ylabel(r"$\Delta f_1(x_t)$",fontsize=fontsize_labels)
@@ -548,7 +546,7 @@ def compute_model_error_for_selected_model(cfg,dict_all,which_model="MOrrtp",whi
 			hdl_splots_data[jj,1].plot(MO_mean_test[:,jj] - 2.*MO_std_test[:,jj],lw=1,color="navy",alpha=0.5)
 			hdl_splots_data[jj,1].plot(MO_mean_test[:,jj] + 2.*MO_std_test[:,jj],lw=1,color="navy",alpha=0.5)
 
-		plt.show(block=True)
+		# plt.show(block=False)
 
 
 	log_evidence_tot = np.mean(-log_evidence_mat)
@@ -563,16 +561,17 @@ def get_dictionary_log():
 	# All experiments log
 	# """
 	# # << Our model >>
-	# # file_name = "reconstruction_data_2023_03_26_22_48_31.pickle" # Ratio: 0.25 | Nepochs: 5000
+	# file_name = "reconstruction_data_2023_03_26_22_48_31.pickle" # Ratio: 0.25 | Nepochs: 5000
 	# file_name = "reconstruction_data_2023_03_26_22_41_28.pickle" # Ratio: 1.0 | Nepochs: 5000
+	# file_name = "reconstruction_data_2023_03_27_14_51_36.pickle" # Ratio: 0.25 | Nepochs: 5000 | dbg
 
 	# # << GPSSM >>
 	# file_name = "gpssm_trained_model_gpflow_2023_03_27_14_03_22" # Ratio 1.0 | dbg
-	file_name = "gpssm_trained_model_gpflow_2023_03_27_14_26_29" # Ratio 0.25
+	# file_name = "gpssm_trained_model_gpflow_2023_03_27_14_26_29" # Ratio 0.25 | on hybridrob
 
 
 	# Selected dictionary:
-	dict_MOrrtp = dict(p25="reconstruction_data_2023_03_26_22_48_31.pickle",p100="reconstruction_data_2023_03_26_22_48_31.pickle")
+	dict_MOrrtp = dict(p25="reconstruction_data_2023_03_27_14_51_36.pickle",p100="reconstruction_data_2023_03_26_22_48_31.pickle")
 	dict_gpssm_standard = dict(p25="gpssm_trained_model_gpflow_2023_03_27_14_26_29",p100="gpssm_trained_model_gpflow_2023_03_27_14_03_22")
 	dict_all = dict(MOrrtp=dict_MOrrtp,gpssm=dict_gpssm_standard)
 
@@ -583,15 +582,16 @@ def get_dictionary_log():
 def main(cfg):
 
 	# Training models:
-	# train_MOrrtp_by_reconstructing(cfg,ratio=0.25)
-	train_gpssm(cfg,ratio=1.0)
+	train_MOrrtp_by_reconstructing(cfg,ratio=0.25)
+	# train_gpssm(cfg,ratio=1.0)
 
 
 	# # Assessing model performance:
 	# dict_all = get_dictionary_log()
-	# log_evidence_tot, mse_tot = compute_model_error_for_selected_model(cfg,dict_all,which_model="gpssm",which_ratio="p25")
+	# log_evidence_tot, mse_tot = compute_model_error_for_selected_model(cfg,dict_all,which_model="MOrrtp",which_ratio="p25")
 	# logger.info("log_evidence_tot: {0:f}".format(log_evidence_tot))
 	# logger.info("mse_tot: {0:f}".format(mse_tot))
+	# plt.show(block=True)
 
 
 
@@ -606,6 +606,7 @@ if __name__ == "__main__":
 
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/reconstruction_data_2023_03_26_22_48_31.pickle ./data_efficiency_test_with_dubinscar/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"gpssm_trained_model_gpflow_2023_03_27_14_26_29*" ./data_efficiency_test_with_dubinscar/
 
 
 	# python test_data_efficiency.py gpmodel.using_hybridrobotics=False

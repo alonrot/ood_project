@@ -134,6 +134,8 @@ def load_quadruped_experiments_03_25_2023(path2project):
 @hydra.main(config_path="./config",config_name="config")
 def reconstruct(cfg):
 
+	# scp -P 4444 -r ./data_quadruped_experiments_03_25_2023/joined_go1trajs_trimmed_2023_03_25.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/
+
 	savefig = True
 
 	name_file_date = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
@@ -181,8 +183,8 @@ def reconstruct(cfg):
 	Nepochs = 13
 	Nsamples_omega = 30
 	if using_hybridrobotics:
-		Nepochs = 100000
-		Nsamples_omega = 1500
+		Nepochs = 1000
+		Nsamples_omega = 500
 	
 	omega_lim = 5.0
 	Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]

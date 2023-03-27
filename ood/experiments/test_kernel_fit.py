@@ -42,7 +42,7 @@ COLOR_MAP = "copper"
 
 my_seed = 100 # keep it at 100
 
-saving_counter = 102
+saving_counter = 103
 
 def ker_fun(x,xp,alpha):
 	"""
@@ -151,8 +151,8 @@ def generate_data(plot_stuff=False,block_plot=False):
 @hydra.main(config_path="./config",config_name="config")
 def train_reconstruction(cfg):
 
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_101.pickle ./kernel_fit_reconstruction/
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/reconstruction_plots101.png ./kernel_fit_reconstruction/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/learning_data_seed_102.pickle ./kernel_fit_reconstruction/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/kernel_fit_reconstruction/reconstruction_plots102.png ./kernel_fit_reconstruction/
 
 	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
 	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
@@ -182,7 +182,7 @@ def train_reconstruction(cfg):
 	Nepochs = 1000
 	# Nsamples_omega = 15**2
 	# Nsamples_omega = 500
-	Nsamples_omega = 100
+	Nsamples_omega = 20
 	if using_hybridrobotics:
 		Nepochs = 100000
 	
@@ -502,18 +502,23 @@ def plotting_results(cfg):
 		# file_name = "learning_data_seed_98.pickle" # with 40 rollouts; good; Nomegas: 100
 		# file_name = "learning_data_seed_99.pickle" # with 40 rollouts; good; Nomegas: 200
 		# file_name = "learning_data_seed_100.pickle" # with 40 rollouts; good; Nomegas: 300
-		file_name = "learning_data_seed_101.pickle" # with 40 rollouts; good; Nomegas: 400
+		# file_name = "learning_data_seed_101.pickle" # with 40 rollouts; good; Nomegas: 400
+		file_name = "learning_data_seed_102.pickle" # with 40 rollouts; good; Nomegas: 100
 
 		# Upcoming:
+		# file_name = "learning_data_seed_102.pickle" # with 40 rollouts; good; Nomegas: 100 (repeated with same noise seed)
 
 		test_resulting_kernel(cfg,file_name,plot_and_block=True)
 
 	else:
 
 		# Extract relevant quantities from one of the files:
-		kXX_orig_cc0, _, f_samples_orig_cc0, _, _, xpred_orig_cc0 = test_resulting_kernel(cfg,"learning_data_seed_95.pickle",plot_and_block=False)
+		kXX_orig_cc0, _, f_samples_orig_cc0, _, _, xpred_orig_cc0 = test_resulting_kernel(cfg,"learning_data_seed_102.pickle",plot_and_block=False)
 
-		file_name_list = ["learning_data_seed_98.pickle","learning_data_seed_100.pickle","learning_data_seed_101.pickle"]
+		kXX_prog_min = kXX_orig_cc0.min()
+		kXX_prog_max = kXX_orig_cc0.max()
+
+		file_name_list = ["learning_data_seed_102.pickle","learning_data_seed_100.pickle","learning_data_seed_101.pickle"] # Nomegas = [100, ]
 		hdl_fig_ker_fit, hdl_splots_ker_fit = plt.subplots(3,len(file_name_list)+1,figsize=(12,8))
 		
 		# for file_name in file_name_list:
@@ -532,7 +537,9 @@ def plotting_results(cfg):
 			extent_plot_xpred = [xmin,xmax,xmin,xmax] #  scalars (left, right, bottom, top)
 
 			# Kernel:
-			hdl_splots_ker_fit[0,cc].imshow(kXX_thetas,extent=extent_plot_xpred,origin="lower",cmap=plt.get_cmap(COLOR_MAP),vmin=kXX_thetas.min(),vmax=kXX_thetas.max(),interpolation='nearest')
+			# kXX_prog_min = kXX_thetas.min()
+			# kXX_prog_max = kXX_thetas.max()
+			hdl_splots_ker_fit[0,cc].imshow(kXX_thetas,extent=extent_plot_xpred,origin="lower",cmap=plt.get_cmap(COLOR_MAP),vmin=kXX_prog_min,vmax=kXX_prog_max,interpolation='nearest')
 			hdl_splots_ker_fit[0,cc].set_xlim([xmin,xmax])
 			hdl_splots_ker_fit[0,cc].set_ylim([xmin,xmax])
 			# hdl_splots_ker_fit[0,cc].set_ylabel(r"$x_t^\prime$",fontsize=fontsize_labels)
@@ -541,7 +548,7 @@ def plotting_results(cfg):
 			# hdl_splots_ker_fit[0,cc].set_title(r"$k(x_t,x^\prime_t)$ {0:s}".format("Kernel suppressed polys"),fontsize=fontsize_labels)
 
 			# Reconstruction:
-			Nrollouts = f_samples_orig.shape[0]
+			Nrollouts = f_samples_orig.shape[1]
 			Nrollouts_red = 15
 			for rr in range(Nrollouts_red):
 				hdl_splots_ker_fit[1,cc].plot(xpred[:,0],f_samples_orig[:,rr],lw=3,color="crimson",alpha=0.2,label="True",linestyle="-")
@@ -554,8 +561,8 @@ def plotting_results(cfg):
 			hdl_splots_ker_fit[1,cc].set_yticks([])
 			# hdl_splots_ker_fit[1,cc].set_title(r"Reconstructed function",fontsize=fontsize_labels)
 
-			for rr in range(Nrollouts_red):
-				if cc > 0: hdl_splots_ker_fit[2,cc].plot(xpred[:,0],f_samples_new_with_kernel_with_thetas[:,rr],lw=1,color="navy",alpha=0.3,label="Reconstructed",linestyle="-")
+			for rr in range(Nrollouts):
+				if cc > 0: hdl_splots_ker_fit[2,cc].plot(xpred[:,0],f_samples_new_with_kernel_with_thetas[:,rr],lw=0.5,color="navy",alpha=0.3,label="Reconstructed",linestyle="-")
 
 			hdl_splots_ker_fit[2,cc].set_xlim([xmin,xmax])
 			hdl_splots_ker_fit[2,cc].set_ylim([xmin,xmax])

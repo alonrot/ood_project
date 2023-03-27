@@ -136,8 +136,9 @@ def compute_predictions(cfg):
 
 	# fix_pickle_datafile(cfg,path2project,path2folder)
 
-	# file_name = "reconstruction_data_2023_03_26_21_55_08.pickle" # Trained model on hybridrob for 50000 iters; data subsampled at 10 Hz
-	file_name = "reconstruction_data_2023_03_27_01_23_40.pickle" # Trained model on hybridrob for 50000 iters; data subsampled at 10 Hz || Completed the missing fields using the above function fix_pickle_datafile()
+	# file_name = "reconstruction_data_2023_03_26_21_55_08.pickle" # Trained model on hybridrob for 50000 iters per dim; data subsampled at 10 Hz
+	file_name = "reconstruction_data_2023_03_27_01_23_40.pickle" # Trained model on hybridrob for 50000 iters per dim; data subsampled at 10 Hz || Completed the missing fields using the above function fix_pickle_datafile()
+	# file_name = "reconstruction_data_2023_03_27_01_23_40.pickle" # [same precision, more omegas, not worth it] Trained model on hybridrob with 2000 omegas. 10000 iters per dim; data subsampled at 10 Hz || Completed the missing fields using the above function fix_pickle_datafile()
 	path2load_full = "{0:s}/{1:s}/from_hybridrob/{2:s}".format(path2project,path2folder,file_name)
 	file = open(path2load_full, 'rb')
 	data_dict = pickle.load(file)
@@ -256,8 +257,6 @@ def compute_predictions(cfg):
 		
 		# hdl_splots_data[2,1].plot(MO_mean_pred[:,2],lw=1,alpha=0.3,color="navy")
 		# hdl_splots_data[2,1].fill_between(MO_mean_pred[:,0] - 2.*MO_std_pred,MO_mean_pred[:,0] + 2.*MO_std_pred,color="navy",alpha=0.2)
-
-
 
 
 		plt.show(block=True)
@@ -442,7 +441,7 @@ def plot_predictions(cfg,file_name):
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg):
 
-	compute_predictions(cfg)
+	# compute_predictions(cfg)
 
 
 	# ==============================================================
@@ -453,7 +452,8 @@ def main(cfg):
 	# file_name = "predicted_trajs_2023_03_27_02_31_51.pickle"
 	# file_name = "predicted_trajs_2023_03_27_02_37_01.pickle" # Working alright, but could be better
 	# file_name = "predicted_trajs_2023_03_27_12_03_52.pickle" # Sampling rollouts no with Gaussian samples cutoff of 0.8; noise parameter in the model set to 0.005
-	# plot_predictions(cfg,file_name)
+	file_name = "predicted_trajs_2023_03_27_12_16_02.pickle" # Sampling rollouts no with Gaussian samples cutoff of 0.8; noise parameter in the model set to 0.003; ovelaying all the trainign data | not too bad
+	plot_predictions(cfg,file_name)
 
 
 

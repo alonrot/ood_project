@@ -258,8 +258,8 @@ def train_gpssm(cfg,ratio):
 	Xtrain, Ytrain, Xtest, Ytest, dim_in, dim_out, Nsteps, path2data = load_data_dubins_car(path2project,ratio) # Dubins car
 
 	# Based on: https://gpflow.github.io/GPflow/develop/notebooks/advanced/multioutput.html#
-	MAXITER = reduce_in_tests(2000)
-	# MAXITER = 2
+	# MAXITER = reduce_in_tests(2000)
+	MAXITER = 500
 
 	N = Xtrain.shape[0]  # number of points
 	D = Xtrain.shape[1]  # number of input dimensions
@@ -593,10 +593,10 @@ def get_dictionary_log():
 
 	# Selected dictionary:
 	# dict_MOrrtp = dict(p25="reconstruction_data_2023_03_27_14_56_21.pickle",p100="reconstruction_data_2023_03_26_22_48_31.pickle")
-	dict_MOrrtp = dict(	p25="reconstruction_data_2023_03_27_15_58_28.pickle",
-						p50="reconstruction_data_2023_03_27_15_58_31.pickle",
-						p75="reconstruction_data_2023_03_27_15_58_33.pickle",
-						p100="reconstruction_data_2023_03_27_15_58_36.pickle")
+	dict_MOrrtp = dict(	p25="reconstruction_data_2023_03_27_16_01_20.pickle",
+						p50="reconstruction_data_2023_03_27_16_02_54.pickle",
+						p75="reconstruction_data_2023_03_27_16_07_04.pickle",
+						p100="reconstruction_data_2023_03_27_16_12_23.pickle")
 
 
 
@@ -652,6 +652,13 @@ def main(cfg):
 		plt.show(block=True)
 
 
+	# [__main__] log_evidence_tot_vec: [312.37249325  17.15509606  69.2630712   -1.57705247]
+	# [__main__] mse_tot_vec: [0.00092441 0.00084742 0.00090638 0.00038995]
+
+
+	# [__main__] log_evidence_tot_vec: [-1.71454018  3.92208463 12.8002281  26.14316294]
+	# [__main__] mse_tot_vec: [0.00118618 0.00098399 0.00106042 0.00122093]
+
 
 if __name__ == "__main__":
 
@@ -659,11 +666,9 @@ if __name__ == "__main__":
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
-
 	main()
 
-
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/reconstruction_data_2023_03_27_14_56_21.pickle ./data_efficiency_test_with_dubinscar/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_16_12_23*" ./data_efficiency_test_with_dubinscar/
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_15_37_49*" ./data_efficiency_test_with_dubinscar/
 
 

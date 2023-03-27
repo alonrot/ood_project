@@ -399,6 +399,7 @@ def main(cfg):
 	# With Quadruped data from data_quadruped_experiments_03_25_2023
 	# ==============================================================
 	# file_name = "predicted_trajs_2023_03_27_02_02_52.pickle"
+	# file_name = "predicted_trajs_2023_03_27_02_31_51.pickle"
 	# plot_predictions(cfg,file_name)
 
 
@@ -414,4 +415,4 @@ if __name__ == "__main__":
 	# scp -P 4444 -r ./data_quadruped_experiments_03_25_2023/from_hybridrob/reconstruction_data_2023_03_27_01_23_40.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/from_hybridrob/
 
 
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023//predicted_trajs_2023_03_27_02_02_52.pickle ./data_quadruped_experiments_03_25_2023/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/predicted_trajs_2023_03_27_02_31_51.pickle ./data_quadruped_experiments_03_25_2023/

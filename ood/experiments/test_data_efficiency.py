@@ -618,8 +618,8 @@ def main(cfg):
 	what2do = "train"
 	# what2do = "test"
 
-	# which_model="gpssm"
-	which_model="MOrrtp"
+	which_model="gpssm"
+	# which_model="MOrrtp"
 
 
 	# Training models:

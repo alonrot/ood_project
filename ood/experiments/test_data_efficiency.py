@@ -146,7 +146,7 @@ def train_MOrrtp_by_reconstructing(cfg,ratio):
 	Nepochs = 13
 	Nsamples_omega = 30
 	if using_hybridrobotics:
-		Nepochs = 5000
+		Nepochs = 10000
 		Nsamples_omega = 1500
 	
 	omega_lim = 5.0

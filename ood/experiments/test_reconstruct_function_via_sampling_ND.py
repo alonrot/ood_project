@@ -183,8 +183,8 @@ def reconstruct(cfg):
 	Nepochs = 13
 	Nsamples_omega = 30
 	if using_hybridrobotics:
-		Nepochs = 1000
-		Nsamples_omega = 500
+		Nepochs = 50000
+		Nsamples_omega = 1500
 	
 	omega_lim = 5.0
 	Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]

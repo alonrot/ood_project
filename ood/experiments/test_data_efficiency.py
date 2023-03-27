@@ -105,7 +105,7 @@ def load_data_dubins_car(path2project,ratio):
 	return Xtrain, Ytrain, Xtest, Ytest, dim_in, dim_out, Nsteps, path2data
 
 
-def train_MOrrtp_by_reconstructing(cfg,ratio=1.0):
+def train_MOrrtp_by_reconstructing(cfg,ratio):
 
 	savefig = True
 
@@ -234,7 +234,7 @@ def train_MOrrtp_by_reconstructing(cfg,ratio=1.0):
 	return data2save
 
 
-def train_gpssm(cfg,ratio=1.0):
+def train_gpssm(cfg,ratio):
 
 	savefig = True
 
@@ -282,8 +282,8 @@ def train_gpssm(cfg,ratio=1.0):
 
 
 	# Create list of kernels for each output
-	# kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
-	kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) for _ in range(P)]
+	kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
+	# kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) for _ in range(P)]
 	
 	# Create multi-output kernel from kernel list:
 	use_coregionalization = True

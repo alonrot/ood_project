@@ -259,7 +259,7 @@ def train_gpssm(cfg,ratio):
 
 	# Based on: https://gpflow.github.io/GPflow/develop/notebooks/advanced/multioutput.html#
 	# MAXITER = reduce_in_tests(2000)
-	MAXITER = 500
+	MAXITER = 10
 
 	N = Xtrain.shape[0]  # number of points
 	D = Xtrain.shape[1]  # number of input dimensions
@@ -289,8 +289,10 @@ def train_gpssm(cfg,ratio):
 
 
 	# Create list of kernels for each output
-	kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
+	# kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
 	# kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) for _ in range(P)]
+	kern_list = [gpf.kernels.Matern52(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
+
 	
 	# Create multi-output kernel from kernel list:
 	use_coregionalization = True
@@ -463,7 +465,7 @@ def load_gpssm(path2project,file_name):
 
 	return MO_mean_test, MO_std_test, Ytest.numpy(), Xtest, Ytrain, Xtrain
 
-def compute_model_error_for_selected_model(cfg,dict_all,which_model="MOrrtp",which_ratio="p25"):
+def compute_model_error_for_selected_model(cfg,dict_all,which_model,which_ratio,plot_data_analysis=True):
 
 	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
 	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
@@ -489,8 +491,7 @@ def compute_model_error_for_selected_model(cfg,dict_all,which_model="MOrrtp",whi
 		log_evidence_mat[:,dd] = scipy.stats.norm.logpdf(x=Ytest[:,dd],loc=MO_mean_test[:,dd],scale=MO_std_test[:,dd])
 		mse_mat[:,dd] = (Ytest[:,dd] - MO_mean_test[:,dd])**2
 
-	analyze_data = True
-	if analyze_data:
+	if plot_data_analysis:
 
 		hdl_fig, hdl_splots_next_state = plt.subplots(dim_out,3,figsize=(16,14),sharex=False,sharey=False)
 		hdl_fig.suptitle(r"State transition - Reconstructed; $\Delta x_{t+1,d} = f_d(x_t)$",fontsize=fontsize_labels)
@@ -562,7 +563,7 @@ def compute_model_error_for_selected_model(cfg,dict_all,which_model="MOrrtp",whi
 			hdl_splots_data[jj,1].plot(MO_mean_test[:,jj] - 2.*MO_std_test[:,jj],lw=1,color="navy",alpha=0.5)
 			hdl_splots_data[jj,1].plot(MO_mean_test[:,jj] + 2.*MO_std_test[:,jj],lw=1,color="navy",alpha=0.5)
 
-		# plt.show(block=False)
+		plt.show(block=False)
 
 
 	log_evidence_tot = np.mean(-log_evidence_mat)
@@ -593,10 +594,10 @@ def get_dictionary_log():
 
 	# Selected dictionary:
 	# dict_MOrrtp = dict(p25="reconstruction_data_2023_03_27_14_56_21.pickle",p100="reconstruction_data_2023_03_26_22_48_31.pickle")
-	dict_MOrrtp = dict(	p25="reconstruction_data_2023_03_27_16_01_20.pickle",
-						p50="reconstruction_data_2023_03_27_16_02_54.pickle",
-						p75="reconstruction_data_2023_03_27_16_07_04.pickle",
-						p100="reconstruction_data_2023_03_27_16_12_23.pickle")
+	dict_MOrrtp = dict(	p25="reconstruction_data_2023_03_27_16_01_20.pickle", # trained with noise: value_init: 0.1
+						p50="reconstruction_data_2023_03_27_16_02_54.pickle", # trained with noise: value_init: 0.1
+						p75="reconstruction_data_2023_03_27_16_07_04.pickle", # trained with noise: value_init: 0.1
+						p100="reconstruction_data_2023_03_27_16_12_23.pickle") # trained with noise: value_init: 0.1
 
 
 
@@ -604,61 +605,103 @@ def get_dictionary_log():
 								p50="gpssm_trained_model_gpflow_2023_03_27_15_31_25",
 								p75="gpssm_trained_model_gpflow_2023_03_27_15_34_09",
 								p100="gpssm_trained_model_gpflow_2023_03_27_15_37_49")
+
 	dict_all = dict(MOrrtp=dict_MOrrtp,gpssm=dict_gpssm_standard)
 
 	return dict_all
 
 
-@hydra.main(config_path="./config",config_name="config")
-def main(cfg):
+def get_log_evidence_evolution(cfg,which_model,ratio_list,ratio_names_list,plotting=True):
 
-	ratio_list = [0.25,0.5,0.75,1.0]
-	ratio_names_list = ["p25","p50","p75","p100"]
+	dict_all = get_dictionary_log()
+	log_evidence_tot_vec = np.zeros(len(ratio_list))
+	mse_tot_vec = np.zeros(len(ratio_list))
+	for tt in range(len(ratio_list)):
+		log_evidence_tot, mse_tot = compute_model_error_for_selected_model(cfg,dict_all,which_model=which_model,which_ratio=ratio_names_list[tt],plot_data_analysis=plotting)
+		logger.info("log_evidence_tot: {0:f}".format(log_evidence_tot))
+		logger.info("mse_tot: {0:f}".format(mse_tot))
 
-	what2do = "train"
-	# what2do = "test"
+		log_evidence_tot_vec[tt] = log_evidence_tot
+		mse_tot_vec[tt] = mse_tot
 
-	which_model="gpssm"
-	# which_model="MOrrtp"
+	logger.info("log_evidence_tot_vec: {0:s}".format(str(log_evidence_tot_vec)))
+	logger.info("mse_tot_vec: {0:s}".format(str(mse_tot_vec)))
+	
+	if plotting: plt.show(block=True)
 
-
-	# Training models:
-	if what2do == "train":
-		name_file_date = []
-		for ratio in ratio_list:
-			if which_model == "gpssm": name_file_date += [train_gpssm(cfg,ratio=ratio)]
-			if which_model == "MOrrtp": name_file_date += [train_MOrrtp_by_reconstructing(cfg,ratio=ratio)]
-
-		logger.info("name_file_date: {0:s}".format(str(name_file_date)))
-		logger.info("ratio_list: {0:s}".format(str(ratio_list)))
+	return log_evidence_tot_vec, mse_tot_vec
 
 
-	# Assessing model performance:
-	if what2do == "test":
-		dict_all = get_dictionary_log()
-		log_evidence_tot_vec = np.zeros(len(ratio_list))
-		mse_tot_vec = np.zeros(len(ratio_list))
-		for tt in range(len(ratio_list)):
-			log_evidence_tot, mse_tot = compute_model_error_for_selected_model(cfg,dict_all,which_model=which_model,which_ratio=ratio_names_list[tt])
-			logger.info("log_evidence_tot: {0:f}".format(log_evidence_tot))
-			logger.info("mse_tot: {0:f}".format(mse_tot))
-
-			log_evidence_tot_vec[tt] = log_evidence_tot
-			mse_tot_vec[tt] = mse_tot
-
-		logger.info("log_evidence_tot_vec: {0:s}".format(str(log_evidence_tot_vec)))
-		logger.info("mse_tot_vec: {0:s}".format(str(mse_tot_vec)))
-		
-		plt.show(block=True)
-
-
+	# GPSSM 2000 iters
 	# [__main__] log_evidence_tot_vec: [312.37249325  17.15509606  69.2630712   -1.57705247]
 	# [__main__] mse_tot_vec: [0.00092441 0.00084742 0.00090638 0.00038995]
 
 
-	# [__main__] log_evidence_tot_vec: [-1.71454018  3.92208463 12.8002281  26.14316294]
-	# [__main__] mse_tot_vec: [0.00118618 0.00098399 0.00106042 0.00122093]
+	# Our model:
+	# [__main__] log_evidence_tot_vec: [-0.80292185 -1.71336395 -1.94673304 -2.01677426] # noise_std_process: value_init: 0.1
+	# [__main__] mse_tot_vec: [0.00118884 0.00098398 0.00106042 0.00122093] # noise_std_process: value_init: 0.1
 
+@hydra.main(config_path="./config",config_name="config")
+def training_for_multiple_ratios(cfg):
+
+	ratio_list = [0.25,0.5,0.75,1.0]
+	ratio_names_list = ["p25","p50","p75","p100"]
+
+	which_model = "gpssm"
+
+	# Training models:
+	name_file_date = []
+	for ratio in ratio_list:
+		if which_model == "gpssm": name_file_date += [train_gpssm(cfg,ratio=ratio)]
+		if which_model == "MOrrtp": name_file_date += [train_MOrrtp_by_reconstructing(cfg,ratio=ratio)]
+
+	logger.info("name_file_date: {0:s}".format(str(name_file_date)))
+	logger.info("ratio_list: {0:s}".format(str(ratio_list)))
+
+
+
+@hydra.main(config_path="./config",config_name="config")
+def statistical_comparison(cfg):
+
+	which_model_list = ["gpssm","MOrrtp"]
+
+	ratio_list = [0.25,0.5,0.75,1.0]
+	ratio_names_list = ["p25","p50","p75","p100"]
+
+	log_evidence_per_model_list = []
+	mse_per_model_list = []
+	marker_list = ["s","v"]
+	for model in which_model_list:
+
+		log_evidence, mse = get_log_evidence_evolution(cfg,which_model=model,ratio_list=ratio_list,ratio_names_list=ratio_names_list,plotting=False)
+
+		# log_evidence = np.random.rand(4)
+		# mse = np.random.rand(4)
+
+		log_evidence_per_model_list += [log_evidence]
+		mse_per_model_list += [mse]
+
+
+	hdl_fig_data, hdl_splots_data = plt.subplots(2,1,figsize=(12,8),sharex=True)
+	hdl_fig_data.suptitle("Data efficiency",fontsize=fontsize_labels)
+	ratio_list_plot = (np.array(ratio_list)*100).astype(dtype=int)
+	for mm in range(len(which_model_list)):
+		hdl_splots_data[0].plot(ratio_list_plot,log_evidence_per_model_list[mm],lw=1,alpha=0.7,color="darkgreen",marker=marker_list[mm],markersize=5)
+		hdl_splots_data[1].plot(ratio_list_plot,mse_per_model_list[mm],lw=1,alpha=0.7,color="darkgreen",marker=marker_list[mm],markersize=5)
+
+		hdl_splots_data[0].set_xticks([])
+		hdl_splots_data[1].set_xticks([])
+
+		hdl_splots_data[0].set_ylabel(r"$-\log p(\Delta x_{t+1})$",fontsize=fontsize_labels)
+		hdl_splots_data[1].set_ylabel(r"RMSE",fontsize=fontsize_labels)
+
+
+	hdl_splots_data[-1].set_xticks(ratio_list_plot)
+	hdl_splots_data[-1].set_xlabel(r"\% of training data",fontsize=fontsize_labels)
+
+	plt.show(block=True)
+
+	# hdl_splots_data[-1].set_xticks([])
 
 if __name__ == "__main__":
 
@@ -666,11 +709,14 @@ if __name__ == "__main__":
 	np.random.seed(seed=my_seed)
 	tf.random.set_seed(seed=my_seed)
 
-	main()
+
+	training_for_multiple_ratios()
+
+	# statistical_comparison()
+
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_16_12_23*" ./data_efficiency_test_with_dubinscar/
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_15_37_49*" ./data_efficiency_test_with_dubinscar/
-
 
 	# python test_data_efficiency.py gpmodel.using_hybridrobotics=False
 

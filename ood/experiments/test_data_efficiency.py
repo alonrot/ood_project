@@ -258,7 +258,7 @@ def train_gpssm(cfg,ratio):
 	Xtrain, Ytrain, Xtest, Ytest, dim_in, dim_out, Nsteps, path2data = load_data_dubins_car(path2project,ratio) # Dubins car
 
 	# Based on: https://gpflow.github.io/GPflow/develop/notebooks/advanced/multioutput.html#
-	MAXITER = reduce_in_tests(2000)
+	MAXITER = reduce_in_tests(500)
 	# MAXITER = 10
 
 	N = Xtrain.shape[0]  # number of points
@@ -289,9 +289,9 @@ def train_gpssm(cfg,ratio):
 
 
 	# Create list of kernels for each output
-	# kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
+	kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
 	# kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) for _ in range(P)]
-	kern_list = [gpf.kernels.Matern52(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
+	# kern_list = [gpf.kernels.Matern52(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
 
 	
 	# Create multi-output kernel from kernel list:
@@ -478,7 +478,7 @@ def compute_model_error_for_selected_model(cfg,dict_all,which_model,which_ratio,
 
 	if which_model == "MOrrtp":
 		MO_mean_test, MO_std_test, Ytest, Xtest, Ytrain, Xtrain = load_MOrrtp_model(cfg,path2project,file_name)
-	elif which_model == "gpssm":
+	elif which_model == "gpssm_se" or which_model == "gpssm_matern":
 		MO_mean_test, MO_std_test, Ytest, Xtest, Ytrain, Xtrain = load_gpssm(path2project,file_name)
 
 	dim_out = Ytest.shape[1]
@@ -601,12 +601,18 @@ def get_dictionary_log():
 
 
 
-	dict_gpssm_standard = dict(	p25="gpssm_trained_model_gpflow_2023_03_27_15_29_39",
-								p50="gpssm_trained_model_gpflow_2023_03_27_15_31_25",
-								p75="gpssm_trained_model_gpflow_2023_03_27_15_34_09",
-								p100="gpssm_trained_model_gpflow_2023_03_27_15_37_49")
+	dict_gpssm_standard_SE = dict(	p25="gpssm_trained_model_gpflow_2023_03_27_15_29_39", # SE, 2000 iters
+								p50="gpssm_trained_model_gpflow_2023_03_27_15_31_25", # SE, 2000 iters
+								p75="gpssm_trained_model_gpflow_2023_03_27_15_34_09", # SE, 2000 iters
+								p100="gpssm_trained_model_gpflow_2023_03_27_15_37_49") # SE, 2000 iters
 
-	dict_all = dict(MOrrtp=dict_MOrrtp,gpssm=dict_gpssm_standard)
+
+	dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_27_17_26_55", # Matern52, 2000 iters
+								p50="gpssm_trained_model_gpflow_2023_03_27_17_28_49", # Matern52, 2000 iters
+								p75="gpssm_trained_model_gpflow_2023_03_27_17_31_45", # Matern52, 2000 iters
+								p100="gpssm_trained_model_gpflow_2023_03_27_17_35_40") # Matern52, 2000 iters
+
+	dict_all = dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)
 
 	return dict_all
 
@@ -663,14 +669,14 @@ def training_for_multiple_ratios(cfg):
 @hydra.main(config_path="./config",config_name="config")
 def statistical_comparison(cfg):
 
-	which_model_list = ["gpssm","MOrrtp"]
+	which_model_list = ["gpssm_se","gpssm_matern","MOrrtp"]
 
 	ratio_list = [0.25,0.5,0.75,1.0]
 	ratio_names_list = ["p25","p50","p75","p100"]
 
 	log_evidence_per_model_list = []
 	mse_per_model_list = []
-	marker_list = ["s","v"]
+	marker_list = ["s","v","*"]
 	for model in which_model_list:
 
 		log_evidence, mse = get_log_evidence_evolution(cfg,which_model=model,ratio_list=ratio_list,ratio_names_list=ratio_names_list,plotting=False)
@@ -710,13 +716,12 @@ if __name__ == "__main__":
 	tf.random.set_seed(seed=my_seed)
 
 
-	training_for_multiple_ratios()
+	# training_for_multiple_ratios()
 
-	# statistical_comparison()
+	statistical_comparison()
 
 
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_16_12_23*" ./data_efficiency_test_with_dubinscar/
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_15_37_49*" ./data_efficiency_test_with_dubinscar/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_17_35_40*" ./data_efficiency_test_with_dubinscar/
 
 	# python test_data_efficiency.py gpmodel.using_hybridrobotics=False
 

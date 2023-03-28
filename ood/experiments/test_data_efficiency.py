@@ -289,9 +289,9 @@ def train_gpssm(cfg,ratio):
 
 
 	# Create list of kernels for each output
-	kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
+	# kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
 	# kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) for _ in range(P)]
-	# kern_list = [gpf.kernels.Matern52(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
+	kern_list = [gpf.kernels.Matern52(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
 
 	
 	# Create multi-output kernel from kernel list:
@@ -594,10 +594,10 @@ def get_dictionary_log():
 
 	# Selected dictionary:
 	# dict_MOrrtp = dict(p25="reconstruction_data_2023_03_27_14_56_21.pickle",p100="reconstruction_data_2023_03_26_22_48_31.pickle")
-	dict_MOrrtp = dict(	p25="reconstruction_data_2023_03_27_16_01_20.pickle", # trained with noise: value_init: 0.1
-						p50="reconstruction_data_2023_03_27_16_02_54.pickle", # trained with noise: value_init: 0.1
-						p75="reconstruction_data_2023_03_27_16_07_04.pickle", # trained with noise: value_init: 0.1
-						p100="reconstruction_data_2023_03_27_16_12_23.pickle") # trained with noise: value_init: 0.1
+	dict_MOrrtp = dict(	p25="reconstruction_data_2023_03_27_16_01_20.pickle", # trained for 10000 epochs, works best with noise: value_init: 0.1
+						p50="reconstruction_data_2023_03_27_16_02_54.pickle", # trained for 10000 epochs, works best with noise: value_init: 0.1
+						p75="reconstruction_data_2023_03_27_16_07_04.pickle", # trained for 10000 epochs, works best with noise: value_init: 0.1
+						p100="reconstruction_data_2023_03_27_16_12_23.pickle") # trained for 10000 epochs, works best with noise: value_init: 0.1
 
 
 
@@ -716,9 +716,9 @@ if __name__ == "__main__":
 	tf.random.set_seed(seed=my_seed)
 
 
-	# training_for_multiple_ratios()
+	training_for_multiple_ratios()
 
-	statistical_comparison()
+	# statistical_comparison()
 
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_17_35_40*" ./data_efficiency_test_with_dubinscar/

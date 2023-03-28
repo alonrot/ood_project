@@ -258,8 +258,8 @@ def train_gpssm(cfg,ratio):
 	Xtrain, Ytrain, Xtest, Ytest, dim_in, dim_out, Nsteps, path2data = load_data_dubins_car(path2project,ratio) # Dubins car
 
 	# Based on: https://gpflow.github.io/GPflow/develop/notebooks/advanced/multioutput.html#
-	# MAXITER = reduce_in_tests(2000)
-	MAXITER = 10
+	MAXITER = reduce_in_tests(2000)
+	# MAXITER = 10
 
 	N = Xtrain.shape[0]  # number of points
 	D = Xtrain.shape[1]  # number of input dimensions

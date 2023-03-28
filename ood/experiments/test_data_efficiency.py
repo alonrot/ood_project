@@ -258,7 +258,7 @@ def train_gpssm(cfg,ratio):
 	Xtrain, Ytrain, Xtest, Ytest, dim_in, dim_out, Nsteps, path2data = load_data_dubins_car(path2project,ratio) # Dubins car
 
 	# Based on: https://gpflow.github.io/GPflow/develop/notebooks/advanced/multioutput.html#
-	MAXITER = reduce_in_tests(500)
+	MAXITER = reduce_in_tests(1000)
 	# MAXITER = 10
 
 	N = Xtrain.shape[0]  # number of points
@@ -607,10 +607,15 @@ def get_dictionary_log():
 								p100="gpssm_trained_model_gpflow_2023_03_27_15_37_49") # SE, 2000 iters
 
 
-	dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_27_17_26_55", # Matern52, 2000 iters
-								p50="gpssm_trained_model_gpflow_2023_03_27_17_28_49", # Matern52, 2000 iters
-								p75="gpssm_trained_model_gpflow_2023_03_27_17_31_45", # Matern52, 2000 iters
-								p100="gpssm_trained_model_gpflow_2023_03_27_17_35_40") # Matern52, 2000 iters
+	# dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_27_17_26_55", # Matern52, 2000 iters
+	# 							p50="gpssm_trained_model_gpflow_2023_03_27_17_28_49", # Matern52, 2000 iters
+	# 							p75="gpssm_trained_model_gpflow_2023_03_27_17_31_45", # Matern52, 2000 iters
+	# 							p100="gpssm_trained_model_gpflow_2023_03_27_17_35_40") # Matern52, 2000 iters
+
+	dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_27_18_19_33", # Matern52, 500 iters
+								p50="gpssm_trained_model_gpflow_2023_03_27_18_20_08", # Matern52, 500 iters
+								p75="gpssm_trained_model_gpflow_2023_03_27_18_20_56", # Matern52, 500 iters
+								p100="gpssm_trained_model_gpflow_2023_03_27_18_21_57") # Matern52, 500 iters
 
 	dict_all = dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)
 
@@ -721,10 +726,8 @@ if __name__ == "__main__":
 	# statistical_comparison()
 
 
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_17_35_40*" ./data_efficiency_test_with_dubinscar/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_18_21_57*" ./data_efficiency_test_with_dubinscar/
 
 	# python test_data_efficiency.py gpmodel.using_hybridrobotics=False
-
-
 
 

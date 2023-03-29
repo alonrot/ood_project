@@ -389,16 +389,19 @@ def plot_predictions(cfg,file_name):
 	# hdl_splots_sampling_rec[0].plot(z_vec_real[0:tt+1,0],z_vec_real[0:tt+1,1],linestyle="-",color="navy",lw=2.0,label="Real traj - nominal dynamics",alpha=0.3)
 
 	
-	hdl_splots_sampling_rec[0].plot(z_vec_real[:,0],z_vec_real[:,1],linestyle="-",color="navy",lw=2.0,label="With nominal dynamics",alpha=0.7)
+	# hdl_splots_sampling_rec[0].plot(z_vec_real[:,0],z_vec_real[:,1],linestyle="-",color="navy",lw=2.0,label="With nominal dynamics",alpha=0.7)
 
 
-	# z_vec_real_colors[:,0:2] = np.reshape(z_vec_real,(-1,1,2))
-	# norm = plt.Normalize(dydx.min(), dydx.max())
-	# lc = LineCollection(segments, cmap='viridis', norm=norm)
-	# # Set the values used for colormapping
-	# lc.set_array(dydx)
-	# lc.set_linewidth(2)
-	# line = axs[0].add_collection(lc)
+	z_vec_real_colors = np.reshape(z_vec_real[:,0:2],(-1,1,2))
+	segments = np.concatenate([z_vec_real_colors[:-1], z_vec_real_colors[1:]], axis=1)
+
+	from matplotlib.collections import LineCollection
+	norm = plt.Normalize(loss_min, loss_max)
+	lc = LineCollection(segments, cmap='summer', norm=norm)
+	# Set the values used for colormapping
+	lc.set_array(loss_val_per_step)
+	lc.set_linewidth(2)
+	line = hdl_splots_sampling_rec[0].add_collection(lc)
 
 	
 	if "Xtrain" in data_dict.keys():

@@ -341,8 +341,8 @@ def train_gpssm(cfg,ratio):
 	# Xtrain, Ytrain, Xtest, Ytest, dim_in, dim_out, Nsteps, path2data = load_data(path2project,ratio) # Dubins car
 
 	# Based on: https://gpflow.github.io/GPflow/develop/notebooks/advanced/multioutput.html#
-	MAXITER = reduce_in_tests(1000)
-	# MAXITER = 10
+	# MAXITER = reduce_in_tests(1000)
+	MAXITER = 10
 
 	N = Xtrain.shape[0]  # number of points
 	D = Xtrain.shape[1]  # number of input dimensions
@@ -713,76 +713,88 @@ def get_dictionary_log_dubins_car():
 
 def get_dictionary_log_quadruped():
 
-	# """
-	# All experiments log
-	# """
-
-	# Selected dictionary:
-	# dict_MOrrtp = dict(p25="reconstruction_data_2023_03_27_14_56_21.pickle",p100="reconstruction_data_2023_03_26_22_48_31.pickle")
-	dict_MOrrtp = dict(	p25="reconstruction_data_2023_03_29_03_23_41.pickle", # trained for 10000 epochs, works best with noise: value_init: 0.1
-						p50="reconstruction_data_2023_03_29_03_23_43.pickle", # trained for 10000 epochs, works best with noise: value_init: 0.1
-						p75="reconstruction_data_2023_03_29_03_23_46.pickle", # trained for 10000 epochs, works best with noise: value_init: 0.1
-						p100="reconstruction_data_2023_03_29_03_23_49.pickle") # trained for 10000 epochs, works best with noise: value_init: 0.1
+	dict_all_list = []
 
 
-
-	dict_gpssm_standard_SE = dict(	p25="gpssm_trained_model_gpflow_2023_03_27_15_29_39", # SE, 2000 iters
-								p50="gpssm_trained_model_gpflow_2023_03_27_15_31_25", # SE, 2000 iters
-								p75="gpssm_trained_model_gpflow_2023_03_27_15_34_09", # SE, 2000 iters
-								p100="gpssm_trained_model_gpflow_2023_03_27_15_37_49") # SE, 2000 iters
-
-
-	# dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_27_17_26_55", # Matern52, 2000 iters
-	# 							p50="gpssm_trained_model_gpflow_2023_03_27_17_28_49", # Matern52, 2000 iters
-	# 							p75="gpssm_trained_model_gpflow_2023_03_27_17_31_45", # Matern52, 2000 iters
-	# 							p100="gpssm_trained_model_gpflow_2023_03_27_17_35_40") # Matern52, 2000 iters
-
-	dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_27_18_19_33", # Matern52, 500 iters
-								p50="gpssm_trained_model_gpflow_2023_03_27_18_20_08", # Matern52, 500 iters
-								p75="gpssm_trained_model_gpflow_2023_03_27_18_20_56", # Matern52, 500 iters
-								p100="gpssm_trained_model_gpflow_2023_03_27_18_21_57") # Matern52, 500 iters
-
-	# dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_27_19_50_51", # Matern52, 1000 iters
-	# 							p50="gpssm_trained_model_gpflow_2023_03_27_19_51_53", # Matern52, 1000 iters
-	# 							p75="gpssm_trained_model_gpflow_2023_03_27_19_53_24", # Matern52, 1000 iters
-	# 							p100="gpssm_trained_model_gpflow_2023_03_27_19_55_23") # Matern52, 1000 iters
+	# Batch 1:
+	dict_MOrrtp = dict(	p25="reconstruction_data_2023_03_29_03_47_07.pickle",
+								p50="reconstruction_data_2023_03_29_03_48_49.pickle",
+								p75="reconstruction_data_2023_03_29_03_50_30.pickle",
+								p100="reconstruction_data_2023_03_29_03_52_10.pickle")
+	dict_gpssm_standard_SE = None
+	dict_gpssm_standard_matern = None
+	dict_all_list += [dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)]
 
 
-	dict_all = dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)
+	# Batch 2:
+	dict_MOrrtp = dict(	p25="reconstruction_data_2023_03_29_03_53_53.pickle",
+								p50="reconstruction_data_2023_03_29_03_55_33.pickle",
+								p75="reconstruction_data_2023_03_29_03_57_13.pickle",
+								p100="reconstruction_data_2023_03_29_03_58_54.pickle")
+	dict_gpssm_standard_SE = None
+	dict_gpssm_standard_matern = None
+	dict_all_list += [dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)]
 
-	return dict_all
+
+	# Batch 3:
+	dict_MOrrtp = dict(	p25="reconstruction_data_2023_03_29_04_00_37.pickle",
+								p50="reconstruction_data_2023_03_29_04_02_16.pickle",
+								p75="reconstruction_data_2023_03_29_04_03_57.pickle",
+								p100="reconstruction_data_2023_03_29_04_05_37.pickle")
+	dict_gpssm_standard_SE = None
+	dict_gpssm_standard_matern = None
+	dict_all_list += [dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)]
+
+
+	# Batch 4:
+	dict_MOrrtp = dict(	p25="reconstruction_data_2023_03_29_04_07_20.pickle",
+								p50="reconstruction_data_2023_03_29_04_08_59.pickle",
+								p75="reconstruction_data_2023_03_29_04_10_40.pickle",
+								p100="reconstruction_data_2023_03_29_04_12_20.pickle")
+	dict_gpssm_standard_SE = None
+	dict_gpssm_standard_matern = None
+	dict_all_list += [dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)]
+
+
+	# Batch 5:
+	dict_MOrrtp = dict(	p25="reconstruction_data_2023_03_29_04_14_03.pickle",
+								p50="reconstruction_data_2023_03_29_04_15_43.pickle",
+								p75="reconstruction_data_2023_03_29_04_17_22.pickle",
+								p100="reconstruction_data_2023_03_29_04_19_02.pickle")
+	dict_gpssm_standard_SE = None
+	dict_gpssm_standard_matern = None
+	dict_all_list += [dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)]
+
+
+	return dict_all_list
 
 
 def get_log_evidence_evolution(cfg,which_model,ratio_list,ratio_names_list,plotting=True):
 
 	# dict_all = get_dictionary_log_dubins_car()
-	dict_all = get_dictionary_log_quadruped()
-	log_evidence_tot_vec = np.zeros(len(ratio_list))
-	mse_tot_vec = np.zeros(len(ratio_list))
-	for tt in range(len(ratio_list)):
-		log_evidence_tot, mse_tot = compute_model_error_for_selected_model(cfg,dict_all,which_model=which_model,which_ratio=ratio_names_list[tt],plot_data_analysis=plotting)
-		logger.info("log_evidence_tot: {0:f}".format(log_evidence_tot))
-		logger.info("mse_tot: {0:f}".format(mse_tot))
+	dict_all_list = get_dictionary_log_quadruped()
+	Nbatches = len(dict_all_list)
+	log_evidence_tot_vec = np.zeros((Nbatches,len(ratio_list)))
+	mse_tot_vec = np.zeros((Nbatches,len(ratio_list)))
 
-		log_evidence_tot_vec[tt] = log_evidence_tot
-		mse_tot_vec[tt] = mse_tot
+	for bb in range(Nbatches):
 
-	logger.info("log_evidence_tot_vec: {0:s}".format(str(log_evidence_tot_vec)))
-	logger.info("mse_tot_vec: {0:s}".format(str(mse_tot_vec)))
-	
-	if plotting: plt.show(block=True)
+		for tt in range(len(ratio_list)):
+			log_evidence_tot, mse_tot = compute_model_error_for_selected_model(cfg,dict_all_list[bb],which_model=which_model,which_ratio=ratio_names_list[tt],plot_data_analysis=plotting)
+			logger.info("log_evidence_tot: {0:f}".format(log_evidence_tot))
+			logger.info("mse_tot: {0:f}".format(mse_tot))
+
+			log_evidence_tot_vec[bb,tt] = log_evidence_tot
+			mse_tot_vec[bb,tt] = mse_tot
+
+		logger.info("log_evidence_tot_vec: {0:s}".format(str(log_evidence_tot_vec[bb,:])))
+		logger.info("mse_tot_vec: {0:s}".format(str(mse_tot_vec[bb,:])))
+		
+		if plotting: plt.show(block=True)
+
+
 
 	return log_evidence_tot_vec, mse_tot_vec
-
-
-	# GPSSM 2000 iters
-	# [__main__] log_evidence_tot_vec: [312.37249325  17.15509606  69.2630712   -1.57705247]
-	# [__main__] mse_tot_vec: [0.00092441 0.00084742 0.00090638 0.00038995]
-
-
-	# Our model:
-	# [__main__] log_evidence_tot_vec: [-0.80292185 -1.71336395 -1.94673304 -2.01677426] # noise_std_process: value_init: 0.1
-	# [__main__] mse_tot_vec: [0.00118884 0.00098398 0.00106042 0.00122093] # noise_std_process: value_init: 0.1
 
 @hydra.main(config_path="./config",config_name="config")
 def training_for_multiple_ratios(cfg):
@@ -790,8 +802,8 @@ def training_for_multiple_ratios(cfg):
 	ratio_list = [0.25,0.5,0.75,1.0]
 	ratio_names_list = ["p25","p50","p75","p100"]
 
-	which_model = "MOrrtp"
-	# which_model = "gpssm"
+	# which_model = "MOrrtp"
+	which_model = "gpssm"
 
 	# Training models:
 	name_file_date = []
@@ -813,7 +825,13 @@ def statistical_comparison(cfg):
 	ratio_list = [0.25,0.5,0.75,1.0]
 	ratio_names_list = ["p25","p50","p75","p100"]
 
-	# get_log_evidence_evolution(cfg,"MOrrtp",ratio_list,ratio_names_list,plotting=True)
+	# DBG:
+	log_evidence_tot_vec, mse_tot_vec = get_log_evidence_evolution(cfg,"MOrrtp",ratio_list,ratio_names_list,plotting=False)
+
+	print(log_evidence_tot_vec)
+	print(mse_tot_vec)
+
+	pdb.set_trace()
 
 	log_evidence_per_model_list = []
 	mse_per_model_list = []
@@ -870,6 +888,8 @@ if __name__ == "__main__":
 	# statistical_comparison()
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_19_55_23*" ./data_efficiency_test_with_dubinscar/
+
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_quadruped_data_03_25_2023/"*" ./data_efficiency_test_with_quadruped_data_03_25_2023/
 
 	# python test_data_efficiency.py gpmodel.using_hybridrobotics=False
 

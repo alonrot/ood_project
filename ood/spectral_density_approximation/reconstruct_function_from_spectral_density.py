@@ -28,7 +28,7 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 
 
 
-		self.dbg_flag4paper = True
+		self.dbg_flag4paper = False
 		self.dbg_flag = False
 		if self.dbg_flag:
 

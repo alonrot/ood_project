@@ -470,7 +470,7 @@ def train_gpssm(cfg,ratio):
 	file = open(path2log_file, 'w')
 	file.write("ratio: {0:2.2f}\n".format(ratio))
 	file.write("MAXITER: {0:d}\n".format(MAXITER))
-	file.write("MAXITER: {0:d}\n".format(MAXITER))
+	file.write("which_kernel: {0:s}\n".format(which_kernel))
 	file.close()
 	logger.info("Done!")
 
@@ -886,7 +886,7 @@ if __name__ == "__main__":
 	tf.random.set_seed(seed=my_seed)
 
 
-	Nrepeats = 1
+	Nrepeats = 5
 	name_file_date_list = []
 	for _ in range(Nrepeats):
 		training_for_multiple_ratios()

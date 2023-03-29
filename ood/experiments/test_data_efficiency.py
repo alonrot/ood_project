@@ -862,7 +862,7 @@ if __name__ == "__main__":
 	tf.random.set_seed(seed=my_seed)
 
 
-	Nrepeats = 1
+	Nrepeats = 2
 	for _ in range(Nrepeats):
 		training_for_multiple_ratios()
 

@@ -370,11 +370,15 @@ def train_gpssm(cfg,ratio):
 			options={"disp": 50, "maxiter": MAXITER, "gtol": 1e-16, "ftol": 1e-16},
 		)
 
+	which_kernel = "matern"
+	# which_kernel = "se"
+
+	assert which_kernel in ["matern","se"]
 
 	# Create list of kernels for each output
-	# kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
+	if which_kernel == "se": kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
 	# kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) for _ in range(P)]
-	kern_list = [gpf.kernels.Matern52(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
+	if which_kernel == "matern": kern_list = [gpf.kernels.Matern52(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
 
 	
 	# Create multi-output kernel from kernel list:
@@ -464,7 +468,9 @@ def train_gpssm(cfg,ratio):
 	path2log_file = "{0:s}/{1:s}/gpssm_trained_model_gpflow_log_file_{2:s}.txt".format(path2project,path2folder,name_file_date)
 	logger.info("Writing ratio to log file at {0:s} ...".format(path2log_file))
 	file = open(path2log_file, 'w')
-	file.write("ratio: {0:2.2f}".format(ratio))
+	file.write("ratio: {0:2.2f}\n".format(ratio))
+	file.write("MAXITER: {0:d}\n".format(MAXITER))
+	file.write("MAXITER: {0:d}\n".format(MAXITER))
 	file.close()
 	logger.info("Done!")
 

@@ -886,7 +886,7 @@ if __name__ == "__main__":
 	tf.random.set_seed(seed=my_seed)
 
 
-	Nrepeats = 5
+	Nrepeats = 1
 	name_file_date_list = []
 	for _ in range(Nrepeats):
 		training_for_multiple_ratios()

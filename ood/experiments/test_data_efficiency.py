@@ -916,12 +916,12 @@ if __name__ == "__main__":
 	tf.random.set_seed(seed=my_seed)
 
 
-	# Nrepeats = 5
-	# name_file_date_list = []
-	# for _ in range(Nrepeats):
-	# 	training_for_multiple_ratios()
+	Nrepeats = 5
+	name_file_date_list = []
+	for _ in range(Nrepeats):
+		training_for_multiple_ratios()
 
-	statistical_comparison()
+	# statistical_comparison()
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_19_55_23*" ./data_efficiency_test_with_dubinscar/
 

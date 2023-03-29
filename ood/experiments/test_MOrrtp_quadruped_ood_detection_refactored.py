@@ -359,15 +359,27 @@ def plot_predictions(cfg,file_name):
 
 	x_traj_pred_all_vec = data_dict["x_traj_pred_all_vec"] # [Nsteps_tot,Nrollouts,Nhorizon_rec,dim_x]
 	z_vec_real = data_dict["z_vec_real"]
-	loss_val_per_step = data_dict["loss_val_per_step"]
+	loss_val_per_step_in = data_dict["loss_val_per_step"] / 1000.0
 	# pdb.set_trace()
+
+	add_val = 0.0
+	if np.amin(loss_val_per_step_in) < 0.0:
+		add_val = abs(np.amin(loss_val_per_step_in))
+	loss_val_per_step = np.log(loss_val_per_step_in + add_val + 1e-10)
 
 	Nsteps_tot = x_traj_pred_all_vec.shape[0]
 	Nrollouts = x_traj_pred_all_vec.shape[1]
 	time_steps = np.arange(1,Nsteps_tot+1)
-	list_xticks_loss = list(range(0,Nsteps_tot+1,40)); list_xticks_loss[0] = 1
-	thres_OoD = 10.0
+	list_xticks_loss = list(range(0,Nsteps_tot+1,200)); list_xticks_loss[0] = 1
+	thres_OoD = 5.0
 	loss_min = np.amin(loss_val_per_step)
+	loss_max = np.amax(loss_val_per_step)
+
+	def color_gradient(loss_val):
+		rho_loss = (loss_val - loss_min) / (loss_max - loss_min)
+		color_rbg_list = [np.array([220,20,60])/255. , np.array([0,0,128])/255. ] # [crimson, navy]
+		color_with_loss = color_rbg_list[0]*rho_loss + color_rbg_list[1]*(1.-rho_loss)
+		return color_with_loss
 
 	def is_OoD_loss_based(loss_val_current,loss_thres):
 		return loss_val_current > loss_thres
@@ -375,12 +387,28 @@ def plot_predictions(cfg,file_name):
 	hdl_fig_pred_sampling_rec, hdl_splots_sampling_rec = plt.subplots(1,2,figsize=(17,7),sharex=False)
 	# hdl_fig_pred_sampling_rec.suptitle("Simulated trajectory predictions ...", fontsize=fontsize_labels)
 	# hdl_splots_sampling_rec[0].plot(z_vec_real[0:tt+1,0],z_vec_real[0:tt+1,1],linestyle="-",color="navy",lw=2.0,label="Real traj - nominal dynamics",alpha=0.3)
+
+	
 	hdl_splots_sampling_rec[0].plot(z_vec_real[:,0],z_vec_real[:,1],linestyle="-",color="navy",lw=2.0,label="With nominal dynamics",alpha=0.7)
+
+
+	# z_vec_real_colors[:,0:2] = np.reshape(z_vec_real,(-1,1,2))
+	# norm = plt.Normalize(dydx.min(), dydx.max())
+	# lc = LineCollection(segments, cmap='viridis', norm=norm)
+	# # Set the values used for colormapping
+	# lc.set_array(dydx)
+	# lc.set_linewidth(2)
+	# line = axs[0].add_collection(lc)
+
+	
 	if "Xtrain" in data_dict.keys():
 		Xtrain = data_dict["Xtrain"]
 		hdl_splots_sampling_rec[0].plot(Xtrain[:,0],Xtrain[:,1],linestyle="-",color="grey",lw=0.5,alpha=0.3) # Overlay the entire training set
 	tt = 0
-	hdl_plt_dubins_real, = hdl_splots_sampling_rec[0].plot(z_vec_real[tt,0],z_vec_real[tt,1],marker="*",markersize=14,color="darkgreen",label="Tracking experimental data - Quadruped")
+
+	color_robot = color_gradient(loss_val_per_step[tt])
+
+	hdl_plt_dubins_real, = hdl_splots_sampling_rec[0].plot(z_vec_real[tt,0],z_vec_real[tt,1],marker="*",markersize=14,color=color_robot,label="Tracking experimental data - Quadruped")
 	# hdl_splots_sampling_rec[0].set_xlim([-6.0,5.0])
 	# hdl_splots_sampling_rec[0].set_ylim([-3.5,1.5])
 	hdl_splots_sampling_rec[0].set_title("Tracking experimental data - Quadruped", fontsize=fontsize_labels)
@@ -393,7 +421,7 @@ def plot_predictions(cfg,file_name):
 		hdl_plt_predictions_list += hdl_splots_sampling_rec[0].plot(x_traj_pred_all_vec[0,ss,0:Nhor,0],x_traj_pred_all_vec[0,ss,0:Nhor,1],linestyle="-",color="darkorange",lw=0.5,label="Sampled trajs",alpha=0.5)
 
 	# Loss evolution:
-	hdl_plt_artist_loss_title = hdl_splots_sampling_rec[1].set_title("Prediction loss", fontsize=fontsize_labels)
+	hdl_plt_artist_loss_title = hdl_splots_sampling_rec[1].set_title("ELBO prediction loss", fontsize=fontsize_labels)
 	hdl_plt_artist_loss, = hdl_splots_sampling_rec[1].plot(time_steps[0:1],loss_val_per_step[0:1],linestyle="-",color="darkorange",lw=2.0,alpha=0.8)
 	hdl_splots_sampling_rec[1].set_xlim([1,Nsteps_tot+1])
 	hdl_splots_sampling_rec[1].set_xticks(list_xticks_loss)
@@ -410,9 +438,11 @@ def plot_predictions(cfg,file_name):
 	for tt in range(Nsteps_tot):
 
 		is_OoD = is_OoD_loss_based(loss_val_per_step[tt],thres_OoD)
+		# hdl_plt_dubins_real.set_markerfacecolor("red" if is_OoD else "green")
+		# hdl_plt_dubins_real.set_markeredgecolor("red" if is_OoD else "green")
 
-		hdl_plt_dubins_real.set_markerfacecolor("red" if is_OoD else "green")
-		hdl_plt_dubins_real.set_markeredgecolor("red" if is_OoD else "green")
+		color_robot = color_gradient(loss_val_per_step[tt])
+		hdl_plt_dubins_real.set_markeredgecolor(color_robot)
 
 		hdl_plt_dubins_real.set_xdata(z_vec_real[tt,0])
 		hdl_plt_dubins_real.set_ydata(z_vec_real[tt,1])
@@ -429,7 +459,7 @@ def plot_predictions(cfg,file_name):
 		# hdl_splots_sampling_rec[1].set_ylim([loss_min,np.amax(loss_val_per_step[0:tt+1])*1.1])
 		# hdl_splots_sampling_rec[1].set_title("Prediction loss; {0:s}".format("OoD = {0:s}".format(str(is_OoD))), fontsize=fontsize_labels)
 		hdl_plt_artist_loss_title.set_text("Prediction loss | OoD = {0:s}".format(str(is_OoD)))
-		hdl_plt_artist_loss_title.set_color("red" if is_OoD else "green")
+		hdl_plt_artist_loss_title.set_color(color_robot)
 		
 
 		plt.show(block=False)

@@ -150,7 +150,7 @@ def train_test_kink(cfg: dict, block_plot: bool, which_kernel: str, which_nonlin
 																Xtest=xpred_testing_cntxt,Ytest=fx_true_testing)
 
 	Nepochs = 200
-	reconstructor_fx.train(Nepochs=Nepochs,learning_rate=1e-2,stop_loss_val=0.001)
+	reconstructor_fx.train(Nepochs=Nepochs,learning_rate=1e-2,stop_loss_val=0.001,lengthscale_loss=0.01,print_every=10)
 	fx_optimized_voxels_coarse = reconstructor_fx.reconstruct_function_at(xpred=xpred_testing_cntxt)
 	spectral_density_optimized = reconstructor_fx.update_internal_spectral_density_parameters()
 	omegapred_coarse_reconstr = reconstructor_fx.get_omegas_weights()

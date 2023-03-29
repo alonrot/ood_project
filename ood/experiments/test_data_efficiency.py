@@ -43,60 +43,111 @@ matplotlib.rc('font',**{'family':'serif','serif':['Computer Modern Roman']})
 plt.rc('legend',fontsize=fontsize_labels//2)
 
 
-path2folder = "data_efficiency_test_with_dubinscar"
+# path2folder = "data_efficiency_test_with_dubinscar"
+path2folder = "data_efficiency_test_with_quadruped_data_03_25_2023"
 
 using_deltas = True
 # using_deltas = False
 
 
-def load_data_dubins_car(path2project,ratio):
+def load_data(path2project,path2file,ratio):
 
-	path2data = "{0:s}/dubinscar_data_nominal_model_waypoints_lighter_many_trajs_for_searching_wlim.pickle".format(path2project)
+	path2data = "{0:s}/{1:s}".format(path2project,path2file)
 	logger.info("Loading {0:s} ...".format(path2data))
 	file = open(path2data, 'rb')
 	data_dict = pickle.load(file)
 	file.close()
 	Xdataset = data_dict["Xtrain"]
 	Ydataset = data_dict["Ytrain"]
-	dim_x = data_dict["dim_x"]
-	dim_u = data_dict["dim_u"]
-	Nsteps = data_dict["Nsteps"]
-	Ntrajs = data_dict["Ntrajs"] # This is wrongly set to the same value as Nsteps
+	# Ntrajs = data_dict["Ntrajs"] # This is wrongly set to the same value as Nsteps
+	Ntrajs = None
 
-	dim_in = dim_x + dim_u
-	dim_out = dim_x
-
-	Xdataset_batch = np.reshape(Xdataset,(-1,Nsteps,Xdataset.shape[1])) # [Ntrajs,Nsteps,dim_x+dim_u]
-	Ydataset_batch = np.reshape(Ydataset,(-1,Nsteps,Ydataset.shape[1])) # [Ntrajs,Nsteps,dim_x]
-
-	# Split dataset: LAst 10 trajectories will be for testing; the rest are traning data
-	Ntrajs4test = 10
-	Ntrajs4train = Xdataset_batch.shape[0] - Ntrajs4test
-	Xtest_batch = Xdataset_batch[-Ntrajs4test::,...] # [Ntrajs4test,Nsteps,dim_x+dim_u]
-	Ytest_batch = Ydataset_batch[-Ntrajs4test::,...] # [Ntrajs4test,Nsteps,dim_x]
-
-	Xtrain_batch = Xdataset_batch[0:Ntrajs4train,...] # [Ntrajs4train,Nsteps,dim_x+dim_u]
-	Ytrain_batch = Ydataset_batch[0:Ntrajs4train,...] # [Ntrajs4train,Nsteps,dim_x]
-
-	logger.info("Splitting dataset:")
-	logger.info(" * Testing with {0:d} / {1:d} trajectories".format(Ntrajs4test,Xdataset_batch.shape[0]))
-	logger.info(" * Training with {0:d} / {1:d} trajectories".format(Ntrajs4train,Xdataset_batch.shape[0]))
-
-	# Return the trajectories vectorized:
-	Xtrain = np.reshape(Xtrain_batch,(-1,Xtrain_batch.shape[2]))
-	Ytrain = np.reshape(Ytrain_batch,(-1,Ytrain_batch.shape[2]))
-
-	# Return the trajectories vectorized:
-	Xtest = np.reshape(Xtest_batch,(-1,Xtest_batch.shape[2]))
-	Ytest = np.reshape(Ytest_batch,(-1,Ytest_batch.shape[2]))
-
-
-	# Slice according to requested ratio:
 	assert ratio > 0.0 and ratio <= 1.0
-	Ntrain_max = int(Xtrain.shape[0] * ratio)
-	logger.info(" * Requested ratio: {0:2.2f} | Training with {1:d} / {2:d} datapoints".format(ratio,Ntrain_max,Xtrain.shape[0]))
-	Xtrain = Xtrain[0:Ntrain_max,:]
-	Ytrain = Ytrain[0:Ntrain_max,:]
+
+	if "dubins" in path2file:
+
+		raise NotImplementedError("Code this up by bascially sampling random state-action-state tuples according to the ratios")
+
+		dim_x = data_dict["dim_x"]
+		dim_u = data_dict["dim_u"]
+		Nsteps = data_dict["Nsteps"]
+
+		dim_in = dim_x + dim_u
+		dim_out = dim_x
+
+		Xdataset_batch = np.reshape(Xdataset,(-1,Nsteps,Xdataset.shape[1])) # [Ntrajs,Nsteps,dim_x+dim_u]
+		Ydataset_batch = np.reshape(Ydataset,(-1,Nsteps,Ydataset.shape[1])) # [Ntrajs,Nsteps,dim_x]
+
+		# Split dataset: LAst 10 trajectories will be for testing; the rest are traning data
+		Ntrajs4test = 10
+		Ntrajs4train = Xdataset_batch.shape[0] - Ntrajs4test
+		Xtest_batch = Xdataset_batch[-Ntrajs4test::,...] # [Ntrajs4test,Nsteps,dim_x+dim_u]
+		Ytest_batch = Ydataset_batch[-Ntrajs4test::,...] # [Ntrajs4test,Nsteps,dim_x]
+
+		Xtrain_batch = Xdataset_batch[0:Ntrajs4train,...] # [Ntrajs4train,Nsteps,dim_x+dim_u]
+		Ytrain_batch = Ydataset_batch[0:Ntrajs4train,...] # [Ntrajs4train,Nsteps,dim_x]
+
+		logger.info("Splitting dataset:")
+		logger.info(" * Testing with {0:d} / {1:d} trajectories".format(Ntrajs4test,Xdataset_batch.shape[0]))
+		logger.info(" * Training with {0:d} / {1:d} trajectories".format(Ntrajs4train,Xdataset_batch.shape[0]))
+
+		# Return the trajectories vectorized:
+		Xtrain = np.reshape(Xtrain_batch,(-1,Xtrain_batch.shape[2]))
+		Ytrain = np.reshape(Ytrain_batch,(-1,Ytrain_batch.shape[2]))
+
+		# Return the trajectories vectorized:
+		Xtest = np.reshape(Xtest_batch,(-1,Xtest_batch.shape[2]))
+		Ytest = np.reshape(Ytest_batch,(-1,Ytest_batch.shape[2]))
+
+		# Slice according to requested ratio:
+		Ntrain_max = int(Xtrain.shape[0] * ratio)
+		logger.info(" * Requested ratio: {0:2.2f} | Training with {1:d} / {2:d} datapoints".format(ratio,Ntrain_max,Xtrain.shape[0]))
+		Xtrain = Xtrain[0:Ntrain_max,:]
+		Ytrain = Ytrain[0:Ntrain_max,:]
+
+
+	if "quadruped" in path2file:
+
+		# Test using 10% of the data. Traing using the rest a percentage of the rest, indicated by "ratio"
+		Ndataset = Xdataset.shape[0]
+		ind_samples = np.arange(0,Xdataset.shape[0])
+		Ntest = int(Ndataset*0.1)
+		ind_samples_test = np.random.choice(ind_samples,size=(Ntest),replace=False)
+
+		# Take the rest by creating a mask:
+		mask = np.ones(Ndataset) == 1
+		for ii in range(Ndataset):
+			if np.any(ii == ind_samples_test):
+				mask[ii] = False
+
+		# mask = np.prod(np.reshape(ind_samples,(-1,1)) - ind_samples_test.T,axis=1) != 0
+		ind_samples_train = ind_samples[mask]
+
+		Ntrain_with_perc = int(ratio*(Ndataset - Ntest))
+		ind_samples_train_perc = np.random.choice(ind_samples_train,size=(Ntrain_with_perc,),replace=False)
+
+		Xtest = Xdataset[ind_samples_test,:]
+		Ytest = Ydataset[ind_samples_test,:]
+
+		Xtrain = Xdataset[ind_samples_train_perc,:]
+		Ytrain = Ydataset[ind_samples_train_perc,:]
+
+		dim_in = Xtrain.shape[1]
+		dim_out = dim_x = Ytrain.shape[1]
+
+
+		Xtest = tf.convert_to_tensor(Xtest,dtype=tf.float32)
+		Ytest = tf.convert_to_tensor(Ytest,dtype=tf.float32)
+		Xtrain = tf.convert_to_tensor(Xtrain,dtype=tf.float32)
+		Ytrain = tf.convert_to_tensor(Ytrain,dtype=tf.float32)
+
+		logger.info(" * Requested ratio: {0:2.2f} | Training with {1:d} / {2:d} datapoints".format(ratio,Ntrain_with_perc,len(ind_samples_train_perc)))
+		logger.info(" *                             Testing with {0:d} datapoints".format(len(ind_samples_test)))
+
+		Nsteps = None
+
+		# pdb.set_trace()
+
 
 	if using_deltas:
 		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
@@ -104,6 +155,8 @@ def load_data_dubins_car(path2project,ratio):
 
 		Ytest_deltas = Ytest - Xtest[:,0:dim_x]
 		Ytest = tf.identity(Ytest_deltas)
+
+
 
 	return Xtrain, Ytrain, Xtest, Ytest, dim_in, dim_out, Nsteps, path2data
 
@@ -119,24 +172,25 @@ def train_MOrrtp_by_reconstructing(cfg,ratio):
 	if using_hybridrobotics:
 		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
 
-	# Load data:
-	Xtrain, Ytrain, Xtest, Ytest, dim_in, dim_out, Nsteps, path2data = load_data_dubins_car(path2project,ratio) # Dubins car
+	assert path2folder in ["dubins_car_reconstruction","data_efficiency_test_with_quadruped_data_03_25_2023"]
 
-	spectral_density_list = [None]*dim_out
-	for jj in range(dim_out):
-		spectral_density_list[jj] = DubinsCarSpectralDensity(cfg=cfg.spectral_density.dubinscar,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",use_nominal_model=True,Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
+
+	if path2folder == "dubins_car_reconstruction":
+		path2file = "dubinscar_data_nominal_model_waypoints_lighter_many_trajs_for_searching_wlim.pickle"
+		Xtrain, Ytrain, Xtest, Ytest, dim_in, dim_out, Nsteps, path2data = load_data(path2project,path2file,ratio)
+		spectral_density_list = [None]*dim_out
+		for jj in range(dim_out):
+			spectral_density_list[jj] = DubinsCarSpectralDensity(cfg=cfg.spectral_density.dubinscar,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",use_nominal_model=True,Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
 	
 
-	"""
-	0) Load data with a particular ratio
-	1) Reconstruct
-	2) Load MOrrtp and compute x_{t+1} log-evidence and RMSE
-	3) Go to 0) with a higher ratio
+	if path2folder == "data_efficiency_test_with_quadruped_data_03_25_2023":
+		path2file = "data_quadruped_experiments_03_25_2023/joined_go1trajs_trimmed_2023_03_25.pickle"
+		Xtrain, Ytrain, Xtest, Ytest, dim_in, dim_out, Nsteps, path2data = load_data(path2project,path2file,ratio)
+		spectral_density_list = [None]*dim_out
+		for jj in range(dim_out):
+			spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
 
-	Repeat for GPSSM with standard kernel. We hope to see that our model does better with less data
 
-	make sure using_deltas = True
-	"""
 
 	xpred_training = tf.identity(Xtrain)
 	fx_training = tf.identity(Ytrain)
@@ -146,8 +200,8 @@ def train_MOrrtp_by_reconstructing(cfg,ratio):
 	Nepochs = 13
 	Nsamples_omega = 30
 	if using_hybridrobotics:
-		Nepochs = 10000
-		Nsamples_omega = 1500
+		Nepochs = 1000
+		Nsamples_omega = 1000
 	
 	omega_lim = 5.0
 	Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
@@ -243,8 +297,6 @@ def train_MOrrtp_by_reconstructing(cfg,ratio):
 
 def train_gpssm(cfg,ratio):
 
-	savefig = True
-
 	name_file_date = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 
 	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
@@ -254,8 +306,35 @@ def train_gpssm(cfg,ratio):
 	if using_hybridrobotics:
 		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
 
-	# Load data:
-	Xtrain, Ytrain, Xtest, Ytest, dim_in, dim_out, Nsteps, path2data = load_data_dubins_car(path2project,ratio) # Dubins car
+	assert path2folder in ["dubins_car_reconstruction","data_efficiency_test_with_quadruped_data_03_25_2023"]
+
+
+	if path2folder == "dubins_car_reconstruction":
+		path2file = "dubinscar_data_nominal_model_waypoints_lighter_many_trajs_for_searching_wlim.pickle"
+		Xtrain, Ytrain, Xtest, Ytest, dim_in, dim_out, Nsteps, path2data = load_data(path2project,path2file,ratio)
+		spectral_density_list = [None]*dim_out
+		for jj in range(dim_out):
+			spectral_density_list[jj] = DubinsCarSpectralDensity(cfg=cfg.spectral_density.dubinscar,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",use_nominal_model=True,Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
+	
+
+	if path2folder == "data_efficiency_test_with_quadruped_data_03_25_2023":
+		path2file = "data_quadruped_experiments_03_25_2023/joined_go1trajs_trimmed_2023_03_25.pickle"
+		Xtrain, Ytrain, Xtest, Ytest, dim_in, dim_out, Nsteps, path2data = load_data(path2project,path2file,ratio)
+		spectral_density_list = [None]*dim_out
+		for jj in range(dim_out):
+			spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
+
+	# name_file_date = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+
+	# using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
+	# logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
+
+	# path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
+	# if using_hybridrobotics:
+	# 	path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
+
+	# # Load data:
+	# Xtrain, Ytrain, Xtest, Ytest, dim_in, dim_out, Nsteps, path2data = load_data(path2project,ratio) # Dubins car
 
 	# Based on: https://gpflow.github.io/GPflow/develop/notebooks/advanced/multioutput.html#
 	MAXITER = reduce_in_tests(1000)
@@ -572,7 +651,7 @@ def compute_model_error_for_selected_model(cfg,dict_all,which_model,which_ratio,
 	return log_evidence_tot, mse_tot
 
 
-def get_dictionary_log():
+def get_dictionary_log_dubins_car():
 
 	# """
 	# All experiments log
@@ -617,6 +696,54 @@ def get_dictionary_log():
 								p75="gpssm_trained_model_gpflow_2023_03_27_18_20_56", # Matern52, 500 iters
 								p100="gpssm_trained_model_gpflow_2023_03_27_18_21_57") # Matern52, 500 iters
 
+	# dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_27_19_50_51", # Matern52, 1000 iters
+	# 							p50="gpssm_trained_model_gpflow_2023_03_27_19_51_53", # Matern52, 1000 iters
+	# 							p75="gpssm_trained_model_gpflow_2023_03_27_19_53_24", # Matern52, 1000 iters
+	# 							p100="gpssm_trained_model_gpflow_2023_03_27_19_55_23") # Matern52, 1000 iters
+
+
+	dict_all = dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)
+
+	return dict_all
+
+
+def get_dictionary_log_quadruped():
+
+	# """
+	# All experiments log
+	# """
+
+	# Selected dictionary:
+	# dict_MOrrtp = dict(p25="reconstruction_data_2023_03_27_14_56_21.pickle",p100="reconstruction_data_2023_03_26_22_48_31.pickle")
+	dict_MOrrtp = dict(	p25="reconstruction_data_2023_03_29_03_23_41.pickle", # trained for 10000 epochs, works best with noise: value_init: 0.1
+						p50="reconstruction_data_2023_03_29_03_23_43.pickle", # trained for 10000 epochs, works best with noise: value_init: 0.1
+						p75="reconstruction_data_2023_03_29_03_23_46.pickle", # trained for 10000 epochs, works best with noise: value_init: 0.1
+						p100="reconstruction_data_2023_03_29_03_23_49.pickle") # trained for 10000 epochs, works best with noise: value_init: 0.1
+
+
+
+	dict_gpssm_standard_SE = dict(	p25="gpssm_trained_model_gpflow_2023_03_27_15_29_39", # SE, 2000 iters
+								p50="gpssm_trained_model_gpflow_2023_03_27_15_31_25", # SE, 2000 iters
+								p75="gpssm_trained_model_gpflow_2023_03_27_15_34_09", # SE, 2000 iters
+								p100="gpssm_trained_model_gpflow_2023_03_27_15_37_49") # SE, 2000 iters
+
+
+	# dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_27_17_26_55", # Matern52, 2000 iters
+	# 							p50="gpssm_trained_model_gpflow_2023_03_27_17_28_49", # Matern52, 2000 iters
+	# 							p75="gpssm_trained_model_gpflow_2023_03_27_17_31_45", # Matern52, 2000 iters
+	# 							p100="gpssm_trained_model_gpflow_2023_03_27_17_35_40") # Matern52, 2000 iters
+
+	dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_27_18_19_33", # Matern52, 500 iters
+								p50="gpssm_trained_model_gpflow_2023_03_27_18_20_08", # Matern52, 500 iters
+								p75="gpssm_trained_model_gpflow_2023_03_27_18_20_56", # Matern52, 500 iters
+								p100="gpssm_trained_model_gpflow_2023_03_27_18_21_57") # Matern52, 500 iters
+
+	# dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_27_19_50_51", # Matern52, 1000 iters
+	# 							p50="gpssm_trained_model_gpflow_2023_03_27_19_51_53", # Matern52, 1000 iters
+	# 							p75="gpssm_trained_model_gpflow_2023_03_27_19_53_24", # Matern52, 1000 iters
+	# 							p100="gpssm_trained_model_gpflow_2023_03_27_19_55_23") # Matern52, 1000 iters
+
+
 	dict_all = dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)
 
 	return dict_all
@@ -624,7 +751,8 @@ def get_dictionary_log():
 
 def get_log_evidence_evolution(cfg,which_model,ratio_list,ratio_names_list,plotting=True):
 
-	dict_all = get_dictionary_log()
+	# dict_all = get_dictionary_log_dubins_car()
+	dict_all = get_dictionary_log_quadruped()
 	log_evidence_tot_vec = np.zeros(len(ratio_list))
 	mse_tot_vec = np.zeros(len(ratio_list))
 	for tt in range(len(ratio_list)):
@@ -658,7 +786,8 @@ def training_for_multiple_ratios(cfg):
 	ratio_list = [0.25,0.5,0.75,1.0]
 	ratio_names_list = ["p25","p50","p75","p100"]
 
-	which_model = "gpssm"
+	which_model = "MOrrtp"
+	# which_model = "gpssm"
 
 	# Training models:
 	name_file_date = []
@@ -675,9 +804,12 @@ def training_for_multiple_ratios(cfg):
 def statistical_comparison(cfg):
 
 	which_model_list = ["gpssm_se","gpssm_matern","MOrrtp"]
+	which_model_list_legend = ["GPSSM - SE kernel", "GPSSM - Matern kernel", "rrGPSSM (ours)"]
 
 	ratio_list = [0.25,0.5,0.75,1.0]
 	ratio_names_list = ["p25","p50","p75","p100"]
+
+	# get_log_evidence_evolution(cfg,"MOrrtp",ratio_list,ratio_names_list,plotting=True)
 
 	log_evidence_per_model_list = []
 	mse_per_model_list = []
@@ -693,22 +825,27 @@ def statistical_comparison(cfg):
 		mse_per_model_list += [mse]
 
 
-	hdl_fig_data, hdl_splots_data = plt.subplots(2,1,figsize=(12,8),sharex=True)
-	hdl_fig_data.suptitle("Data efficiency",fontsize=fontsize_labels)
+	hdl_fig_data, hdl_splots_data = plt.subplots(1,1,figsize=(12,8),sharex=True)
+	hdl_fig_data.suptitle("Data efficiency assessment",fontsize=fontsize_labels)
 	ratio_list_plot = (np.array(ratio_list)*100).astype(dtype=int)
 	for mm in range(len(which_model_list)):
-		hdl_splots_data[0].plot(ratio_list_plot,log_evidence_per_model_list[mm],lw=1,alpha=0.7,color="darkgreen",marker=marker_list[mm],markersize=5)
-		hdl_splots_data[1].plot(ratio_list_plot,mse_per_model_list[mm],lw=1,alpha=0.7,color="darkgreen",marker=marker_list[mm],markersize=5)
+		hdl_splots_data.plot(ratio_list_plot,log_evidence_per_model_list[mm],lw=1,alpha=0.7,color="darkgreen",marker=marker_list[mm],markersize=5,label=which_model_list_legend[mm])
+		hdl_splots_data.set_xticks([])
+		hdl_splots_data.set_ylabel(r"$-\log p(\Delta x_{t+1})$",fontsize=fontsize_labels)
 
-		hdl_splots_data[0].set_xticks([])
-		hdl_splots_data[1].set_xticks([])
-
-		hdl_splots_data[0].set_ylabel(r"$-\log p(\Delta x_{t+1})$",fontsize=fontsize_labels)
-		hdl_splots_data[1].set_ylabel(r"RMSE",fontsize=fontsize_labels)
+		# hdl_splots_data[1].plot(ratio_list_plot,mse_per_model_list[mm],lw=1,alpha=0.7,color="darkgreen",marker=marker_list[mm],markersize=5)
+		# hdl_splots_data[1].set_xticks([])
+		# hdl_splots_data[1].set_ylabel(r"RMSE",fontsize=fontsize_labels)
 
 
-	hdl_splots_data[-1].set_xticks(ratio_list_plot)
-	hdl_splots_data[-1].set_xlabel(r"\% of training data",fontsize=fontsize_labels)
+	hdl_splots_data.set_xticks(ratio_list_plot)
+	hdl_splots_data.set_xlabel(r"\% of training data",fontsize=fontsize_labels)
+
+
+	print(log_evidence_per_model_list)
+	# 312.37,  17.15,  69.26 , -1.57
+	# 150.92,  941.16, 2529.22, 624.69
+	# 0.80, -1.71, -1.94, -2.01
 
 	plt.show(block=True)
 
@@ -721,12 +858,14 @@ if __name__ == "__main__":
 	tf.random.set_seed(seed=my_seed)
 
 
-	training_for_multiple_ratios()
+	Nrepeats = 1
+	for _ in range(Nrepeats):
+		training_for_multiple_ratios()
+
 
 	# statistical_comparison()
 
-
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_18_21_57*" ./data_efficiency_test_with_dubinscar/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_19_55_23*" ./data_efficiency_test_with_dubinscar/
 
 	# python test_data_efficiency.py gpmodel.using_hybridrobotics=False
 

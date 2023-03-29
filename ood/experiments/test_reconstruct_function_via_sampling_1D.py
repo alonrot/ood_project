@@ -19,12 +19,13 @@ from ood.spectral_density_approximation.reconstruct_function_from_spectral_densi
 import tensorflow as tf
 import tensorflow_probability as tfp
 from lqrker.utils.parsing import get_logger
+from datetime import datetime
 logger = get_logger(__name__)
 
 
 markersize_x0 = 10
 markersize_trajs = 0.4
-fontsize_labels = 20
+fontsize_labels = 24
 matplotlib.rc('xtick', labelsize=fontsize_labels)
 matplotlib.rc('ytick', labelsize=fontsize_labels)
 matplotlib.rc('text', usetex=True)
@@ -201,91 +202,97 @@ def reconstruct(cfg):
 	Ndiv_training = 4001
 	xpred_training = CommonUtils.create_Ndim_grid(xmin=xmin_training,xmax=xmax_training,Ndiv=Ndiv_training,dim=dim_in) # [Ndiv**dim_in,dim_in]
 	
-	# fx_true_training = KinkSpectralDensity._nonlinear_system_fun_static(xpred_training)
-	fx_true_training = ParaboloidSpectralDensity._nonlinear_system_fun_static(xpred_training)
+	fx_true_training = KinkSpectralDensity._nonlinear_system_fun_static(xpred_training)
+	# fx_true_training = ParaboloidSpectralDensity._nonlinear_system_fun_static(xpred_training)
 	
 	fx_true_training = fx_true_training[:,dim_out_ind:dim_out_ind+1] # [Ndiv,1]
 	
-	spectral_density = SquaredExponentialSpectralDensity(cfg.spectral_density.squaredexp,cfg.sampler.hmc,dim=dim_in)
-	# spectral_density = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim=dim_in)
-	# spectral_density = KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim=dim_in,integration_method=integration_method,Xtrain=xpred_training,Ytrain=fx_true_training,use_nominal_model=True)
+	# spectral_density = SquaredExponentialSpectralDensity(cfg.spectral_density.squaredexp,cfg.sampler.hmc,dim=dim_in)
+	spectral_density = MaternSpectralDensity(cfg.spectral_density.matern,cfg.sampler.hmc,dim_in=dim_in)
+	# spectral_density = KinkSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim_in=dim_in,integration_method="integrate_with_data",Xtrain=xpred_training,Ytrain=fx_true_training)
 	# spectral_density = ParaboloidSpectralDensity(cfg.spectral_density.parabola,cfg.sampler.hmc,dim=dim_in,integration_method=integration_method,Xtrain=xpred_training,Ytrain=fx_true_training)
 
 	# Initialize spectral density and class to reconstruct the original function:
 	# spectral_density = ParaboloidSpectralDensity(cfg.spectral_density.kink,cfg.sampler.hmc,dim=dim_in,integration_method=integration_method,Xtrain=xpred_training,Ytrain=fx_true_training)
-	inverse_fourier_toolbox = InverseFourierTransformKernelToolbox(spectral_density=spectral_density,dim=dim_in,dim_out_ind=None)
+	inverse_fourier_toolbox = InverseFourierTransformKernelToolbox(spectral_density=spectral_density,dim=dim_in)
+
+
+	plot_some_stuff = False
+	if plot_some_stuff:
+		"""
+		Create testing dataset
+		"""
+		# xmin_testing = -5.0
+		# xmax_testing = +2.0
+		# Ndiv_testing = 201
+		xmin_testing = -10.0
+		xmax_testing = +10.0
+		Ndiv_testing = 4001
+		xpred_testing = CommonUtils.create_Ndim_grid(xmin=xmin_testing,xmax=xmax_testing,Ndiv=Ndiv_testing,dim=dim_in) # [Ndiv**dim_in,dim_in]
+		fx_true_testing = spectral_density._nonlinear_system_fun(xpred_testing)
+		fx_true_testing = fx_true_testing[:,dim_out_ind:dim_out_ind+1] # [Ndiv,1]
 
 
 
-	"""
-	Create testing dataset
-	"""
-	# xmin_testing = -5.0
-	# xmax_testing = +2.0
-	# Ndiv_testing = 201
-	xmin_testing = -10.0
-	xmax_testing = +10.0
-	Ndiv_testing = 4001
-	xpred_testing = CommonUtils.create_Ndim_grid(xmin=xmin_testing,xmax=xmax_testing,Ndiv=Ndiv_testing,dim=dim_in) # [Ndiv**dim_in,dim_in]
-	fx_true_testing = spectral_density._nonlinear_system_fun(xpred_testing)
-	fx_true_testing = fx_true_testing[:,dim_out_ind:dim_out_ind+1] # [Ndiv,1]
+
+		"""
+		Discrete grid of omega, for plotting and analysis:
+		"""
+
+		Ndiv_omega_for_analysis = 301
+		omega_lim = 3.0
+		omegapred_analysis = CommonUtils.create_Ndim_grid(xmin=-omega_lim,xmax=omega_lim,Ndiv=Ndiv_omega_for_analysis,dim=dim_in) # [Ndiv**dim_in,dim_in]
+		Dw_analysis = (2.*omega_lim)**dim_in / omegapred_analysis.shape[0]
+		Sw_vec, phiw_vec = spectral_density.unnormalized_density(omegapred_analysis)
+
+		if np.all(phiw_vec == 0.0):
+			phiw_vec = np.zeros(Sw_vec.shape)
+
+		"""
+		Number of required sampled frequencies
+		"""
+
+		# Dw = 1.0
+		sigma_noise_stddev = 0.5 # Set it to small values in order to enlarge the loss output
+		Nsamples_omega = 20
+		# Nsamples_omega = 80
+		Dw_samples_omega = (2.*omega_lim)**dim_in / Nsamples_omega
+
+		# Loss minimum value (will be reached when the integrand goes to zero)
+		loss_min = -tf.reduce_mean(0.5*fx_true_testing**2/sigma_noise_stddev**2,axis=0,keepdims=True) # [1, Nomegas]
+
+
+		hdl_fig, hdl_splots_reconstruct = plt.subplots(2,2,figsize=(12,8),sharex=False)
+		hdl_splots_reconstruct[0,0].plot(xpred_testing,fx_true_testing,lw=1)
+		hdl_splots_reconstruct[0,0].set_xlim([xmin_testing,xmax_testing])
+		hdl_splots_reconstruct[0,0].set_xticks([])
+		hdl_splots_reconstruct[0,0].set_ylabel(r"$f(x_t)$",fontsize=fontsize_labels)
+		hdl_splots_reconstruct[0,0].set_title("Reconstruction | MCMC Samples",fontsize=fontsize_labels)
+
+		hdl_splots_reconstruct[1,0].plot(xpred_testing,fx_true_testing,lw=1,label="True function")
+		hdl_splots_reconstruct[1,0].set_xlim([xmin_testing,xmax_testing])
+		hdl_splots_reconstruct[1,0].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
+		hdl_splots_reconstruct[1,0].set_ylabel(r"$f(x_t)$",fontsize=fontsize_labels)
+		hdl_splots_reconstruct[1,0].set_title("Reconstruction | VarInf Samples",fontsize=fontsize_labels)
+
+		hdl_splots_reconstruct[0,1].plot(omegapred_analysis,Sw_vec,lw=1)
+		hdl_splots_reconstruct[0,1].set_xlim([-omega_lim,omega_lim])
+		hdl_splots_reconstruct[0,1].set_xticks([])
+		hdl_splots_reconstruct[0,1].set_ylabel(r"$S(\omega)$",fontsize=fontsize_labels)
+		hdl_splots_reconstruct[1,1].plot(omegapred_analysis,phiw_vec,lw=1)
+		hdl_splots_reconstruct[1,1].set_xlim([-omega_lim,omega_lim])
+		hdl_splots_reconstruct[1,1].set_xlabel(r"$\omega$",fontsize=fontsize_labels)
+		hdl_splots_reconstruct[1,1].set_ylabel(r"$\varphi(\omega)$",fontsize=fontsize_labels)
 
 
 
 
-	"""
-	Discrete grid of omega, for plotting and analysis:
-	"""
-
-	Ndiv_omega_for_analysis = 301
-	omega_lim = 3.0
-	omegapred_analysis = CommonUtils.create_Ndim_grid(xmin=-omega_lim,xmax=omega_lim,Ndiv=Ndiv_omega_for_analysis,dim=dim_in) # [Ndiv**dim_in,dim_in]
-	Dw_analysis = (2.*omega_lim)**dim_in / omegapred_analysis.shape[0]
-	Sw_vec, phiw_vec = spectral_density.unnormalized_density(omegapred_analysis)
-
-	if np.all(phiw_vec == 0.0):
-		phiw_vec = np.zeros(Sw_vec.shape)
-
-	"""
-	Number of required sampled frequencies
-	"""
-
-	# Dw = 1.0
-	sigma_noise_stddev = 0.5 # Set it to small values in order to enlarge the loss output
-	Nsamples_omega = 20
-	# Nsamples_omega = 80
-	Dw_samples_omega = (2.*omega_lim)**dim_in / Nsamples_omega
-
-	# Loss minimum value (will be reached when the integrand goes to zero)
-	loss_min = -tf.reduce_mean(0.5*fx_true_testing**2/sigma_noise_stddev**2,axis=0,keepdims=True) # [1, Nomegas]
-
-
-	hdl_fig, hdl_splots_reconstruct = plt.subplots(2,2,figsize=(12,8),sharex=False)
-	hdl_splots_reconstruct[0,0].plot(xpred_testing,fx_true_testing,lw=1)
-	hdl_splots_reconstruct[0,0].set_xlim([xmin_testing,xmax_testing])
-	hdl_splots_reconstruct[0,0].set_xticks([])
-	hdl_splots_reconstruct[0,0].set_ylabel(r"$f(x_t)$",fontsize=fontsize_labels)
-	hdl_splots_reconstruct[0,0].set_title("Reconstruction | MCMC Samples",fontsize=fontsize_labels)
-
-	hdl_splots_reconstruct[1,0].plot(xpred_testing,fx_true_testing,lw=1,label="True function")
-	hdl_splots_reconstruct[1,0].set_xlim([xmin_testing,xmax_testing])
-	hdl_splots_reconstruct[1,0].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
-	hdl_splots_reconstruct[1,0].set_ylabel(r"$f(x_t)$",fontsize=fontsize_labels)
-	hdl_splots_reconstruct[1,0].set_title("Reconstruction | VarInf Samples",fontsize=fontsize_labels)
-
-	hdl_splots_reconstruct[0,1].plot(omegapred_analysis,Sw_vec,lw=1)
-	hdl_splots_reconstruct[0,1].set_xlim([-omega_lim,omega_lim])
-	hdl_splots_reconstruct[0,1].set_xticks([])
-	hdl_splots_reconstruct[0,1].set_ylabel(r"$S(\omega)$",fontsize=fontsize_labels)
-	hdl_splots_reconstruct[1,1].plot(omegapred_analysis,phiw_vec,lw=1)
-	hdl_splots_reconstruct[1,1].set_xlim([-omega_lim,omega_lim])
-	hdl_splots_reconstruct[1,1].set_xlabel(r"$\omega$",fontsize=fontsize_labels)
-	hdl_splots_reconstruct[1,1].set_ylabel(r"$\varphi(\omega)$",fontsize=fontsize_labels)
-
+	savefig = True
 
 
 	# As sanity check, plot already here the reconstructed function:
-	delta_statespace = (xmax_testing-xmin_testing)**dim_in / Ndiv_testing
+	# delta_statespace = (xmax_testing-xmin_testing)**dim_in / Ndiv_testing
+	
 
 	
 	# Nomegas_coarse = 201
@@ -301,62 +308,117 @@ def reconstruct(cfg):
 	"""
 	Plots for presentation
 
-
 	"""
 
 	xpred_testing = np.copy(xpred_training)
 	fx_true_testing = np.copy(fx_true_training)
+	xmin_testing = xpred_testing.min()
+	xmax_testing = xpred_testing.max()
+	delta_statespace = 10.0 / xpred_testing.shape[0]
 
-	Nomegas_coarse = 21
-	omega_lim_coarse = 4.0
-	omegapred_coarse = CommonUtils.create_Ndim_grid(xmin=-omega_lim_coarse,xmax=omega_lim_coarse,Ndiv=Nomegas_coarse,dim=dim_in) # [Ndiv**dim_in,dim_in]
-	Dw_coarse =  (2.*omega_lim_coarse)**dim_in / omegapred_coarse.shape[0]
+	Nsamples_omega = 20
+	omega_lim = 3.0
+	lengthscale_loss = 0.01
+	Dw_coarse =  (2.*omega_lim)**dim_in / Nsamples_omega
+
+	Nepochs = 200
+
+	# Winners:
+	# reconstruction_kink_2023_03_28_21_12_21.png || Kink || M = 5
+	# reconstruction_kink_2023_03_28_21_11_20.png || Kink || M = 20
 	
-	inverse_fourier_toolbox.update_spectral_density_and_angle(omegapred=omegapred_coarse,Dw=None,dX=delta_statespace)
-	fx_integrand = inverse_fourier_toolbox.get_fx_integrand_variable_voxels(xpred=xpred_testing,Dw_vec=Dw_coarse) # [Npoints, Nomegas]
-	fx_reconstructed = tf.math.reduce_sum(fx_integrand,axis=1,keepdims=True) # Integrate wrt omegas [Npoints, 1]
-	reconstructor_fx_deltas_only = ReconstructFunctionFromSpectralDensity(	dim_in=dim_in,omega_lim=omega_lim_coarse,Nomegas=Nomegas_coarse,
-																inverse_fourier_toolbox=inverse_fourier_toolbox,
-																Xtrain=xpred_testing,Ytrain=fx_true_testing,omegas_weights=None)
-	reconstructor_fx_deltas_only.train(Nepochs=10,learning_rate=1e-2,stop_loss_val=0.001)
-	fx_optimized_voxels_coarse = reconstructor_fx_deltas_only.reconstruct_function_at(xpred=xpred_testing)
-	omegapred_coarse_reconstr = reconstructor_fx_deltas_only.get_omegas_weights()
+	# reconstruction_kink_2023_03_28_21_13_32.png || Matern || M = 20
 
-	hdl_fig, hdl_splots_reconstruct = plt.subplots(1,3,figsize=(30,10),sharex=False)
-	hdl_splots_reconstruct[0].plot(xpred_testing,fx_true_testing,lw=2,color="navy",alpha=0.35,label="True")
-	# hdl_splots_reconstruct[0].plot(xpred_testing,fx_reconstructed,lw=2,color="navy",alpha=0.5)
-	hdl_splots_reconstruct[0].plot(xpred_testing,fx_optimized_voxels_coarse,lw=2,color="navy",alpha=0.7,label="Reconstructed")
-	# hdl_splots_reconstruct[0].plot(xpred_testing,fx_optimized_voxels_coarse,lw=1)
-	# hdl_splots_reconstruct[0].plot(xpred_testing,fx_discrete_grid,lw=1)
+
+	# inverse_fourier_toolbox.update_spectral_density_and_angle(omegapred=omegapred_coarse,Dw=None,dX=delta_statespace)
+	# fx_integrand = inverse_fourier_toolbox.get_fx_integrand_variable_voxels(xpred=xpred_testing,Dw_vec=Dw_coarse) # [Npoints, Nomegas]
+	# fx_reconstructed = tf.math.reduce_sum(fx_integrand,axis=1,keepdims=True) # Integrate wrt omegas [Npoints, 1]
+	# reconstructor_fx_deltas_only = ReconstructFunctionFromSpectralDensity(	dim_in=dim_in,omega_lim=omega_lim_coarse,Nomegas=Nomegas_coarse,
+	# 															inverse_fourier_toolbox=inverse_fourier_toolbox,
+	# 															Xtrain=xpred_testing,Ytrain=fx_true_testing,omegas_weights=None)
+	reconstructor_fx_deltas_and_omegas = ReconstructFunctionFromSpectralDensity(dim_in=dim_in,dw_voxel_init=Dw_coarse,dX_voxel_init=delta_statespace,
+																				omega_lim=omega_lim,Nomegas=Nsamples_omega,
+																				inverse_fourier_toolbox=inverse_fourier_toolbox,
+																				Xtest=xpred_testing,Ytest=fx_true_testing)
+
+
+	reconstructor_fx_deltas_and_omegas.train(Nepochs=Nepochs,learning_rate=1e-1,stop_loss_val=0.0001,lengthscale_loss=lengthscale_loss,print_every=100)
+	spectral_density_optimized = reconstructor_fx_deltas_and_omegas.update_internal_spectral_density_parameters()
+	Sw_omegas_trainedNN = reconstructor_fx_deltas_and_omegas.inverse_fourier_toolbox.spectral_values
+	varphi_omegas_trainedNN = reconstructor_fx_deltas_and_omegas.inverse_fourier_toolbox.varphi_values
+	omegas_trainedNN = reconstructor_fx_deltas_and_omegas.get_omegas_weights()
+
+	Ndiv_omega_for_analysis = 251
+	omegapred_analysis = CommonUtils.create_Ndim_grid(xmin=-omega_lim,xmax=omega_lim,Ndiv=Ndiv_omega_for_analysis,dim=1) # [Ndiv**dim_in,dim_in]
+	Sw_vec, phiw_vec = spectral_density_optimized.unnormalized_density(omegapred_analysis)
+
+	fx_optimized_voxels_coarse = reconstructor_fx_deltas_and_omegas.reconstruct_function_at(xpred=xpred_testing)
+
+	hdl_fig, hdl_splots_reconstruct = plt.subplots(1,3,figsize=(12,3),sharex=False)
+	hdl_splots_reconstruct[0].plot(xpred_testing,fx_true_testing,lw=3,color="navy",alpha=0.35,label="True")
+	# hdl_splots_reconstruct[0].plot(xpred_testing,fx_reconstructed,lw=3,color="navy",alpha=0.5)
+	hdl_splots_reconstruct[0].plot(xpred_testing,fx_optimized_voxels_coarse,lw=1.5,color="navy",alpha=0.8,label="Reconstructed")
+	# hdl_splots_reconstruct[0].plot(xpred_testing,fx_optimized_voxels_coarse,lw=3)
+	# hdl_splots_reconstruct[0].plot(xpred_testing,fx_discrete_grid,lw=3)
 	# hdl_splots_reconstruct[0].set_xlim([-5,2])
 	hdl_splots_reconstruct[0].set_xlim([xmin_testing,xmax_testing])
 	# hdl_splots_reconstruct[0].set_ylim([-45.,2.])
 	hdl_splots_reconstruct[0].set_xticks([xmin_testing,0,xmax_testing])
-	hdl_splots_reconstruct[0].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
-	hdl_splots_reconstruct[0].set_ylabel(r"$f(x_t)$",fontsize=fontsize_labels)
-	hdl_splots_reconstruct[0].set_title(r"Reconstruction; $M=20$",fontsize=fontsize_labels)
+	hdl_splots_reconstruct[0].set_xlabel(r"$z_t$",fontsize=fontsize_labels)
+	hdl_splots_reconstruct[0].set_ylabel(r"$f(z_t)$",fontsize=fontsize_labels)
+	# hdl_splots_reconstruct[0].set_title(r"Reconstruction; $M=20$",fontsize=fontsize_labels)
 	
-	hdl_splots_reconstruct[1].plot(omegapred_analysis,Sw_vec,lw=2,color="crimson",alpha=0.6)
+	hdl_splots_reconstruct[1].plot(omegapred_analysis,Sw_vec,lw=3,color="crimson",alpha=0.3)
 	hdl_splots_reconstruct[1].set_xlim([-omega_lim,omega_lim])
 	hdl_splots_reconstruct[1].set_xticks([-omega_lim,0,omega_lim])
 	hdl_splots_reconstruct[1].set_xlabel(r"$\omega$",fontsize=fontsize_labels)
 	hdl_splots_reconstruct[1].set_ylabel(r"$S(\omega)$",fontsize=fontsize_labels)
-	hdl_splots_reconstruct[1].set_title(r"Spectral density $S(\omega)$",fontsize=fontsize_labels)
+	# hdl_splots_reconstruct[1].set_title(r"Spectral density $S(\omega)$",fontsize=fontsize_labels)
 	# Sw_coarse_reconstr, phiw_coarse_reconstr = spectral_density.unnormalized_density(omegapred_coarse_reconstr)
 	# hdl_splots_reconstruct[1].stem(omegapred_coarse_reconstr[:,0],Sw_coarse_reconstr[:,0],linefmt="crimson",markerfmt=".")
-	Sw_coarse_reconstr_interp = np.interp(x=omegapred_coarse_reconstr[:,0],xp=omegapred_analysis[:,0],fp=Sw_vec[:,0])
-	phiw_coarse_reconstr_interp = np.interp(x=omegapred_coarse_reconstr[:,0],xp=omegapred_analysis[:,0],fp=phiw_vec[:,0])
-	hdl_splots_reconstruct[1].plot(omegapred_coarse_reconstr[:,0],Sw_coarse_reconstr_interp,linestyle="None",marker=".",color="crimson",markersize=8)
+	# Sw_coarse_reconstr_interp = np.interp(x=omegapred_coarse_reconstr[:,0],xp=omegapred_analysis[:,0],fp=Sw_vec[:,0])
+	# phiw_coarse_reconstr_interp = np.interp(x=omegapred_coarse_reconstr[:,0],xp=omegapred_analysis[:,0],fp=phiw_vec[:,0])
+	# hdl_splots_reconstruct[1].plot(omegapred_coarse_reconstr[:,0],Sw_coarse_reconstr_interp,linestyle="None",marker=".",color="crimson",markersize=8)
+	hdl_splots_reconstruct[1].plot(omegas_trainedNN,Sw_omegas_trainedNN,linestyle="None",marker=".",color="crimson",markersize=10)
 
-	hdl_splots_reconstruct[2].plot(omegapred_analysis,phiw_vec,lw=2,color="crimson",alpha=0.6)
+	if np.all(phiw_vec == 0.0):
+		phiw_vec = np.zeros(omegapred_analysis.shape[0])
+		varphi_omegas_trainedNN = np.zeros(omegas_trainedNN.shape[0])
+	hdl_splots_reconstruct[2].plot(omegapred_analysis,phiw_vec,lw=3,color="crimson",alpha=0.3)
 	hdl_splots_reconstruct[2].set_xlim([-omega_lim,omega_lim])
 	hdl_splots_reconstruct[2].set_xticks([-omega_lim,0,omega_lim])
 	hdl_splots_reconstruct[2].set_xlabel(r"$\omega$",fontsize=fontsize_labels)
 	hdl_splots_reconstruct[2].set_ylabel(r"$\varphi(\omega)$",fontsize=fontsize_labels)
-	hdl_splots_reconstruct[2].set_title(r"Phase $\varphi(\omega)$",fontsize=fontsize_labels)
-	hdl_splots_reconstruct[2].plot(omegapred_coarse_reconstr[:,0],phiw_coarse_reconstr_interp,linestyle="None",marker=".",color="crimson",markersize=8)
+	# hdl_splots_reconstruct[2].set_title(r"Phase $\varphi(\omega)$",fontsize=fontsize_labels)
+	hdl_splots_reconstruct[2].plot(omegas_trainedNN,varphi_omegas_trainedNN,linestyle="None",marker=".",color="crimson",markersize=10)
+
+
+	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
+	path2folder = "plotting/plots4paper"
+	if savefig:
+
+
+		hdl_splots_reconstruct[0].set_xticks([])
+		hdl_splots_reconstruct[1].set_xticks([])
+		hdl_splots_reconstruct[2].set_xticks([])
+
+		hdl_splots_reconstruct[0].set_yticks([])
+		hdl_splots_reconstruct[1].set_yticks([])
+		hdl_splots_reconstruct[2].set_yticks([])
+
+		# hdl_splots_reconstruct[0].set_title(r"$f(z_t)$",fontsize=fontsize_labels)
+		# hdl_splots_reconstruct[1].set_title(r"$S(\omega)$",fontsize=fontsize_labels)
+		# hdl_splots_reconstruct[2].set_title(r"$\varphi(\omega)$",fontsize=fontsize_labels)
+
+
+		name_file_date = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+		path2save_fig = "{0:s}/{1:s}/reconstruction_kink_{2:s}.png".format(path2project,path2folder,name_file_date)
+		logger.info("Saving fig at {0:s} ...".format(path2save_fig))
+		hdl_fig.savefig(path2save_fig,bbox_inches='tight',dpi=300,transparent=True)
+		logger.info("Done saving fig!")
 
 	plt.show(block=True)
+	plt.show(block=False)
 
 
 	"""

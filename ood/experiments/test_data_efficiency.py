@@ -802,8 +802,6 @@ def training_for_multiple_ratios(cfg):
 	logger.info("name_file_date: {0:s}".format(str(name_file_date)))
 	logger.info("ratio_list: {0:s}".format(str(ratio_list)))
 
-	return name_file_date, ratio_list
-
 
 
 @hydra.main(config_path="./config",config_name="config")
@@ -867,13 +865,7 @@ if __name__ == "__main__":
 	Nrepeats = 2
 	name_file_date_list = []
 	for _ in range(Nrepeats):
-		name_file_date, ratio_list = training_for_multiple_ratios()
-		name_file_date_list += [name_file_date]
-
-	for ii in range(Nrepeats):
-		logger.info("name_file_date: {0:s}".format(str(name_file_date_list[ii])))
-		logger.info("ratio_list: {0:s}".format(str(ratio_list)))
-
+		training_for_multiple_ratios()
 
 	# statistical_comparison()
 

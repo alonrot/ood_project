@@ -534,7 +534,7 @@ def plot_predictions(cfg,file_name):
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg):
 
-	# compute_predictions(cfg)
+	compute_predictions(cfg)
 
 
 	# # ==============================================================
@@ -549,12 +549,12 @@ def main(cfg):
 	# plot_predictions(cfg,file_name)
 
 
-	# ==============================================================
-	# With Quadruped data from data_quadruped_experiments_03_29_2023
-	# ==============================================================
-	# All with recostructed model file_name = "reconstruction_data_2023_03_29_23_11_35.pickle" (walking on a circle)
-	file_name = "predicted_trajs_2023_03_29_23_34_13.pickle" # DBG; noise: 0.01
-	plot_predictions(cfg,file_name)
+	# # ==============================================================
+	# # With Quadruped data from data_quadruped_experiments_03_29_2023
+	# # ==============================================================
+	# # All with recostructed model file_name = "reconstruction_data_2023_03_29_23_11_35.pickle" (walking on a circle)
+	# file_name = "predicted_trajs_2023_03_29_23_34_13.pickle" # DBG; noise: 0.01
+	# plot_predictions(cfg,file_name)
 
 
 
@@ -564,6 +564,7 @@ if __name__ == "__main__":
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/predicted_trajs_55.pickle ./data_quadruped_experiments_03_25_2023/
 	# export PYTHONPATH=$PYTHONPATH:/Users/alonrot/work/code_projects_WIP/ood_project/ood/predictions_module/build
+	# export PYTHONPATH=$PYTHONPATH:/home/amarco/code_projects/ood_project/ood/predictions_module/build
 
 	# scp -P 4444 -r ./data_quadruped_experiments_03_25_2023/from_hybridrob/reconstruction_data_2023_03_27_01_23_40.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/from_hybridrob/
 

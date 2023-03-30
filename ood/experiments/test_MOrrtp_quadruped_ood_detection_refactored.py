@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib import cm
 import matplotlib
+from matplotlib.collections import LineCollection
 import numpy as np
 import scipy
 from lqrker.spectral_densities import MaternSpectralDensity, VanDerPolSpectralDensity, QuadrupedSpectralDensity
@@ -38,7 +39,8 @@ plt.rc('legend',fontsize=fontsize_labels+2)
 using_deltas = True
 assert using_deltas == True
 
-path2folder = "data_quadruped_experiments_03_25_2023"
+# path2folder = "data_quadruped_experiments_03_25_2023"
+path2folder = "data_quadruped_experiments_03_29_2023"
 
 
 def fix_pickle_datafile(cfg,path2project,path2folder):
@@ -169,9 +171,16 @@ def compute_predictions(cfg):
 
 	# fix_pickle_datafile(cfg,path2project,path2folder)
 
+	"""
+	# Quadruped moving around the room to random waypoints:
 	# file_name = "reconstruction_data_2023_03_26_21_55_08.pickle" # Trained model on hybridrob for 50000 iters per dim; data subsampled at 10 Hz
 	file_name = "reconstruction_data_2023_03_27_01_23_40.pickle" # Trained model on hybridrob for 50000 iters per dim; data subsampled at 10 Hz || Completed the missing fields using the above function fix_pickle_datafile()
 	# file_name = "reconstruction_data_2023_03_27_01_23_40.pickle" # [same precision, more omegas, not worth it] Trained model on hybridrob with 2000 omegas. 10000 iters per dim; data subsampled at 10 Hz || Completed the missing fields using the above function fix_pickle_datafile()
+	"""
+
+	# Quadruped following a circle:
+	file_name = "reconstruction_data_2023_03_29_23_11_35.pickle" # Trained model on hybridrob for 10000 iters per dim; data subsampled at 10 Hz
+
 	path2load_full = "{0:s}/{1:s}/from_hybridrob/{2:s}".format(path2project,path2folder,file_name)
 	file = open(path2load_full, 'rb')
 	data_dict = pickle.load(file)
@@ -218,13 +227,14 @@ def compute_predictions(cfg):
 	else:
 		path2folder_data_diff_env = "data_quadruped_experiments_03_29_2023"
 
-		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_rope.pickle"
-		file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_walking.pickle"
+		file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_rope.pickle"
+		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_walking.pickle"
 
 		z_vec_real, u_vec_tf, zu_vec, Xtest, Ytest = select_trajectory_from_path(path2project=path2project,path2folder=path2folder_data_diff_env,file_name=file_name_data_diff_env,ind_which_traj=ind_which_traj)
 
 
-	analyze_data = True
+	# analyze_data = True
+	analyze_data = False
 	if analyze_data:
 
 		# # Delta predictions:
@@ -292,7 +302,7 @@ def compute_predictions(cfg):
 		hdl_splots_data[4,0].plot(Xtrain[:,4],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
 
 
-		hdl_splots_data[0,1].set_title("Test data",fontsize=fontsize_labels)
+		hdl_splots_data[0,1].set_title("Test data + predictions",fontsize=fontsize_labels)
 		for jj in range(dim_out):
 			hdl_splots_data[jj,1].plot(Ytrain[:,jj],lw=1,alpha=0.5,color="crimson")
 			hdl_splots_data[jj,1].plot(MO_mean_pred[:,jj],lw=1,alpha=0.5,color="navy")
@@ -339,12 +349,12 @@ def compute_predictions(cfg):
 
 		# Nepochs = 50
 
-		Nhorizon_rec = 30
+		Nhorizon_rec = 10
 		# Nsteps_tot = 40
-		Nsteps_tot = z_vec_real.shape[0]
-		# Nsteps_tot = z_vec_real.shape[0] // 8
+		# Nsteps_tot = z_vec_real.shape[0]
+		Nsteps_tot = z_vec_real.shape[0] // 8
 		Nepochs = 200
-		Nrollouts = 15
+		Nrollouts = 5
 		Nchunks = 4
 
 
@@ -443,13 +453,12 @@ def plot_predictions(cfg,file_name):
 	# hdl_splots_sampling_rec[0].plot(z_vec_real[:,0],z_vec_real[:,1],linestyle="-",color="navy",lw=2.0,label="With nominal dynamics",alpha=0.7)
 
 
-	z_vec_real_colors = np.reshape(z_vec_real[:,0:2],(-1,1,2))
-	segments = np.concatenate([z_vec_real_colors[:-1], z_vec_real_colors[1:]], axis=1)
-
-	from matplotlib.collections import LineCollection
+	z_vec_real_4colors = np.reshape(z_vec_real[:,0:2],(-1,1,2))
+	segments = np.concatenate([z_vec_real_4colors[:-1], z_vec_real_4colors[1:]], axis=1)
 	norm = plt.Normalize(loss_min, loss_max)
 	lc = LineCollection(segments, cmap='summer', norm=norm)
 	# Set the values used for colormapping
+	# pdb.set_trace()
 	lc.set_array(loss_val_per_step)
 	lc.set_linewidth(2)
 	line = hdl_splots_sampling_rec[0].add_collection(lc)
@@ -462,7 +471,7 @@ def plot_predictions(cfg,file_name):
 
 	color_robot = color_gradient(loss_val_per_step[tt])
 
-	hdl_plt_dubins_real, = hdl_splots_sampling_rec[0].plot(z_vec_real[tt,0],z_vec_real[tt,1],marker="*",markersize=14,color=color_robot,label="Tracking experimental data - Quadruped")
+	# hdl_plt_dubins_real, = hdl_splots_sampling_rec[0].plot(z_vec_real[tt,0],z_vec_real[tt,1],marker="*",markersize=14,color=color_robot,label="Tracking experimental data - Quadruped")
 	# hdl_splots_sampling_rec[0].set_xlim([-6.0,5.0])
 	# hdl_splots_sampling_rec[0].set_ylim([-3.5,1.5])
 	hdl_splots_sampling_rec[0].set_title("Tracking experimental data - Quadruped", fontsize=fontsize_labels)
@@ -525,7 +534,7 @@ def plot_predictions(cfg,file_name):
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg):
 
-	compute_predictions(cfg)
+	# compute_predictions(cfg)
 
 
 	# # ==============================================================
@@ -539,6 +548,13 @@ def main(cfg):
 	# file_name = "predicted_trajs_2023_03_27_12_16_02.pickle" # Sampling rollouts no with Gaussian samples cutoff of 0.8; noise parameter in the model set to 0.003; ovelaying all the trainign data | not too bad
 	# plot_predictions(cfg,file_name)
 
+
+	# ==============================================================
+	# With Quadruped data from data_quadruped_experiments_03_29_2023
+	# ==============================================================
+	# All with recostructed model file_name = "reconstruction_data_2023_03_29_23_11_35.pickle" (walking on a circle)
+	file_name = "predicted_trajs_2023_03_29_23_34_13.pickle" # DBG; noise: 0.01
+	plot_predictions(cfg,file_name)
 
 
 

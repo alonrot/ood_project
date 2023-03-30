@@ -371,13 +371,14 @@ def train_gpssm(cfg,ratio):
 		)
 
 	# which_kernel = "matern"
-	which_kernel = "se"
+	which_kernel = "matern_nolin"
+	# which_kernel = "se"
 
-	assert which_kernel in ["matern","se"]
+	assert which_kernel in ["matern","se","matern_nolin"]
 
 	# Create list of kernels for each output
 	if which_kernel == "se": kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
-	# kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) for _ in range(P)]
+	if which_kernel == "matern_nolin": kern_list = [gpf.kernels.Matern52(variance=1.0,lengthscales=0.1*np.ones(D)) for _ in range(P)]
 	if which_kernel == "matern": kern_list = [gpf.kernels.Matern52(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
 
 	
@@ -1009,12 +1010,12 @@ if __name__ == "__main__":
 	tf.random.set_seed(seed=my_seed)
 
 
-	# Nrepeats = 5
-	# name_file_date_list = []
-	# for _ in range(Nrepeats):
-	# 	training_for_multiple_ratios()
+	Nrepeats = 5
+	name_file_date_list = []
+	for _ in range(Nrepeats):
+		training_for_multiple_ratios()
 
-	statistical_comparison()
+	# statistical_comparison()
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_19_55_23*" ./data_efficiency_test_with_dubinscar/
 

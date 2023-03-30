@@ -184,7 +184,8 @@ def compute_predictions(cfg):
 	"""
 
 	# Quadruped following a circle:
-	file_name = "reconstruction_data_2023_03_29_23_11_35.pickle" # Trained model on hybridrob for 10000 iters per dim; data subsampled at 10 Hz
+	# file_name = "reconstruction_data_2023_03_29_23_11_35.pickle" # Trained model on hybridrob for 10000 iters per dim; data subsampled at 10 Hz
+	file_name = "reconstruction_data_2023_03_30_10_44_21.pickle" # Trained model on hybridrob for 100000 iters per dim; data subsampled at 10 Hz
 
 	path2load_full = "{0:s}/{1:s}/from_hybridrob/{2:s}".format(path2project,path2folder,file_name)
 	file = open(path2load_full, 'rb')
@@ -362,7 +363,7 @@ def compute_predictions(cfg):
 		Nsteps_tot = z_vec_real.shape[0]
 		# Nsteps_tot = z_vec_real.shape[0] // 5
 		Nepochs = 200
-		Nrollouts = 1
+		Nrollouts = 5
 		Nchunks = 4
 
 
@@ -391,14 +392,7 @@ def compute_predictions(cfg):
 	W_samples_all_dim = tensors4predictions["W_samples_all_dim"]
 	mean_beta_pred_all_dim = tensors4predictions["mean_beta_pred_all_dim"]
 	cov_beta_pred_chol_all_dim = tensors4predictions["cov_beta_pred_chol_all_dim"]
-
-
 	noise_mat = rrtp_MO.sample_mv0[...,0] # We slice matrix [Nrollouts,Nomegas,1]
-	noise_mat = np.zeros(noise_mat.shape)
-
-	logger.info(" <<<<<<<<<<<< [WARNING] >>>>>>>>>>>>>>>>>")
-	logger.info(" HARDCODING A ZERO MATRIX TO GET RID MF MODEL ROULLOUTS STOCHASTICITY ... !!!!")
-	pdb.set_trace() # leave it to make sure we don't forget
 
 	# pdb.set_trace()
 	predictions_module = Predictions(dim_in,dim_out,phi_samples_all_dim,W_samples_all_dim,mean_beta_pred_all_dim,cov_beta_pred_chol_all_dim,noise_mat,Nrollouts,Nhorizon_rec)
@@ -616,7 +610,7 @@ def plot_predictions(cfg,file_name):
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg):
 
-	# compute_predictions(cfg)
+	compute_predictions(cfg)
 
 
 	# # ==============================================================
@@ -631,18 +625,18 @@ def main(cfg):
 	# plot_predictions(cfg,file_name)
 
 
-	# ==============================================================
-	# With Quadruped data from data_quadruped_experiments_03_29_2023
-	# ==============================================================
-	# All with recostructed model file_name = "reconstruction_data_2023_03_29_23_11_35.pickle" (walking on a circle)
-	# file_name = "predicted_trajs_2023_03_29_23_34_13.pickle" # DBG; noise: 0.01
-	# file_name = "predicted_trajs_2023_03_30_00_25_21.pickle" # hybridrob, Nhor: 30, Nrollouts: 20
-	# file_name = "predicted_trajs_2023_03_30_01_12_50.pickle" # DBG, Nhor: 10, Nrollouts: 10; noise: 0.008
-	# file_name = "predicted_trajs_2023_03_30_02_00_56.pickle" # DBG, Nhor: 10, Nrollouts: 10; noise: 0.008; no stochasticy, just the mean
-	# file_name = "predicted_trajs_2023_03_30_02_04_15.pickle" # DBG, Nhor: 30, Nrollouts: 10; noise: 0.008; no stochasticy, just the mean
-	# file_name = "predicted_trajs_2023_03_30_02_38_09.pickle" # DBG, Nhor: 30, Nrollouts: 1; noise: 0.008; no stochasticy, just the mean (trained on walking circle; tested on 1/5 of the rope data)
-	file_name = "predicted_trajs_2023_03_30_03_01_59.pickle" # DBG, Nhor: 30, Nrollouts: 1; noise: 0.008; no stochasticy, just the mean (trained on walking circle; tested on full if the rope data)
-	plot_predictions(cfg,file_name)
+	# # ==============================================================
+	# # With Quadruped data from data_quadruped_experiments_03_29_2023
+	# # ==============================================================
+	# # All with recostructed model file_name = "reconstruction_data_2023_03_29_23_11_35.pickle" (walking on a circle)
+	# # file_name = "predicted_trajs_2023_03_29_23_34_13.pickle" # DBG; noise: 0.01
+	# # file_name = "predicted_trajs_2023_03_30_00_25_21.pickle" # hybridrob, Nhor: 30, Nrollouts: 20
+	# # file_name = "predicted_trajs_2023_03_30_01_12_50.pickle" # DBG, Nhor: 10, Nrollouts: 10; noise: 0.008
+	# # file_name = "predicted_trajs_2023_03_30_02_00_56.pickle" # DBG, Nhor: 10, Nrollouts: 10; noise: 0.008; no stochasticy, just the mean
+	# # file_name = "predicted_trajs_2023_03_30_02_04_15.pickle" # DBG, Nhor: 30, Nrollouts: 10; noise: 0.008; no stochasticy, just the mean
+	# # file_name = "predicted_trajs_2023_03_30_02_38_09.pickle" # DBG, Nhor: 30, Nrollouts: 1; noise: 0.008; no stochasticy, just the mean (trained on walking circle; tested on 1/5 of the rope data)
+	# file_name = "predicted_trajs_2023_03_30_03_01_59.pickle" # DBG, Nhor: 30, Nrollouts: 1; noise: 0.008; no stochasticy, just the mean (trained on walking circle; tested on full if the rope data)
+	# plot_predictions(cfg,file_name)
 
 
 

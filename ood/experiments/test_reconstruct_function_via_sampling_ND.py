@@ -239,8 +239,8 @@ def reconstruct(cfg):
 		# Nsamples_omega = 1500
 
 	
-	omega_lim = 3.0
-	Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
+	omega_lim = 4.0
+	Dw_coarse = 10*(2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 	# Dw_coarse = 1.0 / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 
 	extent_plot_statespace = [xpred_testing[0,0],xpred_testing[-1,0],xpred_testing[0,1],xpred_testing[-1,1]] #  scalars (left, right, bottom, top)

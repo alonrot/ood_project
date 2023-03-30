@@ -62,8 +62,8 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 
 			self.delta_dw_voxels_pre_activation = self.add_weight(shape=(Nomegas,1), initializer=tf.keras.initializers.Constant(value=0.0), trainable=True, name="delta_omegas_pre_activation")
 			initializer_omegas = tf.keras.initializers.RandomUniform(minval=-omega_lim, maxval=omega_lim)
-			regularizer_omegas = tf.keras.regularizers.L1(l1=0.1) # https://www.tensorflow.org/api_docs/python/tf/keras/regularizers/L1
-			self.omegas_weights = self.add_weight(shape=(Nomegas,self.dim_in), initializer=initializer_omegas, regularizer=regularizer_omegas, trainable=True, name="omegas_weights")
+			# regularizer_omegas = tf.keras.regularizers.L1(l1=0.1) # https://www.tensorflow.org/api_docs/python/tf/keras/regularizers/L1
+			self.omegas_weights = self.add_weight(shape=(Nomegas,self.dim_in), initializer=initializer_omegas, trainable=True, name="omegas_weights")
 
 		else:
 

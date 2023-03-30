@@ -244,6 +244,7 @@ def compute_predictions(cfg):
 
 		# Scenario 3: rocky terrain
 		file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_rocky.pickle"
+		
 
 		# Scenario 4: rocky terrain
 		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_poking.pickle"

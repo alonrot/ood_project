@@ -243,11 +243,11 @@ def compute_predictions(cfg):
 		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_rope.pickle"
 
 		# Scenario 3: rocky terrain
-		file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_rocky.pickle"
-		
+		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_rocky.pickle"
+
 
 		# Scenario 4: rocky terrain
-		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_poking.pickle"
+		file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_poking.pickle"
 
 
 		z_vec_real, u_vec_tf, zu_vec, Xtest, Ytest = select_trajectory_from_path(path2project=path2project,path2folder=path2folder_data_diff_env,file_name=file_name_data_diff_env,ind_which_traj=ind_which_traj)
@@ -455,9 +455,19 @@ def plot_predictions(cfg,file_name):
 		loss_elbo_entropy_vec = data_dict["loss_elbo_entropy_vec"] # Good indicator; it's jsut the log-predictive std!!
 		loss_prior_regularizer_vec = data_dict["loss_prior_regularizer_vec"]
 
+
+	if file_name == "predicted_trajs_2023_03_30_11_25_22.pickle": # rope
+		loss_lik_lim = 25000.
+		loss4colors = -loss_elbo_entropy_vec**2
+	if file_name == "predicted_trajs_2023_03_30_11_47_32.pickle": # walking
+		loss_lik_lim = 5000.
+		loss4colors = -np.log(loss_elbo_entropy_vec)
+
+
 	# Rescale loss for plotting:
-	loss_val_per_step_in_mod = loss_val_per_step_in
-	loss_val_per_step_in_mod[loss_val_per_step_in_mod > 25000.0] = 25000.0
+	loss_val_per_step_in_mod = np.copy(loss_val_per_step_in)
+	loss_val_per_step_in_mod[loss_val_per_step_in_mod > loss_lik_lim] = loss_lik_lim 
+	# loss_val_per_step_in_mod[loss_val_per_step_in_mod > 25000.0] = 25000.0 # rope
 	# loss_val_per_step_in_mod = loss_val_per_step_in / 1000.0
 
 	# add_val = 0.0
@@ -473,10 +483,11 @@ def plot_predictions(cfg,file_name):
 
 		hdl_fig_loss, hdl_splots_loss = plt.subplots(4,1,figsize=(17,7),sharex=True)
 		hdl_splots_loss[0].plot(loss_val_per_step_in)
+		hdl_splots_loss[0].plot(loss_val_per_step)
+		hdl_splots_loss[0].set_ylim([loss_val_per_step.min(),loss_val_per_step.max()*1.1])
 		hdl_splots_loss[1].plot(loss_elbo_evidence_avg_vec)
 		hdl_splots_loss[2].plot(loss_elbo_entropy_vec)
 		hdl_splots_loss[3].plot(loss_prior_regularizer_vec)
-		# hdl_splots_loss[1].plot(loss_val_per_step)
 		plt.show(block=False)
 
 
@@ -532,8 +543,6 @@ def plot_predictions(cfg,file_name):
 
 	
 	# hdl_splots_sampling_rec[0].plot(z_vec_real[:,0],z_vec_real[:,1],linestyle="-",color="navy",lw=2.0,label="With nominal dynamics",alpha=0.7)
-
-	loss4colors = -loss_elbo_entropy_vec**2
 
 	z_vec_real_4colors = np.reshape(z_vec_real[:,0:2],(-1,1,2))
 	segments = np.concatenate([z_vec_real_4colors[:-1], z_vec_real_4colors[1:]], axis=1)
@@ -651,8 +660,8 @@ def main(cfg):
 	# # file_name = "predicted_trajs_2023_03_30_02_04_15.pickle" # DBG, Nhor: 30, Nrollouts: 10; noise: 0.008; no stochasticy, just the mean
 	# # file_name = "predicted_trajs_2023_03_30_02_38_09.pickle" # DBG, Nhor: 30, Nrollouts: 1; noise: 0.008; no stochasticy, just the mean (trained on walking circle; tested on 1/5 of the rope data)
 	# # file_name = "predicted_trajs_2023_03_30_03_01_59.pickle" # DBG, Nhor: 30, Nrollouts: 1; noise: 0.008; no stochasticy, just the mean (trained on walking circle; tested on full if the rope data)
-	# # file_name = "predicted_trajs_2023_03_30_11_25_22.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.008; first rollout is the mean || trained on walking circle; tested on: rope
-	# file_name = "predicted_trajs_2023_03_30_11_47_32.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.008; first rollout is the mean || trained on walking circle; tested on: walking
+	# file_name = "predicted_trajs_2023_03_30_11_25_22.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.008; first rollout is the mean || trained on walking circle; tested on: rope
+	# # file_name = "predicted_trajs_2023_03_30_11_47_32.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.008; first rollout is the mean || trained on walking circle; tested on: walking
 	# plot_predictions(cfg,file_name)
 
 
@@ -675,7 +684,7 @@ if __name__ == "__main__":
 	# scp -P 4444 -r ./data_quadruped_experiments_03_29_2023/from_hybridrob/reconstruction_data_2023_03_29_23_11_35.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/from_hybridrob/
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/"*" ./data_quadruped_experiments_03_29_2023/
 	# scp -P 4444 -r ./data_quadruped_experiments_03_29_2023/from_hybridrob/reconstruction_data_2023_03_29_23_11_35.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/from_hybridrob/
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/predicted_trajs_2023_03_30_11_47_32.pickle ./data_quadruped_experiments_03_29_2023/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/predicted_trajs_2023_03_30_11_54_19.pickle ./data_quadruped_experiments_03_29_2023/
 
 
 

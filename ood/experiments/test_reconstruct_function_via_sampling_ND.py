@@ -227,11 +227,11 @@ def reconstruct(cfg):
 	Nepochs = 13
 	Nsamples_omega = 30
 	if using_hybridrobotics:
-		# Nepochs = 10000
-		# Nsamples_omega = 2000
+		Nepochs = 10000
+		Nsamples_omega = 2000
 
-		Nepochs = 200
-		Nsamples_omega = 1500
+		# Nepochs = 200
+		# Nsamples_omega = 1500
 
 	
 	omega_lim = 8.0

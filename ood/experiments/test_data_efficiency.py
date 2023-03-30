@@ -370,8 +370,8 @@ def train_gpssm(cfg,ratio):
 			options={"disp": 50, "maxiter": MAXITER, "gtol": 1e-16, "ftol": 1e-16},
 		)
 
-	which_kernel = "matern"
-	# which_kernel = "se"
+	# which_kernel = "matern"
+	which_kernel = "se"
 
 	assert which_kernel in ["matern","se"]
 
@@ -728,11 +728,18 @@ def get_dictionary_log_quadruped():
 								p75="reconstruction_data_2023_03_29_03_50_30.pickle",
 								p100="reconstruction_data_2023_03_29_03_52_10.pickle")
 
-	dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_14_00_47",
-	p50="gpssm_trained_model_gpflow_2023_03_29_14_01_48",
-	p75="gpssm_trained_model_gpflow_2023_03_29_14_03_17",
-	p100="gpssm_trained_model_gpflow_2023_03_29_14_05_20")
+	# # Matern 1000
+	# dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_14_00_47",
+	# p50="gpssm_trained_model_gpflow_2023_03_29_14_01_48",
+	# p75="gpssm_trained_model_gpflow_2023_03_29_14_03_17",
+	# p100="gpssm_trained_model_gpflow_2023_03_29_14_05_20")
 
+
+	# Matern with 2000 iters
+	dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_15_27_58",
+	p50="gpssm_trained_model_gpflow_2023_03_29_15_29_51",
+	p75="gpssm_trained_model_gpflow_2023_03_29_15_32_44",
+	p100="gpssm_trained_model_gpflow_2023_03_29_15_36_44")
 
 	dict_gpssm_standard_SE = None
 	dict_all_list += [dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)]
@@ -744,10 +751,17 @@ def get_dictionary_log_quadruped():
 								p75="reconstruction_data_2023_03_29_03_57_13.pickle",
 								p100="reconstruction_data_2023_03_29_03_58_54.pickle")
 	
-	dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_14_07_53",
-	p50="gpssm_trained_model_gpflow_2023_03_29_14_08_49",
-	p75="gpssm_trained_model_gpflow_2023_03_29_14_10_18",
-	p100="gpssm_trained_model_gpflow_2023_03_29_14_12_15")
+	# # Matern 1000
+	# dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_14_07_53",
+	# p50="gpssm_trained_model_gpflow_2023_03_29_14_08_49",
+	# p75="gpssm_trained_model_gpflow_2023_03_29_14_10_18",
+	# p100="gpssm_trained_model_gpflow_2023_03_29_14_12_15")
+
+	# Matern with 2000 iters
+	dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_15_41_45",
+	p50="gpssm_trained_model_gpflow_2023_03_29_15_43_34",
+	p75="gpssm_trained_model_gpflow_2023_03_29_15_46_27",
+	p100="gpssm_trained_model_gpflow_2023_03_29_15_50_16")
 
 
 	dict_gpssm_standard_SE = None
@@ -760,10 +774,17 @@ def get_dictionary_log_quadruped():
 								p75="reconstruction_data_2023_03_29_04_03_57.pickle",
 								p100="reconstruction_data_2023_03_29_04_05_37.pickle")
 
-	dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_14_14_43",
-	p50="gpssm_trained_model_gpflow_2023_03_29_14_15_42",
-	p75="gpssm_trained_model_gpflow_2023_03_29_14_17_11",
-	p100="gpssm_trained_model_gpflow_2023_03_29_14_19_12")
+	# # Matern 1000
+	# dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_14_14_43",
+	# p50="gpssm_trained_model_gpflow_2023_03_29_14_15_42",
+	# p75="gpssm_trained_model_gpflow_2023_03_29_14_17_11",
+	# p100="gpssm_trained_model_gpflow_2023_03_29_14_19_12")
+
+	# Matern with 2000 iters
+	dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_15_55_06",
+	p50="gpssm_trained_model_gpflow_2023_03_29_15_56_58",
+	p75="gpssm_trained_model_gpflow_2023_03_29_15_59_50",
+	p100="gpssm_trained_model_gpflow_2023_03_29_16_03_47")
 
 
 	dict_gpssm_standard_SE = None
@@ -776,11 +797,17 @@ def get_dictionary_log_quadruped():
 								p75="reconstruction_data_2023_03_29_04_10_40.pickle",
 								p100="reconstruction_data_2023_03_29_04_12_20.pickle")
 
-	dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_14_21_42",
-	p50="gpssm_trained_model_gpflow_2023_03_29_14_22_39",
-	p75="gpssm_trained_model_gpflow_2023_03_29_14_24_07",
-	p100="gpssm_trained_model_gpflow_2023_03_29_14_26_09")
+	# # Matern 1000
+	# dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_14_21_42",
+	# p50="gpssm_trained_model_gpflow_2023_03_29_14_22_39",
+	# p75="gpssm_trained_model_gpflow_2023_03_29_14_24_07",
+	# p100="gpssm_trained_model_gpflow_2023_03_29_14_26_09")
 
+	# Matern with 2000 iters
+	dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_16_08_44",
+	p50="gpssm_trained_model_gpflow_2023_03_29_16_10_34",
+	p75="gpssm_trained_model_gpflow_2023_03_29_16_13_27",
+	p100="gpssm_trained_model_gpflow_2023_03_29_16_17_26")
 
 	dict_gpssm_standard_SE = None
 	dict_all_list += [dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)]
@@ -791,11 +818,18 @@ def get_dictionary_log_quadruped():
 								p50="reconstruction_data_2023_03_29_04_15_43.pickle",
 								p75="reconstruction_data_2023_03_29_04_17_22.pickle",
 								p100="reconstruction_data_2023_03_29_04_19_02.pickle")
-	dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_14_28_43",
-	p50="gpssm_trained_model_gpflow_2023_03_29_14_29_40",
-	p75="gpssm_trained_model_gpflow_2023_03_29_14_31_08",
-	p100="gpssm_trained_model_gpflow_2023_03_29_14_33_08")
 
+	# # Matern 1000
+	# dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_14_28_43",
+	# p50="gpssm_trained_model_gpflow_2023_03_29_14_29_40",
+	# p75="gpssm_trained_model_gpflow_2023_03_29_14_31_08",
+	# p100="gpssm_trained_model_gpflow_2023_03_29_14_33_08")
+
+	# Matern with 2000 iters
+	dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_16_22_29",
+	p50="gpssm_trained_model_gpflow_2023_03_29_16_24_18",
+	p75="gpssm_trained_model_gpflow_2023_03_29_16_27_11",
+	p100="gpssm_trained_model_gpflow_2023_03_29_16_31_05")
 
 	dict_gpssm_standard_SE = None
 	dict_all_list += [dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)]

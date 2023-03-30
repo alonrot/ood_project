@@ -237,10 +237,10 @@ def compute_predictions(cfg):
 		path2folder_data_diff_env = "data_quadruped_experiments_03_29_2023"
 
 		# Scenario 1: just walking
-		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_walking.pickle"
+		file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_walking.pickle"
 
 		# Scenario 2: rope pulling
-		file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_rope.pickle"
+		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_rope.pickle"
 
 		# Scenario 3: rocky terrain
 		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_rocky.pickle"
@@ -456,13 +456,18 @@ def plot_predictions(cfg,file_name):
 
 
 	loss_lik_lim = np.inf
-	loss4colors = -np.log(loss_elbo_entropy_vec)
+	loss4colors = -loss_elbo_entropy_vec**2
 	if file_name == "predicted_trajs_2023_03_30_11_25_22.pickle": # rope
 		loss_lik_lim = 25000.
 		loss_val_per_step_in_mod = np.copy(loss_val_per_step_in)
 		loss_val_per_step_in_mod[loss_val_per_step_in_mod > loss_lik_lim] = loss_lik_lim 
 		loss4colors = -loss_elbo_entropy_vec**2
 	if file_name == "predicted_trajs_2023_03_30_13_12_01.pickle": # rope
+		loss_lik_lim = 1e7
+		loss_val_per_step_in_mod = np.copy(loss_val_per_step_in)
+		loss_val_per_step_in_mod[loss_val_per_step_in_mod > loss_lik_lim] = loss_lik_lim 
+		loss4colors = -np.log(loss_elbo_entropy_vec)
+	if file_name == "predicted_trajs_2023_03_30_14_03_40.pickle": # rope [this]
 		loss_lik_lim = 5e7
 		loss_val_per_step_in_mod = np.copy(loss_val_per_step_in)
 		loss_val_per_step_in_mod[loss_val_per_step_in_mod > loss_lik_lim] = loss_lik_lim 
@@ -477,7 +482,7 @@ def plot_predictions(cfg,file_name):
 		loss_val_per_step_in_mod = np.copy(loss_val_per_step_in)
 		loss_val_per_step_in_mod[loss_val_per_step_in_mod > loss_lik_lim] = loss_lik_lim 
 		loss4colors = loss_elbo_entropy_vec
-	if file_name == "predicted_trajs_2023_03_30_13_34_28.pickle": # rocky
+	if file_name == "predicted_trajs_2023_03_30_13_34_28.pickle": # rocky [this]
 		loss_lik_lim = 1e7
 		loss_val_per_step_in_mod = np.copy(loss_val_per_step_in)
 		loss_val_per_step_in_mod[loss_val_per_step_in_mod > loss_lik_lim] = loss_lik_lim 
@@ -487,7 +492,11 @@ def plot_predictions(cfg,file_name):
 		loss_val_per_step_in_mod = np.copy(loss_val_per_step_in)
 		loss_val_per_step_in_mod[loss_val_per_step_in_mod > loss_lik_lim] = loss_lik_lim 
 		loss4colors = loss_elbo_entropy_vec
-
+	if file_name == "predicted_trajs_2023_03_30_13_58_31.pickle": # poking [this]
+		loss_lik_lim = 1e7
+		loss_val_per_step_in_mod = np.copy(loss_val_per_step_in)
+		loss_val_per_step_in_mod[loss_val_per_step_in_mod > loss_lik_lim] = loss_lik_lim 
+		loss4colors = -np.log(loss_elbo_entropy_vec)
 
 
 
@@ -703,7 +712,8 @@ def main(cfg):
 	# # file_name = "predicted_trajs_2023_03_30_13_04_32.pickle" # DBG, Nhor: 15, Nrollouts: 10; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: rope
 	# # file_name = "predicted_trajs_2023_03_30_13_12_01.pickle" # DBG, Nhor: 15, Nrollouts: 10; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: rope, longer time
 	# # file_name = "predicted_trajs_2023_03_30_13_34_28.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: rocky
-	# file_name = "predicted_trajs_2023_03_30_13_58_31.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: poking
+	# # file_name = "predicted_trajs_2023_03_30_13_58_31.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: poking
+	# file_name = "predicted_trajs_2023_03_30_14_03_40.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: rope
 	# plot_predictions(cfg,file_name)
 
 
@@ -728,8 +738,7 @@ if __name__ == "__main__":
 	# scp -P 4444 -r ./data_quadruped_experiments_03_29_2023/from_hybridrob/reconstruction_data_2023_03_29_23_11_35.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/from_hybridrob/
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/"*" ./data_quadruped_experiments_03_29_2023/
 	# scp -P 4444 -r ./data_quadruped_experiments_03_29_2023/from_hybridrob/reconstruction_data_2023_03_29_23_11_35.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/from_hybridrob/
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/predicted_trajs_2023_03_30_13_34_28.pickle ./data_quadruped_experiments_03_29_2023/
-
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/predicted_trajs_2023_03_30_14_03_40.pickle ./data_quadruped_experiments_03_29_2023/
 
 
 

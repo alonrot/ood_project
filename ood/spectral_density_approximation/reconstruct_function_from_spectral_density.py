@@ -12,7 +12,7 @@ logger = get_logger(__name__)
 
 class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 
-	def __init__(self, dim_in: int, dw_voxel_init: float, dX_voxel_init: float, omega_lim: float, Nomegas: int, inverse_fourier_toolbox: InverseFourierTransformKernelToolbox, Xtest: tf.Tensor, Ytest: tf.Tensor, **kwargs):
+	def __init__(self, dim_in: int, dw_voxel_init: float, dX_voxel_init: float, omega_lim: float, Nomegas: int, inverse_fourier_toolbox: InverseFourierTransformKernelToolbox, Xtest: tf.Tensor, Ytest: tf.Tensor, dbg_flag4paper_quadruped_walking_circle=False, **kwargs):
 
 		super().__init__(**kwargs)
 
@@ -28,7 +28,8 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 
 
 
-		self.dbg_flag4paper = False
+		self.dbg_flag4paper_quadruped_walking_circle = dbg_flag4paper_quadruped_walking_circle
+		self.dbg_flag4paper_1Dexample = False
 		self.dbg_flag = False
 		if self.dbg_flag:
 
@@ -57,6 +58,13 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 
 			self.delta_dw_voxels_pre_activation = self.add_weight(shape=(1), initializer=tf.keras.initializers.Constant(value=0.0), trainable=True, name="delta_omegas_pre_activation")
 
+		elif self.dbg_flag4paper_quadruped_walking_circle:
+
+			self.delta_dw_voxels_pre_activation = self.add_weight(shape=(Nomegas,1), initializer=tf.keras.initializers.Constant(value=0.0), trainable=True, name="delta_omegas_pre_activation")
+			initializer_omegas = tf.keras.initializers.RandomUniform(minval=-omega_lim, maxval=omega_lim)
+			regularizer_omegas = tf.keras.regularizers.L1(l1=0.1) # https://www.tensorflow.org/api_docs/python/tf/keras/regularizers/L1
+			self.omegas_weights = self.add_weight(shape=(Nomegas,self.dim_in), initializer=initializer_omegas, regularizer=regularizer_omegas, trainable=True, name="omegas_weights")
+
 		else:
 
 			self.delta_dw_voxels_pre_activation = self.add_weight(shape=(Nomegas,1), initializer=tf.keras.initializers.Constant(value=0.0), trainable=True, name="delta_omegas_pre_activation")
@@ -71,7 +79,7 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 
 		# Integration step dX:
 		train_Xvoxels = True
-		if self.dbg_flag4paper:
+		if self.dbg_flag4paper_1Dexample:
 			train_Xvoxels = False
 			pdb.set_trace()
 		
@@ -133,7 +141,11 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 	def loss_reconstruction_fun(self,lengthscale_loss):
 
 		fx_reconstructed = self.reconstruct_function_at(xpred=self.Xtest)
-		loss_val = tf.reduce_mean(((self.Ytest - fx_reconstructed)/lengthscale_loss)**2,axis=0,keepdims=True) # [1, 1]
+
+		if self.dbg_flag4paper_quadruped_walking_circle:
+			loss_val = tf.reduce_mean(abs((self.Ytest - fx_reconstructed)/lengthscale_loss),axis=0,keepdims=True) # [1, 1]
+		else:
+			loss_val = tf.reduce_mean(((self.Ytest - fx_reconstructed)/lengthscale_loss)**2,axis=0,keepdims=True) # [1, 1]
 
 		return loss_val
 

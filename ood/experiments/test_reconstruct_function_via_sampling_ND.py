@@ -215,6 +215,11 @@ def reconstruct(cfg):
 			spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
 
 
+		dbg_flag4paper_quadruped_walking_circle = True
+		if dbg_flag4paper_quadruped_walking_circle:
+			logger.info(" <<<<<<<<<<< [WARNING]: USING dbg_flag4paper_quadruped_walking_circle=TRUE >>>>>>>>>>")
+
+
 
 	# pdb.set_trace()
 
@@ -224,8 +229,8 @@ def reconstruct(cfg):
 
 	delta_statespace = 1.0 / Xtrain.shape[0]
 
-	Nepochs = 13
-	Nsamples_omega = 30
+	Nepochs = 1000
+	Nsamples_omega = 1500
 	if using_hybridrobotics:
 		Nepochs = 10000
 		Nsamples_omega = 1500
@@ -234,7 +239,7 @@ def reconstruct(cfg):
 		# Nsamples_omega = 1500
 
 	
-	omega_lim = 8.0
+	omega_lim = 10.0
 	Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 	# Dw_coarse = 1.0 / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 
@@ -247,7 +252,7 @@ def reconstruct(cfg):
 	delta_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
 	delta_statespace_trainedNN = np.zeros((dim_out,Xtrain.shape[0],1))
 
-	learning_rate_list = [1e-2,1e-2,1e-1]
+	learning_rate_list = [1e-2,1e-2,1e-2]
 	stop_loss_val = 1./fx_true_testing.shape[0]
 	# stop_loss_val = 0.01
 	lengthscale_loss = 0.01
@@ -263,7 +268,8 @@ def reconstruct(cfg):
 		reconstructor_fx_deltas_and_omegas = ReconstructFunctionFromSpectralDensity(dim_in=dim_in,dw_voxel_init=Dw_coarse,dX_voxel_init=delta_statespace,
 																					omega_lim=omega_lim,Nomegas=Nsamples_omega,
 																					inverse_fourier_toolbox=inverse_fourier_toolbox_channel,
-																					Xtest=xpred_testing,Ytest=fx_true_testing[:,jj:jj+1])
+																					Xtest=xpred_testing,Ytest=fx_true_testing[:,jj:jj+1],
+																					dbg_flag4paper_quadruped_walking_circle=dbg_flag4paper_quadruped_walking_circle)
 
 		reconstructor_fx_deltas_and_omegas.train(Nepochs=Nepochs,learning_rate=learning_rate_list[jj],stop_loss_val=stop_loss_val,lengthscale_loss=lengthscale_loss,print_every=10)
 

@@ -247,7 +247,7 @@ def reconstruct(cfg):
 	delta_omegas_trainedNN = np.zeros((dim_out,Nsamples_omega,1))
 	delta_statespace_trainedNN = np.zeros((dim_out,Xtrain.shape[0],1))
 
-	learning_rate_list = [1e-2,1e-2,1e-2]
+	learning_rate_list = [1e-2,1e-2,1e-1]
 	stop_loss_val = 1./fx_true_testing.shape[0]
 	# stop_loss_val = 0.01
 	lengthscale_loss = 0.01
@@ -385,8 +385,8 @@ def reconstruct(cfg):
 		# hdl_splots_omegas[jj,2].set_yticks([-omega_lim,0,omega_lim])
 
 		# Add the resulting omegas:
-		hdl_splots_omegas[jj,0].plot(omegas_trainedNN[jj,:,0],omegas_trainedNN[jj,:,1],marker="o",color="darkgreen",markersize=5,linestyle="None",alpha=0.7)
-		hdl_splots_omegas[jj,1].plot(omegas_trainedNN[jj,:,0],omegas_trainedNN[jj,:,1],marker="o",color="darkgreen",markersize=5,linestyle="None",alpha=0.7)
+		hdl_splots_omegas[jj,0].plot(omegas_trainedNN[jj,:,0],omegas_trainedNN[jj,:,1],marker=".",color="mediumblue",markersize=4,linestyle="None",alpha=0.5)
+		hdl_splots_omegas[jj,1].plot(omegas_trainedNN[jj,:,0],omegas_trainedNN[jj,:,1],marker=".",color="mediumblue",markersize=4,linestyle="None",alpha=0.5)
 
 		if jj == dim_out-1: hdl_splots_omegas[jj,0].set_xlabel(r"$\omega_1$",fontsize=fontsize_labels)
 		if jj == dim_out-1: hdl_splots_omegas[jj,1].set_xlabel(r"$\omega_1$",fontsize=fontsize_labels)
@@ -555,4 +555,5 @@ if __name__ == "__main__":
 
 	# scp -P 4444 -r /Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/* amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/
 
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/"*" ./data_quadruped_experiments_03_29_2023/
 

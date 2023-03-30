@@ -215,7 +215,7 @@ def reconstruct(cfg):
 			spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
 
 
-		dbg_flag4paper_quadruped_walking_circle = True
+		dbg_flag4paper_quadruped_walking_circle = False
 		if dbg_flag4paper_quadruped_walking_circle:
 			logger.info(" <<<<<<<<<<< [WARNING]: USING dbg_flag4paper_quadruped_walking_circle=TRUE >>>>>>>>>>")
 
@@ -227,7 +227,7 @@ def reconstruct(cfg):
 	xpred_testing = tf.identity(Xtrain)
 	fx_true_testing = tf.identity(Ytrain)
 
-	delta_statespace = 10.0 / Xtrain.shape[0]
+	delta_statespace = 1.0 / Xtrain.shape[0]
 
 	Nepochs = 1000
 	Nsamples_omega = 1500
@@ -239,7 +239,7 @@ def reconstruct(cfg):
 		# Nsamples_omega = 1500
 
 	
-	omega_lim = 15.0
+	omega_lim = 3.0
 	Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 	# Dw_coarse = 1.0 / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
 
@@ -556,8 +556,14 @@ if __name__ == "__main__":
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/"*6200.png" ./data_quadruped_experiments_03_13_2023/
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_13_2023/"*6200.pickle" ./data_quadruped_experiments_03_13_2023/
 
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/"*2023_03_27_12_19_20*" ./data_quadruped_experiments_03_25_2023/from_hybridrob/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/"*2023_03_30_10_19_04*" ./data_quadruped_experiments_03_25_2023/from_hybridrob/
 
+
+
+
+
+
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/"*2023_03_30_10_19_04*" ./data_quadruped_experiments_03_29_2023/from_hybridrob/
 
 	# scp -P 4444 -r /Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/* amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/
 

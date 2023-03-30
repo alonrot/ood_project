@@ -47,7 +47,7 @@ def fix_pickle_datafile(cfg,path2project,path2folder):
 	NOTE: This piece of code needed to be called only once, to fix the pickle file.
 	It genrated the file /Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/from_hybridrob/reconstruction_data_2023_03_27_01_12_35.pickle
 	"""
-	raise NotImplementedError
+	raise NotImplementedError("Only needed to be called once to fix a pickle file")
 
 	file_name = "reconstruction_data_2023_03_26_21_55_08.pickle" # Trained model on hybridrob for 50000 iters; data subsampled at 10 Hz
 	path2load_full = "{0:s}/{1:s}/from_hybridrob/{2:s}".format(path2project,path2folder,file_name)
@@ -117,6 +117,39 @@ def fix_pickle_datafile(cfg,path2project,path2folder):
 
 	
 
+def select_trajectory_from_path(path2project,path2folder,file_name,ind_which_traj):
+
+	path2load_full = "{0:s}/{1:s}/{2:s}".format(path2project,path2folder,file_name)
+	file = open(path2load_full, 'rb')
+	data_dict = pickle.load(file)
+	file.close()
+
+	Xtest = data_dict["Xtrain"] # The data is saved in the dictionary as "Xtrain" by default, but here we actually use it as test data
+	Ytest = data_dict["Ytrain"] # The data is saved in the dictionary as "Ytrain" by default, but here we actually use it as test data
+
+	dim_x = Ytest.shape[1]
+	dim_u = Xtest.shape[1] - Ytest.shape[1]
+
+	if using_deltas:
+		Ytest_deltas = Ytest - Xtest[:,0:dim_x]
+		Ytest = tf.identity(Ytest_deltas)
+
+	Xtest = tf.cast(Xtest,dtype=tf.float32)
+	Ytest = tf.cast(Ytest,dtype=tf.float32)
+
+	state_and_control_full_list = data_dict["state_and_control_full_list"]
+	state_next_full_list = data_dict["state_next_full_list"]
+
+	z_vec_real = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj][:,0:dim_x],dtype=tf.float32)
+	u_vec_tf = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj][:,dim_x::],dtype=tf.float32)
+	zu_vec = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj],dtype=tf.float32)
+
+
+	return z_vec_real, u_vec_tf, zu_vec, Xtest, Ytest
+
+
+
+
 def compute_predictions(cfg):
 
 
@@ -154,7 +187,7 @@ def compute_predictions(cfg):
 	omega_lim = data_dict["omega_lim"]
 	Nsamples_omega = data_dict["Nsamples_omega"]
 	Xtrain = data_dict["Xtrain"]
-	Ytrain = data_dict["Ytrain"]
+	Ytrain = data_dict["Ytrain"] # This is already deltas when the file is file_name = "reconstruction_....pickle"
 	state_and_control_full_list = data_dict["state_and_control_full_list"]
 	state_next_full_list = data_dict["state_next_full_list"]
 
@@ -171,12 +204,27 @@ def compute_predictions(cfg):
 	logger.info(" * Initializing GP model ...")
 	rrtp_MO = MultiObjectiveReducedRankProcess(dim_in,cfg,spectral_density_list,Xtrain,Ytrain,using_deltas=using_deltas)
 
-	ind_which_traj = 0
-	z_vec_real = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj][:,0:dim_x],dtype=tf.float32)
-	u_vec_tf = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj][:,dim_x::],dtype=tf.float32)
-	zu_vec = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj],dtype=tf.float32)
 
-	analyze_data = False
+	ind_which_traj = 0
+	# use_same_data_the_model_was_trained_on = True
+	use_same_data_the_model_was_trained_on = False
+	if use_same_data_the_model_was_trained_on:
+		z_vec_real = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj][:,0:dim_x],dtype=tf.float32)
+		u_vec_tf = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj][:,dim_x::],dtype=tf.float32)
+		zu_vec = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj],dtype=tf.float32)
+		Xtest = Xtrain
+		Ytest = Ytrain # already deltas when the file is file_name = "reconstruction_....pickle"
+
+	else:
+		path2folder_data_diff_env = "data_quadruped_experiments_03_29_2023"
+
+		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_rope.pickle"
+		file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_walking.pickle"
+
+		z_vec_real, u_vec_tf, zu_vec, Xtest, Ytest = select_trajectory_from_path(path2project=path2project,path2folder=path2folder_data_diff_env,file_name=file_name_data_diff_env,ind_which_traj=ind_which_traj)
+
+
+	analyze_data = True
 	if analyze_data:
 
 		# # Delta predictions:
@@ -185,12 +233,15 @@ def compute_predictions(cfg):
 
 
 		# Delta predictions (on the full dataset):
-		MO_mean_pred, MO_std_pred = rrtp_MO.predict_at_locations(Xtrain)
-		deltas_real = Ytrain.numpy()
+		MO_mean_pred, MO_std_pred = rrtp_MO.predict_at_locations(Xtest)
+		if tf.is_tensor(Ytest):
+			deltas_real = Ytest.numpy()
+		else:
+			deltas_real = Ytest
 
 
 		hdl_fig, hdl_splots_next_state = plt.subplots(dim_out,1,figsize=(16,14),sharex=False,sharey=False)
-		hdl_fig.suptitle(r"State transition - Reconstructed; $\Delta x_{t+1,d} = f_d(x_t)$",fontsize=fontsize_labels)
+		hdl_fig.suptitle(r"Predicted state transition on the test data; $\Delta x_{t+1,d} = f_d(x_t)$",fontsize=fontsize_labels)
 		hdl_splots_next_state = np.reshape(hdl_splots_next_state,(-1,1))
 
 		assert using_deltas == True
@@ -232,8 +283,8 @@ def compute_predictions(cfg):
 
 
 		hdl_fig_data, hdl_splots_data = plt.subplots(5,2,figsize=(12,8),sharex=True)
-		hdl_fig_data.suptitle("Training data",fontsize=fontsize_labels)
-		hdl_splots_data[0,0].set_title("Inputs")
+		hdl_fig_data.suptitle("Data",fontsize=fontsize_labels)
+		hdl_splots_data[0,0].set_title("Training data")
 		hdl_splots_data[0,0].plot(Xtrain[:,0],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
 		hdl_splots_data[1,0].plot(Xtrain[:,1],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
 		hdl_splots_data[2,0].plot(Xtrain[:,2],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
@@ -241,7 +292,7 @@ def compute_predictions(cfg):
 		hdl_splots_data[4,0].plot(Xtrain[:,4],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
 
 
-		hdl_splots_data[0,1].set_title("Outputs",fontsize=fontsize_labels)
+		hdl_splots_data[0,1].set_title("Test data",fontsize=fontsize_labels)
 		for jj in range(dim_out):
 			hdl_splots_data[jj,1].plot(Ytrain[:,jj],lw=1,alpha=0.5,color="crimson")
 			hdl_splots_data[jj,1].plot(MO_mean_pred[:,jj],lw=1,alpha=0.5,color="navy")
@@ -474,19 +525,19 @@ def plot_predictions(cfg,file_name):
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg):
 
-	# compute_predictions(cfg)
+	compute_predictions(cfg)
 
 
-	# ==============================================================
-	# With Quadruped data from data_quadruped_experiments_03_25_2023
-	# ==============================================================
-	# All with recostructed model file_name = "reconstruction_data_2023_03_27_01_23_40.pickle"
-	# file_name = "predicted_trajs_2023_03_27_02_02_52.pickle"
-	# file_name = "predicted_trajs_2023_03_27_02_31_51.pickle"
-	# file_name = "predicted_trajs_2023_03_27_02_37_01.pickle" # Working alright, but could be better
-	# file_name = "predicted_trajs_2023_03_27_12_03_52.pickle" # Sampling rollouts no with Gaussian samples cutoff of 0.8; noise parameter in the model set to 0.005
-	file_name = "predicted_trajs_2023_03_27_12_16_02.pickle" # Sampling rollouts no with Gaussian samples cutoff of 0.8; noise parameter in the model set to 0.003; ovelaying all the trainign data | not too bad
-	plot_predictions(cfg,file_name)
+	# # ==============================================================
+	# # With Quadruped data from data_quadruped_experiments_03_25_2023
+	# # ==============================================================
+	# # All with recostructed model file_name = "reconstruction_data_2023_03_27_01_23_40.pickle"
+	# # file_name = "predicted_trajs_2023_03_27_02_02_52.pickle"
+	# # file_name = "predicted_trajs_2023_03_27_02_31_51.pickle"
+	# # file_name = "predicted_trajs_2023_03_27_02_37_01.pickle" # Working alright, but could be better
+	# # file_name = "predicted_trajs_2023_03_27_12_03_52.pickle" # Sampling rollouts no with Gaussian samples cutoff of 0.8; noise parameter in the model set to 0.005
+	# file_name = "predicted_trajs_2023_03_27_12_16_02.pickle" # Sampling rollouts no with Gaussian samples cutoff of 0.8; noise parameter in the model set to 0.003; ovelaying all the trainign data | not too bad
+	# plot_predictions(cfg,file_name)
 
 
 

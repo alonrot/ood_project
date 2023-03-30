@@ -34,7 +34,7 @@ from gpflow.utilities import print_summary
 
 markersize_x0 = 10
 markersize_trajs = 0.4
-fontsize_labels = 20
+fontsize_labels = 24
 matplotlib.rc('xtick', labelsize=fontsize_labels)
 matplotlib.rc('ytick', labelsize=fontsize_labels)
 matplotlib.rc('text', usetex=True)
@@ -748,6 +748,13 @@ def get_dictionary_log_quadruped():
 	p75="gpssm_trained_model_gpflow_2023_03_29_17_28_15",
 	p100="gpssm_trained_model_gpflow_2023_03_29_17_32_04")
 
+	# Matern with 2000 iters - no_lin_ker
+	dict_gpssm_standard_matern_no_linker = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_19_49_33",
+	p50="gpssm_trained_model_gpflow_2023_03_29_19_49_45",
+	p75="gpssm_trained_model_gpflow_2023_03_29_19_49_50",
+	p100="gpssm_trained_model_gpflow_2023_03_29_19_49_58")
+
+
 	dict_all_list += [dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)]
 
 
@@ -775,6 +782,13 @@ def get_dictionary_log_quadruped():
 	p50="gpssm_trained_model_gpflow_2023_03_29_17_38_34",
 	p75="gpssm_trained_model_gpflow_2023_03_29_17_41_19",
 	p100="gpssm_trained_model_gpflow_2023_03_29_17_44_58")
+
+
+	# Matern with 2000 iters - no_lin_ker
+	dict_gpssm_standard_matern_no_linker = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_19_50_06",
+	p50="gpssm_trained_model_gpflow_2023_03_29_19_50_11",
+	p75="gpssm_trained_model_gpflow_2023_03_29_19_50_16",
+	p100="gpssm_trained_model_gpflow_2023_03_29_19_50_21")
 
 	dict_all_list += [dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)]
 
@@ -804,6 +818,12 @@ def get_dictionary_log_quadruped():
 	p75="gpssm_trained_model_gpflow_2023_03_29_17_54_00",
 	p100="gpssm_trained_model_gpflow_2023_03_29_17_57_45")
 
+	# Matern with 2000 iters - no_lin_ker
+	dict_gpssm_standard_matern_no_linker = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_19_50_30",
+	p50="gpssm_trained_model_gpflow_2023_03_29_19_50_35",
+	p75="gpssm_trained_model_gpflow_2023_03_29_19_50_40",
+	p100="gpssm_trained_model_gpflow_2023_03_29_19_50_45")
+
 	dict_all_list += [dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)]
 
 
@@ -831,6 +851,13 @@ def get_dictionary_log_quadruped():
 	p75="gpssm_trained_model_gpflow_2023_03_29_18_06_53",
 	p100="gpssm_trained_model_gpflow_2023_03_29_18_10_41")
 
+
+	# Matern with 2000 iters - no_lin_ker
+	dict_gpssm_standard_matern_no_linker = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_19_50_52",
+	p50="gpssm_trained_model_gpflow_2023_03_29_19_50_57",
+	p75="gpssm_trained_model_gpflow_2023_03_29_19_51_02",
+	p100="gpssm_trained_model_gpflow_2023_03_29_19_51_08")
+
 	dict_all_list += [dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)]
 
 
@@ -857,6 +884,12 @@ def get_dictionary_log_quadruped():
 	p50="gpssm_trained_model_gpflow_2023_03_29_18_17_09",
 	p75="gpssm_trained_model_gpflow_2023_03_29_18_19_51",
 	p100="gpssm_trained_model_gpflow_2023_03_29_18_23_35")
+
+	# Matern with 2000 iters - no_lin_ker
+	dict_gpssm_standard_matern_no_linker = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_19_51_27",
+	p50="gpssm_trained_model_gpflow_2023_03_29_19_51_32",
+	p75="gpssm_trained_model_gpflow_2023_03_29_19_51_37",
+	p100="gpssm_trained_model_gpflow_2023_03_29_19_51_43")
 
 	dict_all_list += [dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)]
 
@@ -938,15 +971,21 @@ def statistical_comparison(cfg):
 
 		log_evidence_batch, mse_batch = get_log_evidence_evolution(cfg,which_model=model,ratio_list=ratio_list,ratio_names_list=ratio_names_list,plotting=False)
 
-		# log_evidence = np.random.rand(4)
-		# mse = np.random.rand(4)
+		# log_evidence_batch = np.random.rand(5,4)
+		# mse_batch = np.random.rand(5,4)
+
+
+
+		# Compute log:
+		mse_batch = np.log10(mse_batch)
+
 
 		log_evidence_per_model_list += [log_evidence_batch]
 		mse_per_model_list += [mse_batch]
 
 
-		log_evidence_batch_mean = np.mean(log_evidence_batch,axis=0,keepdims=True)
-		log_evidence_batch_std = np.std(log_evidence_batch,axis=0,keepdims=True)
+		log_evidence_batch_mean = np.mean(log_evidence_batch,axis=0,keepdims=True) # [1,4]
+		log_evidence_batch_std = np.std(log_evidence_batch,axis=0,keepdims=True) # [1,4]
 
 		mse_batch_mean = np.mean(mse_batch,axis=0,keepdims=True)
 		mse_batch_std = np.std(mse_batch,axis=0,keepdims=True)
@@ -960,44 +999,96 @@ def statistical_comparison(cfg):
 
 
 	# Concatenate:
-	log_evidence_batch_mean_table = np.concatenate(log_evidence_batch_mean_list,axis=1) # [Nratios,Nmodels]
-	log_evidence_batch_std_table = np.concatenate(log_evidence_batch_std_list,axis=1) # [Nratios,Nmodels]
-	mse_batch_mean_table = np.concatenate(mse_batch_mean_list,axis=1) # [Nratios,Nmodels]
-	mse_batch_std_table = np.concatenate(mse_batch_std_list,axis=1) # [Nratios,Nmodels]
+	log_evidence_batch_mean_table = np.concatenate(log_evidence_batch_mean_list,axis=0) # [Nmodels,Nratios]
+	log_evidence_batch_std_table = np.concatenate(log_evidence_batch_std_list,axis=0) # [Nmodels,Nratios]
+	mse_batch_mean_table = np.concatenate(mse_batch_mean_list,axis=0) # [Nmodels,Nratios]
+	mse_batch_std_table = np.concatenate(mse_batch_std_list,axis=0) # [Nmodels,Nratios]
 
 
+	print("log_evidence_batch_mean_table")
 	print(log_evidence_batch_mean_table)
+
+	print("log_evidence_batch_std_table")
 	print(log_evidence_batch_std_table)
 
 
+	print("mse_batch_mean_table")
 	print(mse_batch_mean_table)
+
+	print("mse_batch_std_table")
 	print(mse_batch_std_table)
 
+	return
 
-	pdb.set_trace()
+
+def plot_stuff():
 
 
-	hdl_fig_data, hdl_splots_data = plt.subplots(1,1,figsize=(12,8),sharex=True)
-	hdl_fig_data.suptitle("Data efficiency assessment",fontsize=fontsize_labels)
+
+
+
+	# log_evidence_batch_mean_table
+	# [[ 3.77490348e+03  1.37067167e+03  1.10048596e+03  4.91224183e+02]
+	#  [ 5.52877811e+02  1.92354176e+03  9.03861342e+02  1.05588535e+03]
+	#  [-2.26835197e+00 -2.58696066e+00 -2.77364591e+00 -2.90828200e+00]]
+	# log_evidence_batch_std_table
+	# [[7.09621154e+03 1.96030366e+03 9.33513537e+02 3.92990017e+02]
+	#  [7.19757619e+02 3.08702057e+03 7.49176576e+02 1.03859758e+03]
+	#  [1.41127772e-02 7.39953882e-03 6.24651087e-03 1.16065346e-02]]
+	# mse_batch_mean_table
+	# [[-3.67535486 -3.72158969 -3.74504359 -3.47277066]
+	#  [-3.73784932 -3.70919092 -3.68906884 -3.58486864]
+	#  [-4.34724579 -4.41617443 -4.4875986  -4.53888869]]
+	# mse_batch_std_table
+	# [[0.08662336 0.03276529 0.01481518 0.1955761 ]
+	#  [0.02882138 0.05293327 0.08241207 0.16673316]
+	#  [0.03547787 0.02412111 0.04005314 0.03082269]]
+
+
+	
+	mse_batch_mean_table = np.array([[-3.67535486 ,-3.72158969 ,-3.74504359 ,-3.47277066],
+	 [-3.73784932 ,-3.70919092 ,-3.68906884 ,-3.58486864],
+	 [-4.34724579 ,-4.41617443 ,-4.4875986  ,-4.53888869]])
+	
+	mse_batch_std_table = np.array([[0.0866233, 0.0327652, 0.0148151, 0.1955761 ],
+	 [0.0288213, 0.0529332, 0.0824120, 0.16673316],
+	 [0.0354778, 0.0241211, 0.0400531, 0.03082269]])
+
+	which_model_list = ["gpssm_se","gpssm_matern","MOrrtp"]
+	which_model_list_legend = ["GPSSM - SE kernel", "GPSSM - Matern kernel", "rrGPSSM (ours)"]
+
+	ratio_list = [0.25,0.5,0.75,1.0]
+	# ratio_names_list = ["p25","p50","p75","p100"]
+
+
+
+	# hdl_fig_data, hdl_splots_data = plt.subplots(1,1,figsize=(12,8),sharex=True)
+	# hdl_fig_data.suptitle("Data efficiency assessment",fontsize=fontsize_labels)
+	# ratio_list_plot = (np.array(ratio_list)*100).astype(dtype=int)
+	# for mm in range(len(which_model_list)):
+	# 	hdl_splots_data.plot(ratio_list_plot,log_evidence_per_model_list[mm],lw=1,alpha=0.7,color="darkgreen",marker=marker_list[mm],markersize=5,label=which_model_list_legend[mm])
+	# 	hdl_splots_data.set_xticks([])
+	# 	hdl_splots_data.set_ylabel(r"$-\log p(\Delta x_{t+1})$",fontsize=fontsize_labels)
+
+	# 	# hdl_splots_data[1].plot(ratio_list_plot,mse_per_model_list[mm],lw=1,alpha=0.7,color="darkgreen",marker=marker_list[mm],markersize=5)
+	# 	# hdl_splots_data[1].set_xticks([])
+	# 	# hdl_splots_data[1].set_ylabel(r"RMSE",fontsize=fontsize_labels)
+
+
+	color_list = ["darkgreen", "crimson", "navy"]
 	ratio_list_plot = (np.array(ratio_list)*100).astype(dtype=int)
+	hdl_fig_data, hdl_splots_data = plt.subplots(1,1,figsize=(15,8),sharex=True)
 	for mm in range(len(which_model_list)):
-		hdl_splots_data.plot(ratio_list_plot,log_evidence_per_model_list[mm],lw=1,alpha=0.7,color="darkgreen",marker=marker_list[mm],markersize=5,label=which_model_list_legend[mm])
-		hdl_splots_data.set_xticks([])
-		hdl_splots_data.set_ylabel(r"$-\log p(\Delta x_{t+1})$",fontsize=fontsize_labels)
-
-		# hdl_splots_data[1].plot(ratio_list_plot,mse_per_model_list[mm],lw=1,alpha=0.7,color="darkgreen",marker=marker_list[mm],markersize=5)
-		# hdl_splots_data[1].set_xticks([])
-		# hdl_splots_data[1].set_ylabel(r"RMSE",fontsize=fontsize_labels)
+		hdl_splots_data.plot(ratio_list_plot,mse_batch_mean_table[mm,:],linestyle="-",marker="None",lw=2.0,alpha=1.0,color=color_list[mm],label=which_model_list_legend[mm])
+		hdl_splots_data.fill_between(ratio_list_plot,mse_batch_mean_table[mm,:] - mse_batch_std_table[mm,:],mse_batch_mean_table[mm,:] + mse_batch_std_table[mm,:],linestyle="None",alpha=0.2,color=color_list[mm])
 
 
+	hdl_splots_data.set_xlim([25,100])
 	hdl_splots_data.set_xticks(ratio_list_plot)
 	hdl_splots_data.set_xlabel(r"\% of training data",fontsize=fontsize_labels)
+	hdl_splots_data.set_ylabel(r"$\log_{10}$(RMSE)",fontsize=fontsize_labels)
+	hdl_splots_data.legend(loc="best",fontsize=fontsize_labels)
 
-
-	print(log_evidence_per_model_list)
-	# 312.37,  17.15,  69.26 , -1.57
-	# 150.92,  941.16, 2529.22, 624.69
-	# 0.80, -1.71, -1.94, -2.01
 
 	plt.show(block=True)
 
@@ -1010,12 +1101,14 @@ if __name__ == "__main__":
 	tf.random.set_seed(seed=my_seed)
 
 
-	Nrepeats = 5
-	name_file_date_list = []
-	for _ in range(Nrepeats):
-		training_for_multiple_ratios()
+	# Nrepeats = 5
+	# name_file_date_list = []
+	# for _ in range(Nrepeats):
+	# 	training_for_multiple_ratios()
 
 	# statistical_comparison()
+
+	plot_stuff()
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_19_55_23*" ./data_efficiency_test_with_dubinscar/
 

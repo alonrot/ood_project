@@ -42,7 +42,8 @@ counter = 1012
 
 # path2folder = "dubins_car_reconstruction"
 # path2folder = "data_quadruped_experiments_03_13_2023"
-path2folder = "data_quadruped_experiments_03_25_2023"
+# path2folder = "data_quadruped_experiments_03_25_2023"
+path2folder = "data_quadruped_experiments_03_29_2023"
 
 using_deltas = True
 # using_deltas = False
@@ -132,6 +133,38 @@ def load_quadruped_experiments_03_25_2023(path2project):
 	return Xtrain, Ytrain, dim_in, dim_out, Nsteps, Ntrajs, path2data, state_and_control_full_list, state_next_full_list
 
 
+def load_quadruped_experiments_03_29_2023(path2project):
+
+	path2data = "{0:s}/data_quadruped_experiments_03_29_2023/joined_go1trajs_trimmed_2023_03_29_circle_walking.pickle".format(path2project)
+	logger.info("Loading {0:s} ...".format(path2data))
+	file = open(path2data, 'rb')
+	data_dict = pickle.load(file)
+	file.close()
+
+	Xtrain = data_dict["Xtrain"]
+	Ytrain = data_dict["Ytrain"]
+	state_and_control_full_list = data_dict["state_and_control_full_list"]
+	state_next_full_list = data_dict["state_next_full_list"]
+	dim_x = Ytrain.shape[1]
+	dim_u = Xtrain.shape[1] - dim_x
+	Nsteps = Xtrain.shape[0]
+	Ntrajs = None
+
+	dim_in = dim_x + dim_u
+	dim_out = dim_x
+
+	if using_deltas:
+		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
+		Ytrain = tf.identity(Ytrain_deltas)
+
+	Xtrain = tf.cast(Xtrain,dtype=tf.float32)
+	Ytrain = tf.cast(Ytrain,dtype=tf.float32)
+
+	return Xtrain, Ytrain, dim_in, dim_out, Nsteps, Ntrajs, path2data, state_and_control_full_list, state_next_full_list
+
+
+
+
 
 @hydra.main(config_path="./config",config_name="config")
 def reconstruct(cfg):
@@ -149,7 +182,7 @@ def reconstruct(cfg):
 	if using_hybridrobotics:
 		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
 
-	assert path2folder in ["dubins_car_reconstruction","data_quadruped_experiments_03_13_2023","data_quadruped_experiments_03_25_2023"]
+	assert path2folder in ["dubins_car_reconstruction","data_quadruped_experiments_03_13_2023","data_quadruped_experiments_03_25_2023","data_quadruped_experiments_03_29_2023"]
 
 	# Load data:
 	if path2folder == "dubins_car_reconstruction":
@@ -172,6 +205,15 @@ def reconstruct(cfg):
 		spectral_density_list = [None]*dim_out
 		for jj in range(dim_out):
 			spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
+
+
+	if path2folder == "data_quadruped_experiments_03_29_2023":
+		Xtrain, Ytrain, dim_in, dim_out, Nsteps, Ntrajs, path2data, state_and_control_full_list, state_next_full_list = load_quadruped_experiments_03_29_2023(path2project) # Actual quadruped - Experiments March 29
+
+		spectral_density_list = [None]*dim_out
+		for jj in range(dim_out):
+			spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
+
 
 
 	# pdb.set_trace()

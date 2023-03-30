@@ -741,7 +741,12 @@ def get_dictionary_log_quadruped():
 	p75="gpssm_trained_model_gpflow_2023_03_29_15_32_44",
 	p100="gpssm_trained_model_gpflow_2023_03_29_15_36_44")
 
-	dict_gpssm_standard_SE = None
+	# SE with 2000 iters
+	dict_gpssm_standard_SE = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_17_23_41",
+	p50="gpssm_trained_model_gpflow_2023_03_29_17_25_29",
+	p75="gpssm_trained_model_gpflow_2023_03_29_17_28_15",
+	p100="gpssm_trained_model_gpflow_2023_03_29_17_32_04")
+
 	dict_all_list += [dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)]
 
 
@@ -764,7 +769,12 @@ def get_dictionary_log_quadruped():
 	p100="gpssm_trained_model_gpflow_2023_03_29_15_50_16")
 
 
-	dict_gpssm_standard_SE = None
+	# SE with 2000 iters
+	dict_gpssm_standard_SE = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_17_36_47",
+	p50="gpssm_trained_model_gpflow_2023_03_29_17_38_34",
+	p75="gpssm_trained_model_gpflow_2023_03_29_17_41_19",
+	p100="gpssm_trained_model_gpflow_2023_03_29_17_44_58")
+
 	dict_all_list += [dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)]
 
 
@@ -787,7 +797,12 @@ def get_dictionary_log_quadruped():
 	p100="gpssm_trained_model_gpflow_2023_03_29_16_03_47")
 
 
-	dict_gpssm_standard_SE = None
+	# SE with 2000 iters
+	dict_gpssm_standard_SE = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_17_49_32",
+	p50="gpssm_trained_model_gpflow_2023_03_29_17_51_18",
+	p75="gpssm_trained_model_gpflow_2023_03_29_17_54_00",
+	p100="gpssm_trained_model_gpflow_2023_03_29_17_57_45")
+
 	dict_all_list += [dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)]
 
 
@@ -809,7 +824,12 @@ def get_dictionary_log_quadruped():
 	p75="gpssm_trained_model_gpflow_2023_03_29_16_13_27",
 	p100="gpssm_trained_model_gpflow_2023_03_29_16_17_26")
 
-	dict_gpssm_standard_SE = None
+	# SE with 2000 iters
+	dict_gpssm_standard_SE = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_18_02_23",
+	p50="gpssm_trained_model_gpflow_2023_03_29_18_04_07",
+	p75="gpssm_trained_model_gpflow_2023_03_29_18_06_53",
+	p100="gpssm_trained_model_gpflow_2023_03_29_18_10_41")
+
 	dict_all_list += [dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)]
 
 
@@ -831,7 +851,12 @@ def get_dictionary_log_quadruped():
 	p75="gpssm_trained_model_gpflow_2023_03_29_16_27_11",
 	p100="gpssm_trained_model_gpflow_2023_03_29_16_31_05")
 
-	dict_gpssm_standard_SE = None
+	# SE with 2000 iters
+	dict_gpssm_standard_SE = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_18_15_22",
+	p50="gpssm_trained_model_gpflow_2023_03_29_18_17_09",
+	p75="gpssm_trained_model_gpflow_2023_03_29_18_19_51",
+	p100="gpssm_trained_model_gpflow_2023_03_29_18_23_35")
+
 	dict_all_list += [dict(MOrrtp=dict_MOrrtp,gpssm_se=dict_gpssm_standard_SE,gpssm_matern=dict_gpssm_standard_matern)]
 
 
@@ -894,27 +919,61 @@ def statistical_comparison(cfg):
 	ratio_list = [0.25,0.5,0.75,1.0]
 	ratio_names_list = ["p25","p50","p75","p100"]
 
-	# DBG:
-	which_model = "gpssm_matern"
-	log_evidence_tot_vec, mse_tot_vec = get_log_evidence_evolution(cfg,which_model,ratio_list,ratio_names_list,plotting=False)
+	# # DBG:
+	# which_model = "gpssm_matern"
+	# log_evidence_tot_vec, mse_tot_vec = get_log_evidence_evolution(cfg,which_model,ratio_list,ratio_names_list,plotting=False)
+	# print(log_evidence_tot_vec)
+	# print(mse_tot_vec)
+	# pdb.set_trace()
 
-	print(log_evidence_tot_vec)
-	print(mse_tot_vec)
-
-	pdb.set_trace()
-
+	log_evidence_batch_mean_list =[]
+	log_evidence_batch_std_list =[]
+	mse_batch_mean_list =[]
+	mse_batch_std_list =[]
 	log_evidence_per_model_list = []
 	mse_per_model_list = []
 	marker_list = ["s","v","*"]
 	for model in which_model_list:
 
-		log_evidence, mse = get_log_evidence_evolution(cfg,which_model=model,ratio_list=ratio_list,ratio_names_list=ratio_names_list,plotting=False)
+		log_evidence_batch, mse_batch = get_log_evidence_evolution(cfg,which_model=model,ratio_list=ratio_list,ratio_names_list=ratio_names_list,plotting=False)
 
 		# log_evidence = np.random.rand(4)
 		# mse = np.random.rand(4)
 
-		log_evidence_per_model_list += [log_evidence]
-		mse_per_model_list += [mse]
+		log_evidence_per_model_list += [log_evidence_batch]
+		mse_per_model_list += [mse_batch]
+
+
+		log_evidence_batch_mean = np.mean(log_evidence_batch,axis=0,keepdims=True)
+		log_evidence_batch_std = np.std(log_evidence_batch,axis=0,keepdims=True)
+
+		mse_batch_mean = np.mean(mse_batch,axis=0,keepdims=True)
+		mse_batch_std = np.std(mse_batch,axis=0,keepdims=True)
+
+		log_evidence_batch_mean_list += [log_evidence_batch_mean]
+		log_evidence_batch_std_list += [log_evidence_batch_std]
+
+		mse_batch_mean_list += [mse_batch_mean]
+		mse_batch_std_list += [mse_batch_std]
+
+
+
+	# Concatenate:
+	log_evidence_batch_mean_table = np.concatenate(log_evidence_batch_mean_list,axis=1) # [Nratios,Nmodels]
+	log_evidence_batch_std_table = np.concatenate(log_evidence_batch_std_list,axis=1) # [Nratios,Nmodels]
+	mse_batch_mean_table = np.concatenate(mse_batch_mean_list,axis=1) # [Nratios,Nmodels]
+	mse_batch_std_table = np.concatenate(mse_batch_std_list,axis=1) # [Nratios,Nmodels]
+
+
+	print(log_evidence_batch_mean_table)
+	print(log_evidence_batch_std_table)
+
+
+	print(mse_batch_mean_table)
+	print(mse_batch_std_table)
+
+
+	pdb.set_trace()
 
 
 	hdl_fig_data, hdl_splots_data = plt.subplots(1,1,figsize=(12,8),sharex=True)
@@ -950,12 +1009,12 @@ if __name__ == "__main__":
 	tf.random.set_seed(seed=my_seed)
 
 
-	Nrepeats = 5
-	name_file_date_list = []
-	for _ in range(Nrepeats):
-		training_for_multiple_ratios()
+	# Nrepeats = 5
+	# name_file_date_list = []
+	# for _ in range(Nrepeats):
+	# 	training_for_multiple_ratios()
 
-	# statistical_comparison()
+	statistical_comparison()
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_19_55_23*" ./data_efficiency_test_with_dubinscar/
 

@@ -58,13 +58,24 @@ hyperpars:
   #   learn: False
 
 
-  # Quadruped (using deltas; data_quadruped_experiments_03_29_2023)
+  # # Quadruped (using deltas; data_quadruped_experiments_03_29_2023)
+  # prior_variance: 1.0
+  # prior_mean_factor: 1.0
+  # noise_std_process:
+  #   # value_init: 0.1
+  #   # value_init: 0.05
+  #   value_init: 0.008
+  #   learn: False
+
+  
+
+  # Quadruped (using deltas; data_quadruped_experiments_03_29_2023) -> working on predictions
   prior_variance: 1.0
   prior_mean_factor: 1.0
   noise_std_process:
     # value_init: 0.1
     # value_init: 0.05
-    value_init: 0.008
+    value_init: 0.0001
     learn: False
 
 

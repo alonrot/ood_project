@@ -358,6 +358,7 @@ def compute_predictions(cfg):
 
 		# Nepochs = 50
 
+
 		Nhorizon_rec = 30
 		# Nsteps_tot = 40
 		Nsteps_tot = z_vec_real.shape[0]

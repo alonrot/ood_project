@@ -43,81 +43,86 @@ assert using_deltas == True
 path2folder = "data_quadruped_experiments_03_29_2023"
 
 
-def fix_pickle_datafile(cfg,path2project,path2folder):
+"""
+DEPRECATED
+"""
 
-	"""
-	NOTE: This piece of code needed to be called only once, to fix the pickle file.
-	It genrated the file /Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/from_hybridrob/reconstruction_data_2023_03_27_01_12_35.pickle
-	"""
-	raise NotImplementedError("Only needed to be called once to fix a pickle file")
+# def fix_pickle_datafile(cfg,path2project,path2folder):
 
-	file_name = "reconstruction_data_2023_03_26_21_55_08.pickle" # Trained model on hybridrob for 50000 iters; data subsampled at 10 Hz
-	path2load_full = "{0:s}/{1:s}/from_hybridrob/{2:s}".format(path2project,path2folder,file_name)
-	file = open(path2load_full, 'rb')
-	data_dict = pickle.load(file)
-	file.close()
+# 	"""
+# 	NOTE: This piece of code needed to be called only once, to fix the pickle file.
+# 	It genrated the file /Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/from_hybridrob/reconstruction_data_2023_03_27_01_12_35.pickle
+# 	"""
+# 	raise NotImplementedError("Only needed to be called once to fix a pickle file")
 
-	# omegas_trainedNN = tf.convert_to_tensor(data_dict["omegas_trainedNN"],dtype=tf.float32)
-	# Sw_omegas_trainedNN = tf.convert_to_tensor(data_dict["Sw_omegas_trainedNN"],dtype=tf.float32)
-	# varphi_omegas_trainedNN = tf.convert_to_tensor(data_dict["varphi_omegas_trainedNN"],dtype=tf.float32)
-	# delta_omegas_trainedNN = tf.convert_to_tensor(data_dict["delta_omegas_trainedNN"],dtype=tf.float32)
-	# delta_statespace_trainedNN = tf.convert_to_tensor(data_dict["delta_statespace_trainedNN"],dtype=tf.float32)
+# 	file_name = "reconstruction_data_2023_03_26_21_55_08.pickle" # Trained model on hybridrob for 50000 iters; data subsampled at 10 Hz
+# 	path2load_full = "{0:s}/{1:s}/from_hybridrob/{2:s}".format(path2project,path2folder,file_name)
+# 	file = open(path2load_full, 'rb')
+# 	data_dict = pickle.load(file)
+# 	file.close()
+
+# 	# omegas_trainedNN = tf.convert_to_tensor(data_dict["omegas_trainedNN"],dtype=tf.float32)
+# 	# Sw_omegas_trainedNN = tf.convert_to_tensor(data_dict["Sw_omegas_trainedNN"],dtype=tf.float32)
+# 	# varphi_omegas_trainedNN = tf.convert_to_tensor(data_dict["varphi_omegas_trainedNN"],dtype=tf.float32)
+# 	# delta_omegas_trainedNN = tf.convert_to_tensor(data_dict["delta_omegas_trainedNN"],dtype=tf.float32)
+# 	# delta_statespace_trainedNN = tf.convert_to_tensor(data_dict["delta_statespace_trainedNN"],dtype=tf.float32)
 	
-	path2data = "{0:s}/data_quadruped_experiments_03_25_2023/joined_go1trajs_trimmed_2023_03_25.pickle".format(path2project)
-	logger.info("Loading {0:s} ...".format(path2data))
-	file = open(path2data, 'rb')
-	data_dict4spectral = pickle.load(file)
-	file.close()
+# 	path2data = "{0:s}/data_quadruped_experiments_03_25_2023/joined_go1trajs_trimmed_2023_03_25.pickle".format(path2project)
+# 	logger.info("Loading {0:s} ...".format(path2data))
+# 	file = open(path2data, 'rb')
+# 	data_dict4spectral = pickle.load(file)
+# 	file.close()
 
-	Xtrain = data_dict4spectral["Xtrain"]
-	Ytrain = data_dict4spectral["Ytrain"]
-	state_and_control_full_list = data_dict4spectral["state_and_control_full_list"]
-	state_next_full_list = data_dict4spectral["state_next_full_list"]
+# 	Xtrain = data_dict4spectral["Xtrain"]
+# 	Ytrain = data_dict4spectral["Ytrain"]
+# 	state_and_control_full_list = data_dict4spectral["state_and_control_full_list"]
+# 	state_next_full_list = data_dict4spectral["state_next_full_list"]
 
-	dim_x = Ytrain.shape[1]
-	dim_u = Xtrain.shape[1] - dim_x
-	Nsteps = Xtrain.shape[0]
-	Ntrajs = None
+# 	dim_x = Ytrain.shape[1]
+# 	dim_u = Xtrain.shape[1] - dim_x
+# 	Nsteps = Xtrain.shape[0]
+# 	Ntrajs = None
 
-	dim_in = dim_x + dim_u
-	dim_out = dim_x
+# 	dim_in = dim_x + dim_u
+# 	dim_out = dim_x
 
-	if using_deltas:
-		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
-		Ytrain = tf.identity(Ytrain_deltas)
+# 	if using_deltas:
+# 		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
+# 		Ytrain = tf.identity(Ytrain_deltas)
 
-	Xtrain = tf.cast(Xtrain,dtype=tf.float32)
-	Ytrain = tf.cast(Ytrain,dtype=tf.float32)
+# 	Xtrain = tf.cast(Xtrain,dtype=tf.float32)
+# 	Ytrain = tf.cast(Ytrain,dtype=tf.float32)
 
-	# Spectral density:
-	spectral_density_list = [None]*dim_out
-	for jj in range(dim_out):
-		spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
-		spectral_density_list[jj].update_Wsamples_from_file(path2data=path2load_full,ind_out=jj)
-
-
-	data_dict.update(spectral_density_list=spectral_density_list,
-					omega_lim=5.0,
-					Nsamples_omega=1500,
-					Xtrain=Xtrain,
-					Ytrain=Ytrain,
-					state_and_control_full_list=state_and_control_full_list,
-					state_next_full_list=state_next_full_list,
-					path2data=path2data)
+# 	# Spectral density:
+# 	spectral_density_list = [None]*dim_out
+# 	for jj in range(dim_out):
+# 		spectral_density_list[jj] = QuadrupedSpectralDensity(cfg=cfg.spectral_density.quadruped,cfg_sampler=cfg.sampler.hmc,dim=dim_in,integration_method="integrate_with_data",Xtrain=Xtrain,Ytrain=Ytrain[:,jj:jj+1])
+# 		spectral_density_list[jj].update_Wsamples_from_file(path2data=path2load_full,ind_out=jj)
 
 
-	name_file_date = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-	file_name = "reconstruction_data_{0:s}.pickle".format(name_file_date) # Trained model on hybridrob for 50000 iters; data subsampled at 10 Hz
-	path2load_full = "{0:s}/{1:s}/from_hybridrob/{2:s}".format(path2project,path2folder,file_name)
-	file = open(path2load_full, 'wb')
-	logger.info("Saving data at {0:s} ...".format(path2load_full))
-	pickle.dump(data_dict,file)
-	file.close()
-	logger.info("Done!")
+# 	data_dict.update(spectral_density_list=spectral_density_list,
+# 					omega_lim=5.0,
+# 					Nsamples_omega=1500,
+# 					Xtrain=Xtrain,
+# 					Ytrain=Ytrain,
+# 					state_and_control_full_list=state_and_control_full_list,
+# 					state_next_full_list=state_next_full_list,
+# 					path2data=path2data)
 
-	pdb.set_trace()
+
+# 	name_file_date = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+# 	file_name = "reconstruction_data_{0:s}.pickle".format(name_file_date) # Trained model on hybridrob for 50000 iters; data subsampled at 10 Hz
+# 	path2load_full = "{0:s}/{1:s}/from_hybridrob/{2:s}".format(path2project,path2folder,file_name)
+# 	file = open(path2load_full, 'wb')
+# 	logger.info("Saving data at {0:s} ...".format(path2load_full))
+# 	pickle.dump(data_dict,file)
+# 	file.close()
+# 	logger.info("Done!")
+
+# 	pdb.set_trace()
 
 	
+
 
 def select_trajectory_from_path(path2project,path2folder,file_name,ind_which_traj):
 
@@ -218,6 +223,9 @@ def compute_predictions(cfg):
 	# use_same_data_the_model_was_trained_on = True
 	use_same_data_the_model_was_trained_on = False
 	if use_same_data_the_model_was_trained_on:
+
+		# pdb.set_trace()
+
 		z_vec_real = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj][:,0:dim_x],dtype=tf.float32)
 		u_vec_tf = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj][:,dim_x::],dtype=tf.float32)
 		zu_vec = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj],dtype=tf.float32)
@@ -250,7 +258,7 @@ def compute_predictions(cfg):
 			deltas_real = Ytest
 
 
-		hdl_fig, hdl_splots_next_state = plt.subplots(dim_out,1,figsize=(16,14),sharex=False,sharey=False)
+		hdl_fig, hdl_splots_next_state = plt.subplots(dim_out,1,figsize=(12,8),sharex=False,sharey=False)
 		hdl_fig.suptitle(r"Predicted state transition on the test data; $\Delta x_{t+1,d} = f_d(x_t)$",fontsize=fontsize_labels)
 		hdl_splots_next_state = np.reshape(hdl_splots_next_state,(-1,1))
 
@@ -349,12 +357,12 @@ def compute_predictions(cfg):
 
 		# Nepochs = 50
 
-		Nhorizon_rec = 10
+		Nhorizon_rec = 30
 		# Nsteps_tot = 40
-		# Nsteps_tot = z_vec_real.shape[0]
-		Nsteps_tot = z_vec_real.shape[0] // 8
+		Nsteps_tot = z_vec_real.shape[0]
+		# Nsteps_tot = z_vec_real.shape[0] // 5
 		Nepochs = 200
-		Nrollouts = 5
+		Nrollouts = 1
 		Nchunks = 4
 
 
@@ -386,6 +394,13 @@ def compute_predictions(cfg):
 
 
 	noise_mat = rrtp_MO.sample_mv0[...,0] # We slice matrix [Nrollouts,Nomegas,1]
+	noise_mat = np.zeros(noise_mat.shape)
+
+	logger.info(" <<<<<<<<<<<< [WARNING] >>>>>>>>>>>>>>>>>")
+	logger.info(" HARDCODING A ZERO MATRIX TO GET RID MF MODEL ROULLOUTS STOCHASTICITY ... !!!!")
+	pdb.set_trace() # leave it to make sure we don't forget
+
+	# pdb.set_trace()
 	predictions_module = Predictions(dim_in,dim_out,phi_samples_all_dim,W_samples_all_dim,mean_beta_pred_all_dim,cov_beta_pred_chol_all_dim,noise_mat,Nrollouts,Nhorizon_rec)
 	# predictions_module = None
 	
@@ -396,6 +411,12 @@ def compute_predictions(cfg):
 
 	if savedata:
 		data2save = dict(x_traj_pred_all_vec=x_traj_pred_all_vec,u_vec_tf=u_vec_tf,z_vec_real=z_vec_real,loss_val_per_step=loss_val_per_step,Xtrain=Xtrain,Ytrain=Ytrain)
+
+		if rrtp_MO.loss_elbo_evidence_avg_vec is not None:
+			data2save.update(	loss_elbo_evidence_avg_vec=rrtp_MO.loss_elbo_evidence_avg_vec,
+								loss_elbo_entropy_vec=rrtp_MO.loss_elbo_entropy_vec,
+								loss_prior_regularizer_vec=rrtp_MO.loss_prior_regularizer_vec)
+
 		file_name = "predicted_trajs_{0:s}.pickle".format(name_file_date)
 		path2save_receding_horizon = "{0:s}/{1:s}/{2:s}".format(path2project,path2folder,file_name)
 		logger.info("Saving at {0:s} ...".format(path2save_receding_horizon))
@@ -420,13 +441,66 @@ def plot_predictions(cfg,file_name):
 
 	x_traj_pred_all_vec = data_dict["x_traj_pred_all_vec"] # [Nsteps_tot,Nrollouts,Nhorizon_rec,dim_x]
 	z_vec_real = data_dict["z_vec_real"]
-	loss_val_per_step_in = data_dict["loss_val_per_step"] / 1000.0
+	loss_val_per_step_in = data_dict["loss_val_per_step"]
 	# pdb.set_trace()
 
-	add_val = 0.0
-	if np.amin(loss_val_per_step_in) < 0.0:
-		add_val = abs(np.amin(loss_val_per_step_in))
-	loss_val_per_step = np.log(loss_val_per_step_in + add_val + 1e-10)
+	if "loss_elbo_evidence_avg_vec" in data_dict.keys():
+		loss_elbo_evidence_avg_vec = data_dict["loss_elbo_evidence_avg_vec"]
+		loss_elbo_entropy_vec = data_dict["loss_elbo_entropy_vec"] # Good indicator; it's jsut the log-predictive std!!
+		loss_prior_regularizer_vec = data_dict["loss_prior_regularizer_vec"]
+
+	# Rescale loss for plotting:
+	loss_val_per_step_in_mod = loss_val_per_step_in
+	# loss_val_per_step_in_mod[loss_val_per_step_in_mod > 400.0] = 6500.0
+	# loss_val_per_step_in_mod = loss_val_per_step_in / 1000.0
+
+	# add_val = 0.0
+	# if np.amin(loss_val_per_step_in_mod) < 0.0:
+	# 	add_val = abs(np.amin(loss_val_per_step_in_mod))
+	# loss_val_per_step = np.log(loss_val_per_step_in_mod + add_val + 1e-10)
+
+	loss_val_per_step = loss_val_per_step_in_mod
+
+
+	plotting_analysis_loss = True
+	if plotting_analysis_loss:
+
+		hdl_fig_loss, hdl_splots_loss = plt.subplots(4,1,figsize=(17,7),sharex=True)
+		hdl_splots_loss[0].plot(loss_val_per_step_in)
+		hdl_splots_loss[1].plot(loss_elbo_evidence_avg_vec)
+		hdl_splots_loss[2].plot(loss_elbo_entropy_vec)
+		hdl_splots_loss[3].plot(loss_prior_regularizer_vec)
+		# hdl_splots_loss[1].plot(loss_val_per_step)
+		plt.show(block=False)
+
+
+	# ELBO:
+	# (1) E_q[p(y|z)] -> this can be seen as an entropy and hence, as information. Is it gain in epistemic uncertainty? -> very high values, scale down
+	# (2) H(q(z)) -> this is how confident the model is
+	# (3) Prior: we choose it as to penalize values too far from each other
+	# 
+	# Note that (2) can be used for decision making -> when the model is not confident, we act more conservatively. Use it for plots!
+
+
+
+
+	# The problem is the mean, not the stochastic term. Improve the model by having a better reconstruction. Then, add stochasticity with VERY small noise
+	# For some reason the learnign isn't working as it should; MAYBE TRY SHUFFLING THE DATA, IT WORKED WELL FOR DATA EFFICIENCY TEST
+	# SERIOUESLY, TRY SHUFFLING THE DATA
+	# Claire wants to see a comparison against a sadard GPSSM model; do it. With GPSSM we should see all in bad color
+	# I guess we're not comparing against other GPSSM from the literature, too bad... look for code, but no time
+
+
+
+
+	# ABOUT THE LATEX MODEL DATA EFFICIENCY
+	# USE SMALLER RATIOS [0.05, 0.1, 0.15, 0.2] AND USE ONLY 0.05 TESTING DATA. SEE WHAT HAPPENS. WHEN USING 0.1 FOR TESTING, BUT THEN 0.9*0.2, THAT'S ALREADY 0.18, WHICH IS NOT PRECISELY SCARCE WRT THE TESTING SET
+
+
+
+
+
+
 
 	Nsteps_tot = x_traj_pred_all_vec.shape[0]
 	Nrollouts = x_traj_pred_all_vec.shape[1]
@@ -435,6 +509,7 @@ def plot_predictions(cfg,file_name):
 	thres_OoD = 5.0
 	loss_min = np.amin(loss_val_per_step)
 	loss_max = np.amax(loss_val_per_step)
+	# loss_max = 300.0
 
 	def color_gradient(loss_val):
 		rho_loss = (loss_val - loss_min) / (loss_max - loss_min)
@@ -452,18 +527,19 @@ def plot_predictions(cfg,file_name):
 	
 	# hdl_splots_sampling_rec[0].plot(z_vec_real[:,0],z_vec_real[:,1],linestyle="-",color="navy",lw=2.0,label="With nominal dynamics",alpha=0.7)
 
+	loss4colors = loss_elbo_entropy_vec
 
 	z_vec_real_4colors = np.reshape(z_vec_real[:,0:2],(-1,1,2))
 	segments = np.concatenate([z_vec_real_4colors[:-1], z_vec_real_4colors[1:]], axis=1)
-	norm = plt.Normalize(loss_min, loss_max)
-	lc = LineCollection(segments, cmap='summer', norm=norm)
+	norm = plt.Normalize(loss4colors.min(), loss4colors.max())
+	lc = LineCollection(segments, cmap='cool', norm=norm, alpha=0.3)
 	# Set the values used for colormapping
 	# pdb.set_trace()
-	lc.set_array(loss_val_per_step)
-	lc.set_linewidth(2)
+	lc.set_array(loss4colors)
+	lc.set_linewidth(3)
+
 	line = hdl_splots_sampling_rec[0].add_collection(lc)
 
-	
 	if "Xtrain" in data_dict.keys():
 		Xtrain = data_dict["Xtrain"]
 		hdl_splots_sampling_rec[0].plot(Xtrain[:,0],Xtrain[:,1],linestyle="-",color="grey",lw=0.5,alpha=0.3) # Overlay the entire training set
@@ -471,7 +547,13 @@ def plot_predictions(cfg,file_name):
 
 	color_robot = color_gradient(loss_val_per_step[tt])
 
-	# hdl_plt_dubins_real, = hdl_splots_sampling_rec[0].plot(z_vec_real[tt,0],z_vec_real[tt,1],marker="*",markersize=14,color=color_robot,label="Tracking experimental data - Quadruped")
+	Nhor = x_traj_pred_all_vec.shape[2]
+	# Nhor = 15
+	# logger.info(" <<<<<<<<<<<< [WARNING] >>>>>>>>>>>>>>>>>")
+	# logger.info(" USING REDUCED HORIZON THAN AVAILABE!!!!")
+	# pdb.set_trace() # leave it to make sure we don't forget
+
+	hdl_plt_dubins_real, = hdl_splots_sampling_rec[0].plot(z_vec_real[tt,0],z_vec_real[tt,1],marker="*",markersize=14,color=color_robot,label="Tracking experimental data - Quadruped")
 	# hdl_splots_sampling_rec[0].set_xlim([-6.0,5.0])
 	# hdl_splots_sampling_rec[0].set_ylim([-3.5,1.5])
 	hdl_splots_sampling_rec[0].set_title("Tracking experimental data - Quadruped", fontsize=fontsize_labels)
@@ -479,9 +561,9 @@ def plot_predictions(cfg,file_name):
 	hdl_splots_sampling_rec[0].set_ylabel(r"$x_2$", fontsize=fontsize_labels)
 	hdl_plt_predictions_list = []
 	for ss in range(Nrollouts):
-		# Nhor = 3
-		Nhor = x_traj_pred_all_vec.shape[2]
-		hdl_plt_predictions_list += hdl_splots_sampling_rec[0].plot(x_traj_pred_all_vec[0,ss,0:Nhor,0],x_traj_pred_all_vec[0,ss,0:Nhor,1],linestyle="-",color="darkorange",lw=0.5,label="Sampled trajs",alpha=0.5)
+		# Nhor = 15
+		# Nhor = x_traj_pred_all_vec.shape[2]
+		hdl_plt_predictions_list += hdl_splots_sampling_rec[0].plot(x_traj_pred_all_vec[0,ss,0:Nhor,0],x_traj_pred_all_vec[0,ss,0:Nhor,1],linestyle="-",color="darkorange",lw=3.0,label="Sampled trajs",alpha=0.5)
 
 	# Loss evolution:
 	hdl_plt_artist_loss_title = hdl_splots_sampling_rec[1].set_title("ELBO prediction loss", fontsize=fontsize_labels)
@@ -493,9 +575,10 @@ def plot_predictions(cfg,file_name):
 	hdl_splots_sampling_rec[1].axhline(y=thres_OoD,color="palegoldenrod",lw=2.0,linestyle='-')
 	
 	plt.show(block=False)
-	plt.pause(0.5)
+	# plt.pause(0.5)
 	plt_pause_sec = 0.005
-	pdb.set_trace()
+	# pdb.set_trace()
+	input()
 	
 
 	for tt in range(Nsteps_tot):
@@ -504,15 +587,14 @@ def plot_predictions(cfg,file_name):
 		# hdl_plt_dubins_real.set_markerfacecolor("red" if is_OoD else "green")
 		# hdl_plt_dubins_real.set_markeredgecolor("red" if is_OoD else "green")
 
-		color_robot = color_gradient(loss_val_per_step[tt])
+		# color_robot = color_gradient(loss_val_per_step[tt])
+		color_robot = "grey"
 		hdl_plt_dubins_real.set_markeredgecolor(color_robot)
 
 		hdl_plt_dubins_real.set_xdata(z_vec_real[tt,0])
 		hdl_plt_dubins_real.set_ydata(z_vec_real[tt,1])
 		
 		for ss in range(Nrollouts):
-			# Nhor = 3
-			Nhor = x_traj_pred_all_vec.shape[2]
 			hdl_plt_predictions_list[ss].set_xdata(x_traj_pred_all_vec[tt,ss,0:Nhor,0])
 			hdl_plt_predictions_list[ss].set_ydata(x_traj_pred_all_vec[tt,ss,0:Nhor,1])
 			# hdl_splots_sampling_rec[0].plot(x_traj_pred_all_vec[tt,ss,:,0],x_traj_pred_all_vec[tt,ss,:,1],linestyle="-",color="crimson",lw=0.5,label="Sampled trajs",alpha=0.3)
@@ -534,7 +616,7 @@ def plot_predictions(cfg,file_name):
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg):
 
-	compute_predictions(cfg)
+	# compute_predictions(cfg)
 
 
 	# # ==============================================================
@@ -549,12 +631,18 @@ def main(cfg):
 	# plot_predictions(cfg,file_name)
 
 
-	# # ==============================================================
-	# # With Quadruped data from data_quadruped_experiments_03_29_2023
-	# # ==============================================================
-	# # All with recostructed model file_name = "reconstruction_data_2023_03_29_23_11_35.pickle" (walking on a circle)
+	# ==============================================================
+	# With Quadruped data from data_quadruped_experiments_03_29_2023
+	# ==============================================================
+	# All with recostructed model file_name = "reconstruction_data_2023_03_29_23_11_35.pickle" (walking on a circle)
 	# file_name = "predicted_trajs_2023_03_29_23_34_13.pickle" # DBG; noise: 0.01
-	# plot_predictions(cfg,file_name)
+	# file_name = "predicted_trajs_2023_03_30_00_25_21.pickle" # hybridrob, Nhor: 30, Nrollouts: 20
+	# file_name = "predicted_trajs_2023_03_30_01_12_50.pickle" # DBG, Nhor: 10, Nrollouts: 10; noise: 0.008
+	# file_name = "predicted_trajs_2023_03_30_02_00_56.pickle" # DBG, Nhor: 10, Nrollouts: 10; noise: 0.008; no stochasticy, just the mean
+	# file_name = "predicted_trajs_2023_03_30_02_04_15.pickle" # DBG, Nhor: 30, Nrollouts: 10; noise: 0.008; no stochasticy, just the mean
+	# file_name = "predicted_trajs_2023_03_30_02_38_09.pickle" # DBG, Nhor: 30, Nrollouts: 1; noise: 0.008; no stochasticy, just the mean (trained on walking circle; tested on 1/5 of the rope data)
+	file_name = "predicted_trajs_2023_03_30_03_01_59.pickle" # DBG, Nhor: 30, Nrollouts: 1; noise: 0.008; no stochasticy, just the mean (trained on walking circle; tested on full if the rope data)
+	plot_predictions(cfg,file_name)
 
 
 
@@ -568,7 +656,28 @@ if __name__ == "__main__":
 
 	# scp -P 4444 -r ./data_quadruped_experiments_03_25_2023/from_hybridrob/reconstruction_data_2023_03_27_01_23_40.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/from_hybridrob/
 
-
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/predicted_trajs_2023_03_27_02_37_01.pickle ./data_quadruped_experiments_03_25_2023/
 
+
+
+
+	# scp -P 4444 -r ./data_quadruped_experiments_03_29_2023/from_hybridrob/reconstruction_data_2023_03_29_23_11_35.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/from_hybridrob/
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/"*" ./data_quadruped_experiments_03_29_2023/
+	# scp -P 4444 -r ./data_quadruped_experiments_03_29_2023/from_hybridrob/reconstruction_data_2023_03_29_23_11_35.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/from_hybridrob/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023//predicted_trajs_2023_03_30_00_25_21.pickle ./data_quadruped_experiments_03_29_2023/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

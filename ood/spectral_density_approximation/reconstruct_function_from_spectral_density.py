@@ -73,6 +73,7 @@ class ReconstructFunctionFromSpectralDensity(tf.keras.layers.Layer):
 		train_Xvoxels = True
 		if self.dbg_flag4paper:
 			train_Xvoxels = False
+			pdb.set_trace()
 		
 		self.delta_dX_voxels_preactivation = self.add_weight(shape=(Xtest.shape[0],1), initializer=tf.keras.initializers.Constant(value=0.0), trainable=train_Xvoxels, name="delta_statespace_preactivation")
 		self.dX_voxel_val = self.add_weight(shape=(1,), initializer=tf.keras.initializers.Constant(value=tf.math.log(dX_voxel_init)), trainable=train_Xvoxels, name="dX_voxel_val")

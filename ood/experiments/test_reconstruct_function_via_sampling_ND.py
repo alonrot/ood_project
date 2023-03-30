@@ -227,8 +227,12 @@ def reconstruct(cfg):
 	Nepochs = 13
 	Nsamples_omega = 30
 	if using_hybridrobotics:
-		Nepochs = 10000
-		Nsamples_omega = 2000
+		# Nepochs = 10000
+		# Nsamples_omega = 2000
+
+		Nepochs = 200
+		Nsamples_omega = 1500
+
 	
 	omega_lim = 8.0
 	Dw_coarse = (2.*omega_lim)**dim_in / Nsamples_omega # We are trainig a tensor [Nomegas,dim_in]
@@ -549,6 +553,6 @@ if __name__ == "__main__":
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_25_2023/"*2023_03_27_12_19_20*" ./data_quadruped_experiments_03_25_2023/from_hybridrob/
 
 
-
+	# scp -P 4444 -r /Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/* amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/
 
 

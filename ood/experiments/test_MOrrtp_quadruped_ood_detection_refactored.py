@@ -243,11 +243,11 @@ def compute_predictions(cfg):
 		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_rope.pickle"
 
 		# Scenario 3: rocky terrain
-		file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_rocky.pickle"
+		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_rocky.pickle"
 
 
-		# Scenario 4: rocky terrain
-		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_poking.pickle"
+		# Scenario 4: poking
+		file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_poking.pickle"
 
 
 		z_vec_real, u_vec_tf, zu_vec, Xtest, Ytest = select_trajectory_from_path(path2project=path2project,path2folder=path2folder_data_diff_env,file_name=file_name_data_diff_env,ind_which_traj=ind_which_traj)
@@ -697,7 +697,8 @@ def main(cfg):
 	# # file_name = "predicted_trajs_2023_03_30_11_54_19.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.008; first rollout is the mean || trained on walking circle; tested on: rocky
 	# # file_name = "predicted_trajs_2023_03_30_12_07_26.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.008; first rollout is the mean || trained on walking circle; tested on: poking
 	# # file_name = "predicted_trajs_2023_03_30_13_04_32.pickle" # DBG, Nhor: 15, Nrollouts: 10; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: rope
-	# file_name = "predicted_trajs_2023_03_30_13_12_01.pickle" # DBG, Nhor: 15, Nrollouts: 10; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: rope, longer time
+	# # file_name = "predicted_trajs_2023_03_30_13_12_01.pickle" # DBG, Nhor: 15, Nrollouts: 10; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: rope, longer time
+	# file_name = "predicted_trajs_2023_03_30_13_34_28.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: rocky
 	# plot_predictions(cfg,file_name)
 
 
@@ -720,7 +721,7 @@ if __name__ == "__main__":
 	# scp -P 4444 -r ./data_quadruped_experiments_03_29_2023/from_hybridrob/reconstruction_data_2023_03_29_23_11_35.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/from_hybridrob/
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/"*" ./data_quadruped_experiments_03_29_2023/
 	# scp -P 4444 -r ./data_quadruped_experiments_03_29_2023/from_hybridrob/reconstruction_data_2023_03_29_23_11_35.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/from_hybridrob/
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/predicted_trajs_2023_03_30_12_07_26.pickle ./data_quadruped_experiments_03_29_2023/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/predicted_trajs_2023_03_30_13_34_28.pickle ./data_quadruped_experiments_03_29_2023/
 
 
 

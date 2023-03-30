@@ -27,6 +27,13 @@ from test_dubin_car import get_sequence_of_feedback_gains_finite_horizon_LQR, ro
 from predictions_interface import Predictions
 
 
+# GP flow:
+import gpflow as gpf
+gpf.config.set_default_float(np.float64)
+gpf.config.set_default_summary_fmt("github")
+from gpflow.ci_utils import reduce_in_tests
+from gpflow.utilities import print_summary
+
 markersize_x0 = 10
 markersize_trajs = 0.4
 fontsize_labels = 30
@@ -122,6 +129,150 @@ DEPRECATED
 # 	pdb.set_trace()
 
 	
+def load_quadruped_experiments_03_29_2023(path2project):
+
+	path2data = "{0:s}/data_quadruped_experiments_03_29_2023/joined_go1trajs_trimmed_2023_03_29_circle_walking.pickle".format(path2project)
+	logger.info("Loading {0:s} ...".format(path2data))
+	file = open(path2data, 'rb')
+	data_dict = pickle.load(file)
+	file.close()
+
+	Xtrain = data_dict["Xtrain"]
+	Ytrain = data_dict["Ytrain"]
+	state_and_control_full_list = data_dict["state_and_control_full_list"]
+	state_next_full_list = data_dict["state_next_full_list"]
+	dim_x = Ytrain.shape[1]
+	dim_u = Xtrain.shape[1] - dim_x
+	Nsteps = Xtrain.shape[0]
+	Ntrajs = None
+
+	dim_in = dim_x + dim_u
+	dim_out = dim_x
+
+	if using_deltas:
+		Ytrain_deltas = Ytrain - Xtrain[:,0:dim_x]
+		Ytrain = tf.identity(Ytrain_deltas)
+
+	Xtrain = tf.cast(Xtrain,dtype=tf.float32)
+	Ytrain = tf.cast(Ytrain,dtype=tf.float32)
+
+	return Xtrain, Ytrain, dim_in, dim_out, Nsteps, Ntrajs, path2data, state_and_control_full_list, state_next_full_list
+
+
+def train_gpssm(cfg):
+
+	name_file_date = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+
+	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
+	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
+
+	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
+	if using_hybridrobotics:
+		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
+
+	Xtrain, Ytrain, dim_in, dim_out, Nsteps, Ntrajs, path2data, state_and_control_full_list, state_next_full_list = load_quadruped_experiments_03_29_2023(path2project)
+
+	# Based on: https://gpflow.github.io/GPflow/develop/notebooks/advanced/multioutput.html#
+	MAXITER = reduce_in_tests(500)
+	# MAXITER = 10
+
+	N = Xtrain.shape[0]  # number of points
+	D = Xtrain.shape[1]  # number of input dimensions
+	L = Ytrain.shape[1]  # number of latent GPs
+	P = Ytrain.shape[1]  # number of observations = output dimensions
+	# M = 20  # number of inducing points
+	M_per_dim = 3
+
+
+	X = tf.cast(Xtrain,dtype=tf.float64)
+	Y = tf.cast(Ytrain,dtype=tf.float64)
+	data = X, Y
+
+	Zinit = CommonUtils.create_Ndim_grid(xmin=-5.0,xmax=+5.0,Ndiv=M_per_dim,dim=D) # [Ndiv**dim_in,dim_in]
+	Zinit = tf.cast(Zinit,dtype=tf.float64)
+	Zinit = Zinit.numpy()
+	M = Zinit.shape[0]
+
+	def optimize_model_with_scipy(model):
+		optimizer = gpf.optimizers.Scipy()
+		optimizer.minimize(
+			model.training_loss_closure(data),
+			variables=model.trainable_variables,
+			method="l-bfgs-b",
+			options={"disp": 50, "maxiter": MAXITER, "gtol": 1e-16, "ftol": 1e-16},
+		)
+
+	which_kernel = "matern"
+	# which_kernel = "matern_nolin"
+	# which_kernel = "se"
+
+	assert which_kernel in ["matern","se","matern_nolin"]
+
+	# Create list of kernels for each output
+	if which_kernel == "se": kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
+	if which_kernel == "matern_nolin": kern_list = [gpf.kernels.Matern52(variance=1.0,lengthscales=0.1*np.ones(D)) for _ in range(P)]
+	if which_kernel == "matern": kern_list = [gpf.kernels.Matern52(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
+
+	
+	# Create multi-output kernel from kernel list:
+	use_coregionalization = True
+	if use_coregionalization:
+		kernel = gpf.kernels.LinearCoregionalization(kern_list, W=np.random.randn(P, L))  # Notice that we initialise the mixing matrix W
+	else:
+		kernel = gpf.kernels.SeparateIndependent(kern_list)
+
+	
+	# initialization of inducing input locations, one set of locations per output
+	Zs = [Zinit.copy() for _ in range(P)]
+	
+	# initialize as list inducing inducing variables
+	iv_list = [gpf.inducing_variables.InducingPoints(Z) for Z in Zs]
+	
+	# create multi-output inducing variables from iv_list
+	iv = gpf.inducing_variables.SeparateIndependentInducingVariables(iv_list)
+
+	# create SVGP model as usual and optimize
+	model_gpflow = gpf.models.SVGP(kernel, gpf.likelihoods.Gaussian(variance=0.5), inducing_variable=iv, num_latent_gps=P)
+	
+	# if not using_hybridrobotics: MAXITER = 1
+	optimize_model_with_scipy(model_gpflow)
+
+	# Save function to predict:
+	model_gpflow.compiled_predict_f = tf.function(
+		lambda Xnew: model_gpflow.predict_f(Xnew, full_cov=False, full_output_cov=True),
+		# lambda xnew: model_gpflow.predict_f(xnew, full_cov=False, full_output_cov=True),
+		input_signature=[tf.TensorSpec(shape=[None, D], dtype=tf.float64)],
+	)
+
+
+	# Save inducing points:
+	model_gpflow.get_induced_pointsZ_list = tf.function(
+		lambda: tf.concat([ind_var.Z for ind_var in model_gpflow.inducing_variable.inducing_variable_list],axis=0),
+		input_signature=[],
+	)
+	# loaded_model.inducing_variable.inducing_variable_list[0].Z.numpy()
+
+
+	# Save model:
+	path2save = "{0:s}/{1:s}/gpssm_gpflow_trained_on_quadruped_walking_circles_{2:s}".format(path2project,path2folder,name_file_date)
+	logger.info("Saving gpflow model at {0:s} ...".format(path2save))
+	tf.saved_model.save(model_gpflow, path2save)
+	logger.info("Done!")
+	
+	path2save_others = "{0:s}/{1:s}/gpssm_gpflow_trained_on_quadruped_walking_circles_{2:s}_relevant_data.pickle".format(path2project,path2folder,name_file_date)
+	data2save = dict(Xtrain=Xtrain,
+					Ytrain=Ytrain,
+					dim_in=dim_in,
+					dim_out=dim_out,
+					state_and_control_full_list=state_and_control_full_list,
+					state_next_full_list=state_next_full_list)
+
+	file = open(path2save_others, 'wb')
+	logger.info("Saving model data at {0:s} ...".format(path2save_others))
+	pickle.dump(data2save,file)
+	file.close()
+	logger.info("Done!")
+
 
 
 def select_trajectory_from_path(path2project,path2folder,file_name,ind_which_traj):
@@ -156,25 +307,7 @@ def select_trajectory_from_path(path2project,path2folder,file_name,ind_which_tra
 
 
 
-
-def compute_predictions(cfg):
-
-
-	name_file_date = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-
-	my_seed = 78
-	np.random.seed(seed=my_seed)
-	tf.random.set_seed(seed=my_seed)
-
-
-	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
-	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
-
-	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
-	if using_hybridrobotics:
-		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
-
-	# fix_pickle_datafile(cfg,path2project,path2folder)
+def load_model_ours():
 
 	"""
 	# Quadruped moving around the room to random waypoints:
@@ -191,12 +324,6 @@ def compute_predictions(cfg):
 	file = open(path2load_full, 'rb')
 	data_dict = pickle.load(file)
 	file.close()
-
-	omegas_trainedNN = tf.convert_to_tensor(data_dict["omegas_trainedNN"],dtype=tf.float32)
-	Sw_omegas_trainedNN = tf.convert_to_tensor(data_dict["Sw_omegas_trainedNN"],dtype=tf.float32)
-	varphi_omegas_trainedNN = tf.convert_to_tensor(data_dict["varphi_omegas_trainedNN"],dtype=tf.float32)
-	delta_omegas_trainedNN = tf.convert_to_tensor(data_dict["delta_omegas_trainedNN"],dtype=tf.float32)
-	delta_statespace_trainedNN = tf.convert_to_tensor(data_dict["delta_statespace_trainedNN"],dtype=tf.float32)
 
 	spectral_density_list = data_dict["spectral_density_list"]
 	omega_lim = data_dict["omega_lim"]
@@ -219,6 +346,32 @@ def compute_predictions(cfg):
 	logger.info(" * Initializing GP model ...")
 	rrtp_MO = MultiObjectiveReducedRankProcess(dim_in,cfg,spectral_density_list,Xtrain,Ytrain,using_deltas=using_deltas)
 
+	return rrtp_MO, Xtrain, Ytrain, state_and_control_full_list, state_next_full_list
+
+
+def load_model_gpssm():
+
+	pass
+
+
+def compute_predictions(cfg):
+
+
+	name_file_date = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+
+	my_seed = 78
+	np.random.seed(seed=my_seed)
+	tf.random.set_seed(seed=my_seed)
+
+
+	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
+	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
+
+	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
+	if using_hybridrobotics:
+		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
+
+	rrtp_MO, Xtrain, Ytrain, state_and_control_full_list, state_next_full_list = load_model_ours()
 
 	ind_which_traj = 0
 	# use_same_data_the_model_was_trained_on = True
@@ -452,8 +605,6 @@ def plot_predictions(cfg,file_name):
 		loss_elbo_evidence_avg_vec = data_dict["loss_elbo_evidence_avg_vec"]
 		loss_elbo_entropy_vec = data_dict["loss_elbo_entropy_vec"] # Good indicator; it's jsut the log-predictive std!!
 		loss_prior_regularizer_vec = data_dict["loss_prior_regularizer_vec"]
-
-
 
 	loss_lik_lim = np.inf
 	loss4colors = -loss_elbo_entropy_vec**2
@@ -857,6 +1008,8 @@ def plots4paper_ood(cfg):
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg):
 
+	train_gpssm(cfg)
+
 	# compute_predictions(cfg)
 
 
@@ -872,9 +1025,9 @@ def main(cfg):
 	# plot_predictions(cfg,file_name)
 
 
-	# ==============================================================
-	# With Quadruped data from data_quadruped_experiments_03_29_2023
-	# ==============================================================
+	# ===========================================================================
+	# With Quadruped data from data_quadruped_experiments_03_29_2023 || OUR MODEL
+	# ===========================================================================
 	# All with recostructed model file_name = "reconstruction_data_2023_03_29_23_11_35.pickle" (walking on a circle)
 	# file_name = "predicted_trajs_2023_03_29_23_34_13.pickle" # DBG; noise: 0.01
 	# file_name = "predicted_trajs_2023_03_30_00_25_21.pickle" # hybridrob, Nhor: 30, Nrollouts: 20
@@ -889,15 +1042,29 @@ def main(cfg):
 	# file_name = "predicted_trajs_2023_03_30_12_07_26.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.008; first rollout is the mean || trained on walking circle; tested on: poking
 	# file_name = "predicted_trajs_2023_03_30_13_04_32.pickle" # DBG, Nhor: 15, Nrollouts: 10; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: rope
 	# file_name = "predicted_trajs_2023_03_30_13_12_01.pickle" # DBG, Nhor: 15, Nrollouts: 10; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: rope, longer time
+	# plot_predictions(cfg,file_name)
+
+
+	# =======================================================================
+	# With Quadruped data from data_quadruped_experiments_03_29_2023 || GPSSM
+	# =======================================================================
+	# All trained from data from walking on a circle
+	# plot_predictions(cfg,file_name)
 	
-	# For paper - Our model
+	
+
+
+
+	# ===========================================================================
+	# With Quadruped data from data_quadruped_experiments_03_29_2023 || FOR PAPER || OUR MODEL
+	# ===========================================================================
 	# file_name = "predicted_trajs_2023_03_30_14_11_55.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: walking
 	file_name = "predicted_trajs_2023_03_30_14_03_40.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: rope
 	# file_name = "predicted_trajs_2023_03_30_13_34_28.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: rocky
 	# file_name = "predicted_trajs_2023_03_30_13_58_31.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: poking
-	# plot_predictions(cfg,file_name)
+	plot_predictions(cfg,file_name)
 
-	plots4paper_ood(cfg)
+	# plots4paper_ood(cfg)
 
 
 

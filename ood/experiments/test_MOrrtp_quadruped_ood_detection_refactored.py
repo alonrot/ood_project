@@ -418,10 +418,10 @@ def compute_predictions_gpflow(cfg):
 		path2folder_data_diff_env = "data_quadruped_experiments_03_29_2023"
 
 		# Scenario 1: just walking
-		file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_walking.pickle"
+		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_walking.pickle"
 
 		# Scenario 2: rope pulling
-		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_rope.pickle"
+		file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_rope.pickle"
 
 		# Scenario 3: rocky terrain
 		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_rocky.pickle"
@@ -1323,7 +1323,8 @@ def main(cfg):
 	# =======================================================================
 	# All trained from data from walking on a circle
 	# file_name = "predicted_trajs_2023_03_30_17_11_19.pickle" # DBG
-	# plot_predictions(cfg,file_name)
+	file_name = "predicted_trajs_2023_03_30_17_20_27.pickle" # DBG, Nhor: 10, Nrollouts: 5 || trained on walking circle; tested on: walking
+	plot_predictions(cfg,file_name)
 
 
 
@@ -1358,7 +1359,7 @@ if __name__ == "__main__":
 	# scp -P 4444 -r ./data_quadruped_experiments_03_29_2023/from_hybridrob/reconstruction_data_2023_03_29_23_11_35.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/from_hybridrob/
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/"*2023_03_30_16_00_54*" ./data_quadruped_experiments_03_29_2023/
 	# scp -P 4444 -r ./data_quadruped_experiments_03_29_2023/from_hybridrob/reconstruction_data_2023_03_29_23_11_35.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/from_hybridrob/
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/predicted_trajs_2023_03_30_14_11_55.pickle ./data_quadruped_experiments_03_29_2023/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/predicted_trajs_2023_03_30_17_20_27.pickle ./data_quadruped_experiments_03_29_2023/
 
 
 

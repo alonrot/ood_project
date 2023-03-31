@@ -533,13 +533,13 @@ def compute_predictions_gpflow(cfg):
 
 	if using_hybridrobotics:
 		# Nhorizon_rec = 40
-		Nhorizon_rec = 30
+		Nhorizon_rec = 15
 		# Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
 		# Nsteps_tot = z_vec_real.shape[0] // 2
 		Nsteps_tot = z_vec_real.shape[0]
 		# Nsteps_tot = 40
 		Nepochs = 200
-		Nrollouts = 20
+		Nrollouts = 5
 		Nchunks = 4
 	else:
 

@@ -2,6 +2,7 @@ import tensorflow as tf
 import gpflow
 import pdb
 import math
+import time
 from datetime import datetime
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -307,7 +308,7 @@ def select_trajectory_from_path(path2project,path2folder,file_name,ind_which_tra
 
 
 
-def load_model_ours():
+def load_model_ours(cfg,path2project):
 
 	"""
 	# Quadruped moving around the room to random waypoints:
@@ -349,13 +350,277 @@ def load_model_ours():
 	return rrtp_MO, Xtrain, Ytrain, state_and_control_full_list, state_next_full_list
 
 
-def load_model_gpssm():
+def load_model_gpssm(path2project):
 
-	pass
+	file_name = "gpssm_gpflow_trained_on_quadruped_walking_circles_2023_03_30_16_00_54"
+
+	# Load gpflow model:
+	path2load_full = "{0:s}/{1:s}/{2:s}".format(path2project,path2folder,file_name)
+	logger.info("Loading gpflow model from {0:s} ...".format(path2load_full))
+	loaded_model = tf.saved_model.load(path2load_full)
+	logger.info("Done!")
+
+	# Load other quantities:
+	path2load_full = "{0:s}/{1:s}/{2:s}_relevant_data.pickle".format(path2project,path2folder,file_name)
+	logger.info("Loading data from {0:s} ...".format(path2load_full))
+	file = open(path2load_full, 'rb')
+	data_dict = pickle.load(file)
+	file.close()
+	logger.info("Done!")
+
+	Ytrain = data_dict["Ytrain"]
+	Xtrain = data_dict["Xtrain"]
+	state_and_control_full_list = data_dict["state_and_control_full_list"]
+	state_next_full_list = data_dict["state_next_full_list"]
+
+	print_summary(loaded_model)
+
+	Zinduced = loaded_model.get_induced_pointsZ_list()
+	print(Zinduced)
+
+	return loaded_model, Xtrain, Ytrain, state_and_control_full_list, state_next_full_list
 
 
-def compute_predictions(cfg):
+def compute_predictions_gpflow(cfg):
 
+	name_file_date = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+
+	my_seed = 78
+	np.random.seed(seed=my_seed)
+	tf.random.set_seed(seed=my_seed)	
+
+	using_hybridrobotics = cfg.gpmodel.using_hybridrobotics
+	logger.info("using_hybridrobotics: {0:s}".format(str(using_hybridrobotics)))
+
+	path2project = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments"
+	if using_hybridrobotics:
+		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
+
+	loaded_model, Xtrain, Ytrain, state_and_control_full_list, state_next_full_list = load_model_gpssm(path2project)
+
+	dim_out = Ytrain.shape[1]
+	dim_x = Ytrain.shape[1]
+
+	ind_which_traj = 0
+	# use_same_data_the_model_was_trained_on = True
+	use_same_data_the_model_was_trained_on = False
+	if use_same_data_the_model_was_trained_on:
+
+		# pdb.set_trace()
+
+		z_vec_real = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj][:,0:dim_x],dtype=tf.float32)
+		u_vec_tf = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj][:,dim_x::],dtype=tf.float32)
+		zu_vec = tf.convert_to_tensor(value=state_and_control_full_list[ind_which_traj],dtype=tf.float32)
+		Xtest = Xtrain
+		Ytest = Ytrain # already deltas when the file is file_name = "reconstruction_....pickle"
+
+	else:
+		path2folder_data_diff_env = "data_quadruped_experiments_03_29_2023"
+
+		# Scenario 1: just walking
+		file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_walking.pickle"
+
+		# Scenario 2: rope pulling
+		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_rope.pickle"
+
+		# Scenario 3: rocky terrain
+		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_rocky.pickle"
+
+		# Scenario 4: poking
+		# file_name_data_diff_env = "joined_go1trajs_trimmed_2023_03_29_circle_poking.pickle"
+
+
+		z_vec_real, u_vec_tf, zu_vec, Xtest, Ytest = select_trajectory_from_path(path2project=path2project,path2folder=path2folder_data_diff_env,file_name=file_name_data_diff_env,ind_which_traj=ind_which_traj)
+
+
+	# analyze_data = True
+	analyze_data = False
+	if analyze_data:
+
+		# # Delta predictions:
+		# MO_mean_pred, MO_std_pred = rrtp_MO.predict_at_locations(zu_vec)
+		# deltas_real = state_next_full_list[ind_which_traj] - state_and_control_full_list[ind_which_traj][:,0:dim_x]
+
+		# Delta predictions (on the full dataset):
+		MO_mean_pred, MO_cov_full_test = loaded_model.compiled_predict_f(tf.cast(Xtest,dtype=tf.float64))
+		# MO_std_test: [Npoints,dim_out,dim_out]
+
+		# Extract diagonal:
+		MO_std_pred = np.zeros((MO_cov_full_test.shape[0],MO_cov_full_test.shape[1]))
+		for ii in range(MO_std_pred.shape[0]):
+			MO_std_pred[ii,:] = np.sqrt(np.diag(MO_cov_full_test[ii,...]))
+
+
+		if tf.is_tensor(Ytest):
+			deltas_real = Ytest.numpy()
+		else:
+			deltas_real = Ytest
+
+
+		hdl_fig, hdl_splots_next_state = plt.subplots(dim_out,1,figsize=(12,8),sharex=False,sharey=False)
+		hdl_fig.suptitle(r"Predicted state transition on the test data; $\Delta x_{t+1,d} = f_d(x_t)$",fontsize=fontsize_labels)
+		hdl_splots_next_state = np.reshape(hdl_splots_next_state,(-1,1))
+
+		assert using_deltas == True
+
+		for jj in range(dim_out):
+			ind_xt_sorted = np.argsort(deltas_real[:,jj])
+			delta_fx_next_sorted = deltas_real[ind_xt_sorted,jj]
+			delta_MO_mean_test_sorted = MO_mean_pred.numpy()[ind_xt_sorted,jj]
+
+			hdl_splots_next_state[jj,0].plot(delta_fx_next_sorted,linestyle="-",color="crimson",alpha=0.3,lw=3.0,label="Training data")
+			hdl_splots_next_state[jj,0].plot(delta_MO_mean_test_sorted,linestyle="-",color="navy",alpha=0.7,lw=1.0,label="Reconstructed")
+
+		hdl_splots_next_state[0,0].set_ylabel(r"$\Delta f_1(x_t)$",fontsize=fontsize_labels)
+		hdl_splots_next_state[1,0].set_ylabel(r"$\Delta f_2(x_t)$",fontsize=fontsize_labels)
+		hdl_splots_next_state[2,0].set_ylabel(r"$\Delta f_3(x_t)$",fontsize=fontsize_labels)
+
+		# hdl_splots_next_state[0,0].set_xlabel(r"$x_{t,1}$",fontsize=fontsize_labels)
+		# hdl_splots_next_state[1,0].set_xlabel(r"$x_{t,2}$",fontsize=fontsize_labels)
+		# hdl_splots_next_state[2,0].set_xlabel(r"$x_{t,3}$",fontsize=fontsize_labels)
+
+		# hdl_splots_next_state[0,0].set_title("Reconstructed dynamics",fontsize=fontsize_labels)
+		# hdl_splots_next_state[0,1].set_title("True dynamics",fontsize=fontsize_labels)
+		# hdl_splots_next_state[-1,0].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
+		# hdl_splots_next_state[-1,1].set_xlabel(r"$x_t$",fontsize=fontsize_labels)
+
+		lgnd = hdl_splots_next_state[-1,0].legend(loc="best",fontsize=fontsize_labels)
+		lgnd.legendHandles[0]._legmarker.set_markersize(20)
+		lgnd.legendHandles[1]._legmarker.set_markersize(20)
+
+		
+		hdl_fig_data, hdl_splots_data = plt.subplots(5,1,figsize=(12,8),sharex=True)
+		hdl_fig_data.suptitle("Test trajectory for predictions",fontsize=fontsize_labels)
+		hdl_splots_data[0].set_title("Inputs",fontsize=fontsize_labels)
+		hdl_splots_data[0].plot(z_vec_real[:,0],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+		hdl_splots_data[1].plot(z_vec_real[:,1],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+		hdl_splots_data[2].plot(z_vec_real[:,2],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+		hdl_splots_data[3].plot(u_vec_tf[:,0],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+		hdl_splots_data[4].plot(u_vec_tf[:,1],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+
+
+		hdl_fig_data, hdl_splots_data = plt.subplots(5,2,figsize=(12,8),sharex=True)
+		hdl_fig_data.suptitle("Data",fontsize=fontsize_labels)
+		hdl_splots_data[0,0].set_title("Training data")
+		hdl_splots_data[0,0].plot(Xtrain[:,0],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+		hdl_splots_data[1,0].plot(Xtrain[:,1],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+		hdl_splots_data[2,0].plot(Xtrain[:,2],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+		hdl_splots_data[3,0].plot(Xtrain[:,3],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+		hdl_splots_data[4,0].plot(Xtrain[:,4],lw=1,alpha=0.3,color="navy",marker=".",markersize=2)
+
+
+		hdl_splots_data[0,1].set_title("Test data + predictions",fontsize=fontsize_labels)
+		for jj in range(dim_out):
+			hdl_splots_data[jj,1].plot(Ytrain[:,jj],lw=1,alpha=0.5,color="crimson")
+			hdl_splots_data[jj,1].plot(MO_mean_pred[:,jj],lw=1,alpha=0.5,color="navy")
+			hdl_splots_data[jj,1].plot(MO_mean_pred[:,jj] - 2.*MO_std_pred[:,jj],lw=1,color="navy",alpha=0.5)
+			hdl_splots_data[jj,1].plot(MO_mean_pred[:,jj] + 2.*MO_std_pred[:,jj],lw=1,color="navy",alpha=0.5)
+			# hdl_splots_data[jj,1].fill_between(MO_mean_pred[:,jj] - 2.*MO_std_pred[:,jj],MO_mean_pred[:,jj] + 2.*MO_std_pred[:,jj],color="navy",alpha=0.5)
+
+		# hdl_splots_data[1,1].plot(Ytrain[:,1],lw=1,alpha=0.5,color="crimson")
+		# hdl_splots_data[2,1].plot(Ytrain[:,2],lw=1,alpha=0.5,color="crimson")
+
+		# hdl_splots_data[1,1].plot(MO_mean_pred[:,1],lw=1,alpha=0.3,color="navy")
+		# hdl_splots_data[1,1].fill_between(MO_mean_pred[:,0] - 2.*MO_std_pred,MO_mean_pred[:,0] + 2.*MO_std_pred,color="navy",alpha=0.2)
+		
+		# hdl_splots_data[2,1].plot(MO_mean_pred[:,2],lw=1,alpha=0.3,color="navy")
+		# hdl_splots_data[2,1].fill_between(MO_mean_pred[:,0] - 2.*MO_std_pred,MO_mean_pred[:,0] + 2.*MO_std_pred,color="navy",alpha=0.2)
+
+
+		plt.show(block=True)
+
+
+
+	if using_hybridrobotics:
+		# Nhorizon_rec = 40
+		Nhorizon_rec = 30
+		# Nsteps_tot = z_vec_real.shape[0]-Nhorizon_rec
+		# Nsteps_tot = z_vec_real.shape[0] // 2
+		Nsteps_tot = z_vec_real.shape[0]
+		# Nsteps_tot = 40
+		Nepochs = 200
+		Nrollouts = 20
+		Nchunks = 4
+	else:
+
+		Nhorizon_rec = 15
+		# Nsteps_tot = 40
+		# Nsteps_tot = z_vec_real.shape[0]
+		Nsteps_tot = z_vec_real.shape[0] // 4
+		Nsteps_tot = 20
+		Nepochs = 200
+		Nrollouts = 10
+		Nchunks = 4
+
+
+	assert Nsteps_tot > Nhorizon_rec
+
+
+
+	# Receding horizon predictions:
+	Nsteps_tot = min(z_vec_real.shape[0]-Nhorizon_rec,Nsteps_tot)
+	loss_val_per_step = np.zeros(Nsteps_tot)
+	x_traj_pred_all_vec = np.zeros((Nsteps_tot,Nrollouts,Nhorizon_rec,dim_x))
+	noise_mat = np.random.randn(Nrollouts,dim_x)
+	loss_elbo_evidence_avg_vec = np.zeros(Nsteps_tot)
+	loss_elbo_entropy_vec = np.zeros(Nsteps_tot)
+	loss_prior_regularizer_vec = np.zeros(Nsteps_tot)
+	for tt in range(Nsteps_tot):
+
+		time_init = time.time()
+
+		x_traj_real_applied = z_vec_real[tt:tt+Nhorizon_rec,:]
+		x_traj_real_applied_tf = tf.reshape(x_traj_real_applied,(1,Nhorizon_rec,dim_x))
+		u_applied_tf = u_vec_tf[tt:tt+Nhorizon_rec,:]
+		logger.info("Prediction with horizon = {0:d}; tt: {1:d} / {2:d} | ".format(Nhorizon_rec,tt+1,Nsteps_tot))
+
+		x0_tf = tf.cast(x_traj_real_applied_tf[0,0:1,:],dtype=tf.float64) # [Npoints,self.dim_in], with Npoints=1
+		u_applied_tf = tf.cast(u_applied_tf,dtype=tf.float64) # [Npoints,self.dim_in], with Npoints=1
+
+		for rr in range(Nrollouts):
+
+			x_traj_pred_all_vec[tt,rr,0:1,:] = x0_tf.numpy()
+			for ppp in range(Nhorizon_rec-1):
+
+				zu_vec_tf = tf.convert_to_tensor(np.concatenate((x_traj_pred_all_vec[tt,rr,ppp:ppp+1,:],u_applied_tf.numpy()[ppp:ppp+1,:]),axis=1),dtype=tf.float64)
+				MO_mean_pred, cov_full = loaded_model.compiled_predict_f(zu_vec_tf)
+
+				cov_full_chol = tf.linalg.cholesky(cov_full)[0,...]
+
+				ft_vec = MO_mean_pred + noise_mat[rr:rr+1,:]@tf.transpose(cov_full_chol) # [1,dim_x]
+				if using_deltas:
+					x_traj_pred_all_vec[tt,rr,ppp+1:ppp+2,:] = ft_vec + x_traj_pred_all_vec[tt,rr,ppp:ppp+1,:]
+				else:
+					x_traj_pred_all_vec[tt,rr,ppp+1:ppp+2,:] = ft_vec
+
+
+				loss_elbo_entropy_vec[tt] += -0.5*np.sum(np.log(np.diag(cov_full[0,...])))
+
+		# Compute losses:
+		loss_elbo_entropy_vec[tt] = loss_elbo_entropy_vec[tt] / ((Nhorizon_rec-1)*Nrollouts*dim_out)
+		loss_elbo_evidence_avg_vec[tt] = tf.reduce_mean((x_traj_pred_all_vec[tt,...] - tf.expand_dims(x_traj_real_applied,axis=0))**2) / 0.001
+
+		time_elapsed = time.time() - time_init
+
+		logger.info("time_elapsed: {0:2.2f}".format(time_elapsed))
+
+	savedata = True
+	if savedata:
+		data2save = dict(x_traj_pred_all_vec=x_traj_pred_all_vec,u_vec_tf=u_vec_tf,z_vec_real=z_vec_real,loss_val_per_step=loss_val_per_step,Xtrain=Xtrain,Ytrain=Ytrain)
+		data2save.update(	loss_elbo_evidence_avg_vec=loss_elbo_evidence_avg_vec,
+							loss_elbo_entropy_vec=loss_elbo_entropy_vec,
+							loss_prior_regularizer_vec=loss_prior_regularizer_vec)
+
+		file_name = "predicted_trajs_{0:s}.pickle".format(name_file_date)
+		path2save_receding_horizon = "{0:s}/{1:s}/{2:s}".format(path2project,path2folder,file_name)
+		logger.info("Saving at {0:s} ...".format(path2save_receding_horizon))
+		file = open(path2save_receding_horizon, 'wb')
+		pickle.dump(data2save,file)
+		file.close()
+
+
+
+def compute_predictions_our_model(cfg):
 
 	name_file_date = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 
@@ -371,7 +636,9 @@ def compute_predictions(cfg):
 	if using_hybridrobotics:
 		path2project = "/home/amarco/code_projects/ood_project/ood/experiments" 
 
-	rrtp_MO, Xtrain, Ytrain, state_and_control_full_list, state_next_full_list = load_model_ours()
+	rrtp_MO, Xtrain, Ytrain, state_and_control_full_list, state_next_full_list = load_model_ours(cfg,path2project)
+
+	dim_out = Ytrain.shape[1]
 
 	ind_which_traj = 0
 	# use_same_data_the_model_was_trained_on = True
@@ -580,6 +847,10 @@ def compute_predictions(cfg):
 		file = open(path2save_receding_horizon, 'wb')
 		pickle.dump(data2save,file)
 		file.close()
+
+
+
+
 
 	
 def plot_predictions(cfg,file_name):
@@ -1008,9 +1279,11 @@ def plots4paper_ood(cfg):
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg):
 
-	train_gpssm(cfg)
+	# train_gpssm(cfg)
 
-	# compute_predictions(cfg)
+	# compute_predictions_our_model(cfg)
+
+	compute_predictions_gpflow(cfg)
 
 
 	# # ==============================================================
@@ -1049,9 +1322,8 @@ def main(cfg):
 	# With Quadruped data from data_quadruped_experiments_03_29_2023 || GPSSM
 	# =======================================================================
 	# All trained from data from walking on a circle
+	# file_name = "predicted_trajs_2023_03_30_17_11_19.pickle" # DBG
 	# plot_predictions(cfg,file_name)
-	
-	
 
 
 
@@ -1084,7 +1356,7 @@ if __name__ == "__main__":
 
 
 	# scp -P 4444 -r ./data_quadruped_experiments_03_29_2023/from_hybridrob/reconstruction_data_2023_03_29_23_11_35.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/from_hybridrob/
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/"*" ./data_quadruped_experiments_03_29_2023/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/"*2023_03_30_16_00_54*" ./data_quadruped_experiments_03_29_2023/
 	# scp -P 4444 -r ./data_quadruped_experiments_03_29_2023/from_hybridrob/reconstruction_data_2023_03_29_23_11_35.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/from_hybridrob/
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/predicted_trajs_2023_03_30_14_11_55.pickle ./data_quadruped_experiments_03_29_2023/
 

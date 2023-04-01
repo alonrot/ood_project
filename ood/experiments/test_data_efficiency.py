@@ -299,7 +299,7 @@ def train_MOrrtp_by_reconstructing(cfg,ratio):
 	return name_file_date
 
 
-def train_gpssm(cfg,ratio):
+def train_gpssm(cfg,ratio,which_model):
 
 	name_file_date = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 
@@ -370,16 +370,11 @@ def train_gpssm(cfg,ratio):
 			options={"disp": 50, "maxiter": MAXITER, "gtol": 1e-16, "ftol": 1e-16},
 		)
 
-	which_kernel = "matern"
-	# which_kernel = "matern_nolin"
-	# which_kernel = "se"
-
-	assert which_kernel in ["matern","se","matern_nolin"]
-
 	# Create list of kernels for each output
-	if which_kernel == "se": kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
-	if which_kernel == "matern_nolin": kern_list = [gpf.kernels.Matern52(variance=1.0,lengthscales=0.1*np.ones(D)) for _ in range(P)]
-	if which_kernel == "matern": kern_list = [gpf.kernels.Matern52(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
+	assert which_model in ["gpssm_matern","gpssm_se","gpssm_matern_nolin"]
+	if which_model == "gpssm_matern": kern_list = [gpf.kernels.Matern52(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
+	if which_model == "gpssm_se": kern_list = [gpf.kernels.SquaredExponential(variance=1.0,lengthscales=0.1*np.ones(D)) + gpf.kernels.Linear(variance=1.0) for _ in range(P)] # Adding a linear kernel
+	if which_model == "gpssm_matern_nolin": kern_list = [gpf.kernels.Matern52(variance=1.0,lengthscales=0.1*np.ones(D)) for _ in range(P)]
 
 	
 	# Create multi-output kernel from kernel list:
@@ -471,7 +466,7 @@ def train_gpssm(cfg,ratio):
 	file = open(path2log_file, 'w')
 	file.write("ratio: {0:2.2f}\n".format(ratio))
 	file.write("MAXITER: {0:d}\n".format(MAXITER))
-	file.write("which_kernel: {0:s}\n".format(which_kernel))
+	file.write("which_model: {0:s}\n".format(which_model))
 	file.close()
 	logger.info("Done!")
 
@@ -927,17 +922,24 @@ def get_log_evidence_evolution(cfg,which_model,ratio_list,ratio_names_list,plott
 @hydra.main(config_path="./config",config_name="config")
 def training_for_multiple_ratios(cfg):
 
-	ratio_list = [0.25,0.5,0.75,1.0]
-	ratio_names_list = ["p25","p50","p75","p100"]
+	# ratio_list = [0.25,0.5,0.75,1.0]
+	# ratio_names_list = ["p25","p50","p75","p100"]
 
-	# which_model = "MOrrtp"
-	which_model = "gpssm"
+
+	# ratio_list = np.linspace(0.01,0.25,25)
+	ratio_list = np.linspace(0.01,0.23,12)
+	ratio_names_list = ["p{0:d}".format(el) for el in (ratio_list*100).astype(dtype=np.int)]
+
+	which_model = "MOrrtp"
+
+	assert which_model in ["MOrrtp","gpssm_matern","gpssm_se"]
 
 	# Training models:
 	name_file_date = []
 	for ratio in ratio_list:
-		if which_model == "gpssm": name_file_date += [train_gpssm(cfg,ratio=ratio)]
 		if which_model == "MOrrtp": name_file_date += [train_MOrrtp_by_reconstructing(cfg,ratio=ratio)]
+		if which_model == "gpssm_matern": name_file_date += [train_gpssm(cfg,ratio=ratio,which_model=which_model)]
+		if which_model == "gpssm_se": name_file_date += [train_gpssm(cfg,ratio=ratio,which_model=which_model)]
 
 	logger.info("name_file_date: {0:s}".format(str(name_file_date)))
 	logger.info("ratio_list: {0:s}".format(str(ratio_list)))
@@ -947,7 +949,7 @@ def training_for_multiple_ratios(cfg):
 @hydra.main(config_path="./config",config_name="config")
 def mainall(cfg):
 
-	name_file_date = train_gpssm(cfg,ratio=0.01)
+	# name_file_date = train_gpssm(cfg,ratio=0.01)
 	# name_file_date = train_MOrrtp_by_reconstructing(cfg,ratio=0.01)
 
 
@@ -958,10 +960,16 @@ def mainall(cfg):
 		# MOrrtp
 		# reconstruction_data_2023_04_01_05_07_09.pickle | ratio 0.01
 
-		# :
-
 		# [__main__] log_evidence_tot: -1.766134
 		# [__main__] mse_tot: 0.000622
+
+
+
+		# gpssm_matern
+		# gpssm_trained_model_gpflow_2023_04_01_09_57_19 | ratio 0.01
+
+		[__main__] log_evidence_tot: 39.670954
+		[__main__] mse_tot: 0.000181
 
 	"""
 
@@ -970,10 +978,10 @@ def mainall(cfg):
 
 	# dict_all_list = dict(MOrrtp=dict(p1="reconstruction_data_2023_04_01_05_07_09.pickle"))
 
-	which_model = "gpssm"
+	which_model = "gpssm_matern"
 	which_ratio = "p1"
 
-	dict_all_list = dict(gpssm=dict(p1="gpssm_trained_model_gpflow_2023_04_01_09_51_17.pickle"))
+	dict_all_list = dict(gpssm_matern=dict(p1="gpssm_trained_model_gpflow_2023_04_01_09_57_19"))
 
 	log_evidence_tot, mse_tot = compute_model_error_for_selected_model(cfg,dict_all_list,which_model=which_model,which_ratio=which_ratio,plot_data_analysis=True)
 	logger.info("log_evidence_tot: {0:f}".format(log_evidence_tot))
@@ -1145,16 +1153,16 @@ if __name__ == "__main__":
 
 
 
-	mainall()
+	# mainall()
 
 
 
 
 
-	# Nrepeats = 5
-	# name_file_date_list = []
-	# for _ in range(Nrepeats):
-	# 	training_for_multiple_ratios()
+	Nrepeats = 5
+	name_file_date_list = []
+	for _ in range(Nrepeats):
+		training_for_multiple_ratios()
 
 	# statistical_comparison()
 
@@ -1162,7 +1170,7 @@ if __name__ == "__main__":
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_19_55_23*" ./data_efficiency_test_with_dubinscar/
 
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_quadruped_data_03_25_2023/"*2023_04_01_09_51_17*" ./data_efficiency_test_with_quadruped_data_03_25_2023/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_quadruped_data_03_25_2023/"*2023_04_01_09_57_19*" ./data_efficiency_test_with_quadruped_data_03_25_2023/
 
 	# python test_data_efficiency.py gpmodel.using_hybridrobotics=False
 

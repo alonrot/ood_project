@@ -880,8 +880,10 @@ def plot_predictions(cfg,file_name):
 	loss_lik_lim = np.inf
 	loss4colors = -loss_elbo_entropy_vec**2
 	my_title = "OoD detection"
+	alpha_loss = 0.7
+	alpha_data = 0.4
 
-	# Debugging:
+	# Debugging - Ours:
 	if file_name == "predicted_trajs_2023_03_30_11_25_22.pickle": # rope
 		loss_lik_lim = 25000.
 		loss_val_per_step_in_mod = np.copy(loss_val_per_step_in)
@@ -910,7 +912,7 @@ def plot_predictions(cfg,file_name):
 	
 
 
-	# Used for paper:
+	# Used for paper - Ours:
 	if file_name == "predicted_trajs_2023_03_30_14_11_55.pickle": # walking [this]
 		loss_lik_lim = np.inf
 		loss_val_per_step_in_mod = np.copy(loss_val_per_step_in)
@@ -938,12 +940,43 @@ def plot_predictions(cfg,file_name):
 
 
 
+	# Debugging - GPSSM:
+	if file_name == "predicted_trajs_2023_03_30_17_20_27.pickle": # walking
+		loss_lik_lim = 4.
+		loss_val_per_step_in_mod = np.copy(loss_elbo_evidence_avg_vec)
+		loss_val_per_step_in_mod[loss_val_per_step_in_mod > loss_lik_lim] = loss_lik_lim 
+		loss4colors = np.log(loss_val_per_step_in_mod)
+		alpha_loss = 0.99
+		alpha_data = 0.2
 
+		thres_time = 0.0
+
+	if file_name == "predicted_trajs_2023_03_30_17_31_00.pickle": # rope
+		loss_lik_lim = 25000.
+		loss_val_per_step_in_mod = np.copy(loss_elbo_evidence_avg_vec)
+		loss_val_per_step_in_mod[loss_val_per_step_in_mod > loss_lik_lim] = loss_lik_lim 
+		loss4colors = np.log(loss_val_per_step_in_mod)
+		alpha_loss = 0.99
+		alpha_data = 0.2
+	if file_name == "predicted_trajs_2023_03_30_17_36_23.pickle": # rocky
+		loss_lik_lim = 25000.
+		loss_val_per_step_in_mod = np.copy(loss_elbo_evidence_avg_vec)
+		loss_val_per_step_in_mod[loss_val_per_step_in_mod > loss_lik_lim] = loss_lik_lim 
+		loss4colors = np.log(loss_val_per_step_in_mod)
+		alpha_loss = 0.99
+		alpha_data = 0.2
+	if file_name == "predicted_trajs_2023_03_30_17_40_29.pickle": # poking
+		loss_lik_lim = 7.
+		loss_val_per_step_in_mod = np.copy(loss_elbo_evidence_avg_vec)
+		loss_val_per_step_in_mod[loss_val_per_step_in_mod > loss_lik_lim] = loss_lik_lim 
+		loss4colors = np.log(loss_val_per_step_in_mod)
+		alpha_loss = 0.99
+		alpha_data = 0.2
 
 
 	# Rescale loss for plotting:
-	loss_val_per_step_in_mod = np.copy(loss_val_per_step_in)
-	loss_val_per_step_in_mod[loss_val_per_step_in_mod > loss_lik_lim] = loss_lik_lim 
+	# loss_val_per_step_in_mod = np.copy(loss_val_per_step_in)
+	# loss_val_per_step_in_mod[loss_val_per_step_in_mod > loss_lik_lim] = loss_lik_lim 
 	# loss_val_per_step_in_mod[loss_val_per_step_in_mod > 25000.0] = 25000.0 # rope
 	# loss_val_per_step_in_mod = loss_val_per_step_in / 1000.0
 
@@ -956,20 +989,49 @@ def plot_predictions(cfg,file_name):
 
 
 
+	def normalize(vector):
+		min_val = np.min(vector)
+		max_val = np.max(vector)
+		return (vector - min_val) / (max_val - min_val)
+
+
+	# Consistent method for getting the times:
+	
+	loss4colors_4times = normalize(loss4colors)
+	# # pdb.set_trace()
+	# if np.any(loss4colors_4times) < 0:
+	# 	loss4colors_4times += abs(np.amin(loss4colors_4times))
+	# elif np.all(loss4colors_4times) >= 0:
+	# 	loss4colors_4times += np.amin(loss4colors_4times)
+
+	# loss4colors_4times = loss4colors_4times / np.amax(loss4colors_4times)
+
+	loss_ood_thres = 0.2
+	perc_ood = np.sum(loss4colors_4times > loss_ood_thres) / len(loss4colors_4times) # Time it spends OoD
+	print("=================================")
+	print("=================================")
+	print("perc_ood: {0:f}".format(perc_ood))
+	print("=================================")
+	print("=================================")
+
+
+
+
 
 
 	plotting_analysis_loss = True
 	if plotting_analysis_loss:
 
 		hdl_fig_loss, hdl_splots_loss = plt.subplots(4,1,figsize=(17,7),sharex=True)
-		hdl_splots_loss[0].plot(loss_val_per_step_in)
-		hdl_splots_loss[0].plot(loss_val_per_step)
-		hdl_splots_loss[0].set_ylim([loss_val_per_step.min(),loss_val_per_step.max()*1.1])
-		hdl_splots_loss[1].plot(loss_elbo_evidence_avg_vec)
-		hdl_splots_loss[2].plot(loss_elbo_entropy_vec)
-		hdl_splots_loss[3].plot(loss_prior_regularizer_vec)
-		# plt.show(block=True)
-		plt.show(block=False)
+		hdl_splots_loss[0].plot(loss_val_per_step_in_mod)
+		hdl_splots_loss[1].plot(loss_elbo_entropy_vec)
+		hdl_splots_loss[2].plot(loss4colors)
+		hdl_splots_loss[3].plot(loss4colors_4times)
+		hdl_splots_loss[3].axhline(y=loss_ood_thres)
+		plt.show(block=True)
+		# plt.show(block=False)
+
+
 
 
 	# ELBO:
@@ -1028,7 +1090,7 @@ def plot_predictions(cfg,file_name):
 	z_vec_real_4colors = np.reshape(z_vec_real[:,0:2],(-1,1,2))
 	segments = np.concatenate([z_vec_real_4colors[:-1], z_vec_real_4colors[1:]], axis=1)
 	norm = plt.Normalize(loss4colors.min(), loss4colors.max())
-	lc = LineCollection(segments, cmap='coolwarm', norm=norm, alpha=0.7)
+	lc = LineCollection(segments, cmap='coolwarm', norm=norm, alpha=alpha_loss)
 	# Set the values used for colormapping
 	# pdb.set_trace()
 	lc.set_array(loss4colors)
@@ -1038,7 +1100,7 @@ def plot_predictions(cfg,file_name):
 
 	if "Xtrain" in data_dict.keys():
 		Xtrain = data_dict["Xtrain"]
-		hdl_splots_sampling_rec[0].plot(Xtrain[:,0],Xtrain[:,1],linestyle="-",color="grey",lw=1.0,alpha=0.4) # Overlay the entire training set
+		hdl_splots_sampling_rec[0].plot(Xtrain[:,0],Xtrain[:,1],linestyle="-",color="grey",lw=1.0,alpha=alpha_data) # Overlay the entire training set
 	tt = 0
 
 	hdl_splots_sampling_rec[0].set_aspect('equal', 'box')
@@ -1132,7 +1194,8 @@ def plots4paper_ood(cfg):
 						"predicted_trajs_2023_03_30_14_03_40.pickle",
 						"predicted_trajs_2023_03_30_13_34_28.pickle",
 						"predicted_trajs_2023_03_30_13_58_31.pickle"]
-	hdl_fig_pred_sampling_rec, hdl_splots_sampling_rec = plt.subplots(2,2,figsize=(10,10))
+	# hdl_fig_pred_sampling_rec, hdl_splots_sampling_rec = plt.subplots(2,2,figsize=(14,10),sharex=True,sharey=True)
+	hdl_fig_pred_sampling_rec, hdl_splots_sampling_rec = plt.subplots(2,2,figsize=(10,10),sharex=False,sharey=False)
 	ind_plot_row = [0,0,1,1]
 	ind_plot_col = [0,1,0,1]
 	for aa in range(4):
@@ -1165,7 +1228,8 @@ def plots4paper_ood(cfg):
 			loss_val_per_step_in_mod = np.copy(loss_val_per_step_in)
 			loss_val_per_step_in_mod[loss_val_per_step_in_mod > loss_lik_lim] = loss_lik_lim 
 			loss4colors = loss_val_per_step_in_mod
-			my_title = r"OoD detection - No change"
+			# my_title = r"OoD detection - No change"
+			my_title = r"Walking"
 			aux = 0 + 640*np.array([0.035,1./4,1./2,3./4*1.1])
 			Nhor_list = [30]*4
 		if file_name == "predicted_trajs_2023_03_30_14_03_40.pickle": # rope [this]
@@ -1173,7 +1237,8 @@ def plots4paper_ood(cfg):
 			loss_val_per_step_in_mod = np.copy(loss_val_per_step_in)
 			loss_val_per_step_in_mod[loss_val_per_step_in_mod > loss_lik_lim] = loss_lik_lim 
 			loss4colors = -np.log(loss_elbo_entropy_vec)
-			my_title = r"OoD detection - Rope pulling"
+			# my_title = r"OoD detection - Rope pulling"
+			my_title = r"Rope pulling"
 			aux = 0 + 640*np.array([1./4*0.5,1./2,3./4*1.1,1.065])
 			Nhor_list = [20,10,10,20]
 		if file_name == "predicted_trajs_2023_03_30_13_34_28.pickle": # rocky [this]
@@ -1181,7 +1246,8 @@ def plots4paper_ood(cfg):
 			loss_val_per_step_in_mod = np.copy(loss_val_per_step_in)
 			loss_val_per_step_in_mod[loss_val_per_step_in_mod > loss_lik_lim] = loss_lik_lim 
 			loss4colors = -loss_elbo_entropy_vec**2
-			my_title = r"OoD detection - Rocky terrain"
+			# my_title = r"OoD detection - Rocky terrain"
+			my_title = r"Rocky terrain"
 			aux = 0 + 640*np.array([1./4*0.4,1./4,1./2*0.9,3./4*1.15])
 			Nhor_list = [20,10,10,20]
 		if file_name == "predicted_trajs_2023_03_30_13_58_31.pickle": # poking [this]
@@ -1189,7 +1255,15 @@ def plots4paper_ood(cfg):
 			loss_val_per_step_in_mod = np.copy(loss_val_per_step_in)
 			loss_val_per_step_in_mod[loss_val_per_step_in_mod > loss_lik_lim] = loss_lik_lim 
 			loss4colors = -np.log(loss_elbo_entropy_vec)
-			my_title = r"OoD detection - Poking"
+
+			# Normalize:
+			loss4colors += abs(loss4colors.min())
+			loss4colors = loss4colors / np.amax(loss4colors)
+
+			# pdb.set_trace()
+
+			# my_title = r"OoD detection - Poking"
+			my_title = r"Poking"
 			aux = 0 + 640*np.array([1./4*0.4,1./4,1./2*1.2,3./4*1.15])
 			Nhor_list = [20,5,5,20]
 
@@ -1225,10 +1299,10 @@ def plots4paper_ood(cfg):
 
 		# color_robot = "darkorange"
 		color_robot = "yellowgreen"
-		# hdl_splots_sampling_cur.set_title(my_title, fontsize=fontsize_labels)
+		hdl_splots_sampling_cur.set_title(my_title, fontsize=fontsize_labels)
 		hdl_splots_sampling_cur.set_xlim([-2.2,1.2])
 
-		hdl_splots_sampling_cur.set_aspect('equal', 'box')
+		
 
 		hdl_splots_sampling_cur.set_xticks([])
 		hdl_splots_sampling_cur.set_yticks([])
@@ -1247,20 +1321,28 @@ def plots4paper_ood(cfg):
 				hdl_plt_predictions_list += hdl_splots_sampling_cur.plot(x_traj_pred_all_vec[tt,ss,0:Nhor,0],x_traj_pred_all_vec[tt,ss,0:Nhor,1],linestyle="-",color=color_rollouts,lw=lw,label="Sampled trajs",alpha=0.7)
 			
 
+		hdl_splots_sampling_cur.set_aspect('equal', 'box')
+
 	hdl_splots_sampling_rec[1,0].set_xticks([-2.0,0.0,1.0])
 	hdl_splots_sampling_rec[1,0].set_xlabel(r"$x_1$ [m]", fontsize=fontsize_labels)
 	# hdl_splots_sampling_rec[1,1].set_xticks([-2.0,0.0,1.0])
-	hdl_splots_sampling_rec[1,1].set_xlabel(r"$x_1$ [m]", fontsize=fontsize_labels)
+	# hdl_splots_sampling_rec[1,1].set_xlabel(r"$x_1$ [m]", fontsize=fontsize_labels)
 	
 	# hdl_splots_sampling_rec[0,0].set_yticks([1.5,3.0,4.5])
 	hdl_splots_sampling_rec[1,0].set_yticks([1.5,3.0,4.5])
-	hdl_splots_sampling_rec[0,0].set_ylabel(r"$x_2$ [m]", fontsize=fontsize_labels)
+	# hdl_splots_sampling_rec[0,0].set_ylabel(r"$x_2$ [m]", fontsize=fontsize_labels)
 	hdl_splots_sampling_rec[1,0].set_ylabel(r"$x_2$ [m]", fontsize=fontsize_labels)
 
 
-	# hdl_fig_pred_sampling_rec.subplots_adjust(right=0.8)
-	# cbar_ax = hdl_fig_pred_sampling_rec.add_axes([0.85, 0.15, 0.05, 0.7])
-	# hdl_fig_pred_sampling_rec.colorbar(line, cax=cbar_ax)
+	hdl_fig_pred_sampling_rec.subplots_adjust(right=0.90)
+	cbar_ax = hdl_fig_pred_sampling_rec.add_axes([0.92, 0.15, 0.02, 0.7])
+	cbar = hdl_fig_pred_sampling_rec.colorbar(line, cax=cbar_ax)
+	
+	# cbar.ax.set_ticks([0,1],["0","1"])
+	# cbar.ax.set_yticklabels(["0","1"])
+	# cbar.ax.set_yticks([])
+	# cbar.ax.set_ticks([loss4colors.min(),loss4colors.max()])
+	# cbar.ax.set_ticklabels(["0","1"])
 
 	name_file_date = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 	savefig = True
@@ -1283,7 +1365,7 @@ def main(cfg):
 
 	# compute_predictions_our_model(cfg)
 
-	compute_predictions_gpflow(cfg)
+	# compute_predictions_gpflow(cfg)
 
 
 	# # ==============================================================
@@ -1323,10 +1405,16 @@ def main(cfg):
 	# =======================================================================
 	# All trained from data from walking on a circle
 	# file_name = "predicted_trajs_2023_03_30_17_11_19.pickle" # DBG
-	# file_name = "predicted_trajs_2023_03_30_17_20_27.pickle" # DBG, Nhor: 10, Nrollouts: 5 || trained on walking circle; tested on: walking
-	# file_name = "predicted_trajs_2023_03_30_17_31_00.pickle" # DBG, Nhor: 10, Nrollouts: 5 || trained on walking circle; tested on: rope
-	file_name = "predicted_trajs_2023_03_30_17_36_23.pickle" # DBG, Nhor: 10, Nrollouts: 5 || trained on walking circle; tested on: rocky
-	plot_predictions(cfg,file_name)
+	# file_name = "predicted_trajs_2023_03_30_17_20_27.pickle" # hybridrob, Nhor: 10, Nrollouts: 5 || trained on walking circle; tested on: walking
+	# file_name = "predicted_trajs_2023_03_30_17_31_00.pickle" # hybridrob, Nhor: 10, Nrollouts: 5 || trained on walking circle; tested on: rope
+	# file_name = "predicted_trajs_2023_03_30_17_36_23.pickle" # hybridrob, Nhor: 10, Nrollouts: 5 || trained on walking circle; tested on: rocky
+	file_name = "predicted_trajs_2023_03_30_17_40_29.pickle" # hybridrob, Nhor: 10, Nrollouts: 5 || trained on walking circle; tested on: poking
+	# plot_predictions(cfg,file_name)
+
+
+
+
+
 
 
 
@@ -1334,7 +1422,7 @@ def main(cfg):
 	# With Quadruped data from data_quadruped_experiments_03_29_2023 || FOR PAPER || OUR MODEL
 	# ===========================================================================
 	# file_name = "predicted_trajs_2023_03_30_14_11_55.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: walking
-	file_name = "predicted_trajs_2023_03_30_14_03_40.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: rope
+	# file_name = "predicted_trajs_2023_03_30_14_03_40.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: rope
 	# file_name = "predicted_trajs_2023_03_30_13_34_28.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: rocky
 	# file_name = "predicted_trajs_2023_03_30_13_58_31.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: poking
 	plot_predictions(cfg,file_name)
@@ -1361,7 +1449,7 @@ if __name__ == "__main__":
 	# scp -P 4444 -r ./data_quadruped_experiments_03_29_2023/from_hybridrob/reconstruction_data_2023_03_29_23_11_35.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/from_hybridrob/
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/"*2023_03_30_16_00_54*" ./data_quadruped_experiments_03_29_2023/
 	# scp -P 4444 -r ./data_quadruped_experiments_03_29_2023/from_hybridrob/reconstruction_data_2023_03_29_23_11_35.pickle amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/from_hybridrob/
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/predicted_trajs_2023_03_30_17_36_23.pickle ./data_quadruped_experiments_03_29_2023/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_quadruped_experiments_03_29_2023/predicted_trajs_2023_03_30_17_40_29.pickle ./data_quadruped_experiments_03_29_2023/
 
 
 

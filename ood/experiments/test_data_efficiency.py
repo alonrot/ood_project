@@ -1098,6 +1098,17 @@ if __name__ == "__main__":
 	tf.random.set_seed(seed=my_seed)
 
 
+
+
+	# name_file_date = train_gpssm(cfg,ratio=ratio)
+	name_file_date = train_MOrrtp_by_reconstructing(cfg,ratio=0.01)
+
+
+
+
+
+
+
 	# Nrepeats = 5
 	# name_file_date_list = []
 	# for _ in range(Nrepeats):
@@ -1105,7 +1116,7 @@ if __name__ == "__main__":
 
 	# statistical_comparison()
 
-	plot_stuff()
+	# plot_stuff()
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_19_55_23*" ./data_efficiency_test_with_dubinscar/
 

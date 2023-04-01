@@ -1091,6 +1091,18 @@ def plot_stuff():
 
 	# hdl_splots_data[-1].set_xticks([])
 
+
+@hydra.main(config_path="./config",config_name="config")
+def main(cfg):
+
+	# name_file_date = train_gpssm(cfg,ratio=ratio)
+	name_file_date = train_MOrrtp_by_reconstructing(cfg,ratio=0.01)
+
+
+
+
+
+
 if __name__ == "__main__":
 
 	my_seed = 1
@@ -1099,11 +1111,7 @@ if __name__ == "__main__":
 
 
 
-
-	# name_file_date = train_gpssm(cfg,ratio=ratio)
-	name_file_date = train_MOrrtp_by_reconstructing(cfg,ratio=0.01)
-
-
+	main()
 
 
 

@@ -724,6 +724,19 @@ def get_dictionary_log_quadruped():
 								p75="reconstruction_data_2023_03_29_03_50_30.pickle",
 								p100="reconstruction_data_2023_03_29_03_52_10.pickle")
 
+	dict_MOrrtp.update(dict(p01="reconstruction_data_2023_04_01_10_38_17.pickle",
+	p03="reconstruction_data_2023_04_01_10_39_08.pickle",
+	p05="reconstruction_data_2023_04_01_10_40_34.pickle",
+	p07="reconstruction_data_2023_04_01_10_42_03.pickle",
+	p09="reconstruction_data_2023_04_01_10_43_33.pickle",
+	p11="reconstruction_data_2023_04_01_10_45_03.pickle",
+	p13="reconstruction_data_2023_04_01_10_46_33.pickle",
+	p15="reconstruction_data_2023_04_01_10_48_03.pickle",
+	p17="reconstruction_data_2023_04_01_10_49_33.pickle",
+	p19="reconstruction_data_2023_04_01_10_51_03.pickle",
+	p21="reconstruction_data_2023_04_01_10_52_33.pickle",
+	p23="reconstruction_data_2023_04_01_10_54_04.pickle"))
+
 	# # Matern 1000
 	# dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_14_00_47",
 	# p50="gpssm_trained_model_gpflow_2023_03_29_14_01_48",
@@ -759,6 +772,20 @@ def get_dictionary_log_quadruped():
 								p75="reconstruction_data_2023_03_29_03_57_13.pickle",
 								p100="reconstruction_data_2023_03_29_03_58_54.pickle")
 	
+
+	dict_MOrrtp.update(dict(p01="reconstruction_data_2023_04_01_10_55_35.pickle",
+	p03="reconstruction_data_2023_04_01_10_56_26.pickle",
+	p05="reconstruction_data_2023_04_01_10_57_57.pickle",
+	p07="reconstruction_data_2023_04_01_10_59_27.pickle",
+	p09="reconstruction_data_2023_04_01_11_00_57.pickle",
+	p11="reconstruction_data_2023_04_01_11_02_27.pickle",
+	p13="reconstruction_data_2023_04_01_11_03_57.pickle",
+	p15="reconstruction_data_2023_04_01_11_05_28.pickle",
+	p17="reconstruction_data_2023_04_01_11_06_58.pickle",
+	p19="reconstruction_data_2023_04_01_11_08_28.pickle",
+	p21="reconstruction_data_2023_04_01_11_09_58.pickle",
+	p23="reconstruction_data_2023_04_01_11_11_28.pickle"))
+
 	# # Matern 1000
 	# dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_14_07_53",
 	# p50="gpssm_trained_model_gpflow_2023_03_29_14_08_49",
@@ -794,6 +821,19 @@ def get_dictionary_log_quadruped():
 								p75="reconstruction_data_2023_03_29_04_03_57.pickle",
 								p100="reconstruction_data_2023_03_29_04_05_37.pickle")
 
+	dict_MOrrtp.update(dict(p01="reconstruction_data_2023_04_01_11_12_59.pickle",
+	p03="reconstruction_data_2023_04_01_11_13_38.pickle",
+	p05="reconstruction_data_2023_04_01_11_15_07.pickle",
+	p07="reconstruction_data_2023_04_01_11_16_36.pickle",
+	p09="reconstruction_data_2023_04_01_11_18_06.pickle",
+	p11="reconstruction_data_2023_04_01_11_19_35.pickle",
+	p13="reconstruction_data_2023_04_01_11_21_05.pickle",
+	p15="reconstruction_data_2023_04_01_11_22_34.pickle",
+	p17="reconstruction_data_2023_04_01_11_24_04.pickle",
+	p19="reconstruction_data_2023_04_01_11_25_34.pickle",
+	p21="reconstruction_data_2023_04_01_11_27_04.pickle",
+	p23="reconstruction_data_2023_04_01_11_28_33.pickle"))
+
 	# # Matern 1000
 	# dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_14_14_43",
 	# p50="gpssm_trained_model_gpflow_2023_03_29_14_15_42",
@@ -828,6 +868,19 @@ def get_dictionary_log_quadruped():
 								p75="reconstruction_data_2023_03_29_04_10_40.pickle",
 								p100="reconstruction_data_2023_03_29_04_12_20.pickle")
 
+	dict_MOrrtp.update(dict(p01="reconstruction_data_2023_04_01_11_30_04.pickle",
+	p03="reconstruction_data_2023_04_01_11_30_55.pickle",
+	p05="reconstruction_data_2023_04_01_11_32_24.pickle",
+	p07="reconstruction_data_2023_04_01_11_33_53.pickle",
+	p09="reconstruction_data_2023_04_01_11_35_23.pickle",
+	p11="reconstruction_data_2023_04_01_11_36_52.pickle",
+	p13="reconstruction_data_2023_04_01_11_38_22.pickle",
+	p15="reconstruction_data_2023_04_01_11_39_51.pickle",
+	p17="reconstruction_data_2023_04_01_11_41_21.pickle",
+	p19="reconstruction_data_2023_04_01_11_42_51.pickle",
+	p21="reconstruction_data_2023_04_01_11_44_21.pickle",
+	p23="reconstruction_data_2023_04_01_11_45_51.pickle"))
+
 	# # Matern 1000
 	# dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_14_21_42",
 	# p50="gpssm_trained_model_gpflow_2023_03_29_14_22_39",
@@ -861,6 +914,20 @@ def get_dictionary_log_quadruped():
 								p50="reconstruction_data_2023_03_29_04_15_43.pickle",
 								p75="reconstruction_data_2023_03_29_04_17_22.pickle",
 								p100="reconstruction_data_2023_03_29_04_19_02.pickle")
+
+
+	dict_MOrrtp.update(dict(p01="reconstruction_data_2023_04_01_11_47_21.pickle",
+	p03="reconstruction_data_2023_04_01_11_48_04.pickle",
+	p05="reconstruction_data_2023_04_01_11_49_29.pickle",
+	p07="reconstruction_data_2023_04_01_11_50_59.pickle",
+	p09="reconstruction_data_2023_04_01_11_52_29.pickle",
+	p11="reconstruction_data_2023_04_01_11_53_58.pickle",
+	p13="reconstruction_data_2023_04_01_11_55_28.pickle",
+	p15="reconstruction_data_2023_04_01_11_56_58.pickle",
+	p17="reconstruction_data_2023_04_01_11_58_27.pickle",
+	p19="reconstruction_data_2023_04_01_11_59_58.pickle",
+	p21="reconstruction_data_2023_04_01_12_01_28.pickle",
+	p23="reconstruction_data_2023_04_01_12_02_58.pickle"))
 
 	# # Matern 1000
 	# dict_gpssm_standard_matern = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_14_28_43",
@@ -930,7 +997,7 @@ def training_for_multiple_ratios(cfg):
 	ratio_list = np.linspace(0.01,0.23,12)
 	ratio_names_list = ["p{0:d}".format(el) for el in (ratio_list*100).astype(dtype=np.int)]
 
-	which_model = "MOrrtp"
+	which_model = "gpssm_matern"
 
 	assert which_model in ["MOrrtp","gpssm_matern","gpssm_se"]
 

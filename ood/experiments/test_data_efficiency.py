@@ -945,6 +945,17 @@ def training_for_multiple_ratios(cfg):
 
 
 @hydra.main(config_path="./config",config_name="config")
+def mainall(cfg):
+
+	# name_file_date = train_gpssm(cfg,ratio=ratio)
+	name_file_date = train_MOrrtp_by_reconstructing(cfg,ratio=0.01)
+
+
+
+
+
+
+@hydra.main(config_path="./config",config_name="config")
 def statistical_comparison(cfg):
 
 	which_model_list = ["gpssm_se","gpssm_matern","MOrrtp"]
@@ -1092,16 +1103,6 @@ def plot_stuff():
 	# hdl_splots_data[-1].set_xticks([])
 
 
-@hydra.main(config_path="./config",config_name="config")
-def statistical_comparison(cfg):
-def main(cfg):
-
-	# name_file_date = train_gpssm(cfg,ratio=ratio)
-	name_file_date = train_MOrrtp_by_reconstructing(cfg,ratio=0.01)
-
-
-
-
 
 
 if __name__ == "__main__":
@@ -1112,7 +1113,7 @@ if __name__ == "__main__":
 
 
 
-	main()
+	mainall()
 
 
 

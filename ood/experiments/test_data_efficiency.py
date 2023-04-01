@@ -370,8 +370,8 @@ def train_gpssm(cfg,ratio):
 			options={"disp": 50, "maxiter": MAXITER, "gtol": 1e-16, "ftol": 1e-16},
 		)
 
-	# which_kernel = "matern"
-	which_kernel = "matern_nolin"
+	which_kernel = "matern"
+	# which_kernel = "matern_nolin"
 	# which_kernel = "se"
 
 	assert which_kernel in ["matern","se","matern_nolin"]
@@ -959,8 +959,6 @@ def mainall(cfg):
 		# reconstruction_data_2023_04_01_05_07_09.pickle | ratio 0.01
 
 		# :
-		which_model = "MOrrtp"
-		which_ratio = "p1"
 
 		# [__main__] log_evidence_tot: -1.766134
 		# [__main__] mse_tot: 0.000622
@@ -972,11 +970,16 @@ def mainall(cfg):
 
 	# dict_all_list = dict(MOrrtp=dict(p1="reconstruction_data_2023_04_01_05_07_09.pickle"))
 
-	# log_evidence_tot, mse_tot = compute_model_error_for_selected_model(cfg,dict_all_list,which_model=which_model,which_ratio=which_ratio,plot_data_analysis=True)
-	# logger.info("log_evidence_tot: {0:f}".format(log_evidence_tot))
-	# logger.info("mse_tot: {0:f}".format(mse_tot))
+	which_model = "gpssm"
+	which_ratio = "p1"
 
-	# plt.show(block=True)
+	dict_all_list = dict(gpssm=dict(p1="gpssm_trained_model_gpflow_2023_04_01_09_51_17.pickle"))
+
+	log_evidence_tot, mse_tot = compute_model_error_for_selected_model(cfg,dict_all_list,which_model=which_model,which_ratio=which_ratio,plot_data_analysis=True)
+	logger.info("log_evidence_tot: {0:f}".format(log_evidence_tot))
+	logger.info("mse_tot: {0:f}".format(mse_tot))
+
+	plt.show(block=True)
 
 
 
@@ -1159,7 +1162,7 @@ if __name__ == "__main__":
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_19_55_23*" ./data_efficiency_test_with_dubinscar/
 
-	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_quadruped_data_03_25_2023/"*2023_04_01_05_07_09*" ./data_efficiency_test_with_quadruped_data_03_25_2023/
+	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_quadruped_data_03_25_2023/"*2023_04_01_09_51_17*" ./data_efficiency_test_with_quadruped_data_03_25_2023/
 
 	# python test_data_efficiency.py gpmodel.using_hybridrobotics=False
 

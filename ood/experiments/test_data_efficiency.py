@@ -1095,6 +1095,8 @@ def plot_stuff():
 @hydra.main(config_path="./config",config_name="config")
 def main(cfg):
 
+	pdb.set_trace()
+
 	# name_file_date = train_gpssm(cfg,ratio=ratio)
 	name_file_date = train_MOrrtp_by_reconstructing(cfg,ratio=0.01)
 

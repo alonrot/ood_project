@@ -69,14 +69,24 @@ hyperpars:
 
   
 
-  # Quadruped (using deltas; data_quadruped_experiments_03_29_2023) -> working on predictions
+  # # Quadruped (using deltas; data_quadruped_experiments_03_29_2023) -> working on predictions
+  # prior_variance: 1.0
+  # prior_mean_factor: 1.0
+  # noise_std_process:
+  #   # value_init: 0.1
+  #   # value_init: 0.05
+  #   value_init: 0.0001
+  #   learn: False
+
+
+  # Making MOrrp trainable
   prior_variance: 1.0
   prior_mean_factor: 1.0
   noise_std_process:
     # value_init: 0.1
     # value_init: 0.05
-    value_init: 0.0001
-    learn: False
+    value_init: 0.1
+    learn: True
 
 
   chol_corr_noise_mat_lim:
@@ -91,9 +101,10 @@ hyperpars:
     Nfeat: 1001 # Number of features (i.e., number of linear models to sample)
 learning:
   learning_rate: 0.1
-  epochs: 0
+  epochs: 100
+  loss4nancases: 10000
   stopping_condition:
-    loss_val: -100.0
+    loss_val: -1000.0
 # which_process: "student-t" # [gaussian,student-t]
 which_process: "gaussian" # [gaussian,student-t]
 

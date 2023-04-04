@@ -286,7 +286,7 @@ def train_MOrrtp_by_reconstructing(cfg,ratio):
 	logger.info("Done!")
 
 
-	path2log_file = "{0:s}/{1:s}/MOrrtp_trained_log_file_{2:s}.txt".format(path2project,path2folder,name_file_date)
+	path2log_file = "{0:s}/{1:s}/MOrrtp_trained_{2:s}.txt".format(path2project,path2folder,name_file_date)
 	logger.info("Writing ratio to log file at {0:s} ...".format(path2log_file))
 	file = open(path2log_file, 'w')
 	file.write("ratio: {0:2.2f}".format(ratio))
@@ -461,7 +461,7 @@ def train_gpssm(cfg,ratio,which_model):
 	logger.info("Done!")
 
 
-	path2log_file = "{0:s}/{1:s}/gpssm_trained_model_gpflow_log_file_{2:s}.txt".format(path2project,path2folder,name_file_date)
+	path2log_file = "{0:s}/{1:s}/gpssm_trained_model_gpflow_{2:s}.txt".format(path2project,path2folder,name_file_date)
 	logger.info("Writing ratio to log file at {0:s} ...".format(path2log_file))
 	file = open(path2log_file, 'w')
 	file.write("ratio: {0:2.2f}\n".format(ratio))
@@ -506,6 +506,9 @@ def load_MOrrtp_model(cfg,path2project,file_name):
 	dim_out = dim_x
 	logger.info(" * Initializing GP model ...")
 	rrtp_MO = MultiObjectiveReducedRankProcess(dim_in,cfg,spectral_density_list,Xtrain,Ytrain,using_deltas=using_deltas)
+
+	# Training:
+	rrtp_MO.train_model()
 
 	# Delta predictions (on the full dataset):
 	MO_mean_test, MO_std_test = rrtp_MO.predict_at_locations(Xtest)
@@ -750,6 +753,21 @@ def get_dictionary_log_quadruped():
 	p75="gpssm_trained_model_gpflow_2023_03_29_15_32_44",
 	p100="gpssm_trained_model_gpflow_2023_03_29_15_36_44")
 
+
+	dict_gpssm_standard_matern.update(dict(  p01="gpssm_trained_model_gpflow_2023_04_01_13_21_55",
+	p03="gpssm_trained_model_gpflow_2023_04_01_13_22_50",
+	p05="gpssm_trained_model_gpflow_2023_04_01_13_23_46",
+	p07="gpssm_trained_model_gpflow_2023_04_01_13_24_46",
+	p09="gpssm_trained_model_gpflow_2023_04_01_13_25_53",
+	p11="gpssm_trained_model_gpflow_2023_04_01_13_27_03",
+	p13="gpssm_trained_model_gpflow_2023_04_01_13_28_19",
+	p15="gpssm_trained_model_gpflow_2023_04_01_13_29_44",
+	p17="gpssm_trained_model_gpflow_2023_04_01_13_31_12",
+	p19="gpssm_trained_model_gpflow_2023_04_01_13_32_44",
+	p21="gpssm_trained_model_gpflow_2023_04_01_13_34_17",
+	p23="gpssm_trained_model_gpflow_2023_04_01_13_35_58"))
+
+
 	# SE with 2000 iters
 	dict_gpssm_standard_SE = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_17_23_41",
 	p50="gpssm_trained_model_gpflow_2023_03_29_17_25_29",
@@ -799,6 +817,19 @@ def get_dictionary_log_quadruped():
 	p100="gpssm_trained_model_gpflow_2023_03_29_15_50_16")
 
 
+	dict_gpssm_standard_matern.update(dict(  p01="gpssm_trained_model_gpflow_2023_04_01_13_37_44",
+	p03="gpssm_trained_model_gpflow_2023_04_01_13_38_35",
+	p05="gpssm_trained_model_gpflow_2023_04_01_13_39_32",
+	p07="gpssm_trained_model_gpflow_2023_04_01_13_40_32",
+	p09="gpssm_trained_model_gpflow_2023_04_01_13_41_40",
+	p11="gpssm_trained_model_gpflow_2023_04_01_13_42_48",
+	p13="gpssm_trained_model_gpflow_2023_04_01_13_44_05",
+	p15="gpssm_trained_model_gpflow_2023_04_01_13_45_30",
+	p17="gpssm_trained_model_gpflow_2023_04_01_13_46_56",
+	p19="gpssm_trained_model_gpflow_2023_04_01_13_48_27",
+	p21="gpssm_trained_model_gpflow_2023_04_01_13_50_00",
+	p23="gpssm_trained_model_gpflow_2023_04_01_13_51_44"))
+
 	# SE with 2000 iters
 	dict_gpssm_standard_SE = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_17_36_47",
 	p50="gpssm_trained_model_gpflow_2023_03_29_17_38_34",
@@ -846,6 +877,18 @@ def get_dictionary_log_quadruped():
 	p75="gpssm_trained_model_gpflow_2023_03_29_15_59_50",
 	p100="gpssm_trained_model_gpflow_2023_03_29_16_03_47")
 
+	dict_gpssm_standard_matern.update(dict(  p01="gpssm_trained_model_gpflow_2023_04_01_13_53_30",
+	p03="gpssm_trained_model_gpflow_2023_04_01_13_54_21",
+	p05="gpssm_trained_model_gpflow_2023_04_01_13_55_18",
+	p07="gpssm_trained_model_gpflow_2023_04_01_13_56_18",
+	p09="gpssm_trained_model_gpflow_2023_04_01_13_57_27",
+	p11="gpssm_trained_model_gpflow_2023_04_01_13_58_36",
+	p13="gpssm_trained_model_gpflow_2023_04_01_13_59_53",
+	p15="gpssm_trained_model_gpflow_2023_04_01_14_01_20",
+	p17="gpssm_trained_model_gpflow_2023_04_01_14_02_47",
+	p19="gpssm_trained_model_gpflow_2023_04_01_14_04_19",
+	p21="gpssm_trained_model_gpflow_2023_04_01_14_05_53",
+	p23="gpssm_trained_model_gpflow_2023_04_01_14_07_37"))
 
 	# SE with 2000 iters
 	dict_gpssm_standard_SE = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_17_49_32",
@@ -892,6 +935,19 @@ def get_dictionary_log_quadruped():
 	p50="gpssm_trained_model_gpflow_2023_03_29_16_10_34",
 	p75="gpssm_trained_model_gpflow_2023_03_29_16_13_27",
 	p100="gpssm_trained_model_gpflow_2023_03_29_16_17_26")
+
+	dict_gpssm_standard_matern.update(dict(  p01="gpssm_trained_model_gpflow_2023_04_01_14_09_22",
+	p03="gpssm_trained_model_gpflow_2023_04_01_14_10_13",
+	p05="gpssm_trained_model_gpflow_2023_04_01_14_11_09",
+	p07="gpssm_trained_model_gpflow_2023_04_01_14_12_09",
+	p09="gpssm_trained_model_gpflow_2023_04_01_14_13_20",
+	p11="gpssm_trained_model_gpflow_2023_04_01_14_14_30",
+	p13="gpssm_trained_model_gpflow_2023_04_01_14_15_46",
+	p15="gpssm_trained_model_gpflow_2023_04_01_14_17_10",
+	p17="gpssm_trained_model_gpflow_2023_04_01_14_18_38",
+	p19="gpssm_trained_model_gpflow_2023_04_01_14_20_11",
+	p21="gpssm_trained_model_gpflow_2023_04_01_14_21_42",
+	p23="gpssm_trained_model_gpflow_2023_04_01_14_23_25"))
 
 	# SE with 2000 iters
 	dict_gpssm_standard_SE = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_18_02_23",
@@ -941,6 +997,20 @@ def get_dictionary_log_quadruped():
 	p75="gpssm_trained_model_gpflow_2023_03_29_16_27_11",
 	p100="gpssm_trained_model_gpflow_2023_03_29_16_31_05")
 
+	dict_gpssm_standard_matern.update(dict(  p01="gpssm_trained_model_gpflow_2023_04_01_14_25_12",
+	p03="gpssm_trained_model_gpflow_2023_04_01_14_26_04",
+	p05="gpssm_trained_model_gpflow_2023_04_01_14_27_01",
+	p07="gpssm_trained_model_gpflow_2023_04_01_14_28_03",
+	p09="gpssm_trained_model_gpflow_2023_04_01_14_29_10",
+	p11="gpssm_trained_model_gpflow_2023_04_01_14_30_20",
+	p13="gpssm_trained_model_gpflow_2023_04_01_14_31_36",
+	p15="gpssm_trained_model_gpflow_2023_04_01_14_33_00",
+	p17="gpssm_trained_model_gpflow_2023_04_01_14_34_28",
+	p19="gpssm_trained_model_gpflow_2023_04_01_14_35_58",
+	p21="gpssm_trained_model_gpflow_2023_04_01_14_37_30",
+	p23="gpssm_trained_model_gpflow_2023_04_01_14_39_13"))
+
+
 	# SE with 2000 iters
 	dict_gpssm_standard_SE = dict(	p25="gpssm_trained_model_gpflow_2023_03_29_18_15_22",
 	p50="gpssm_trained_model_gpflow_2023_03_29_18_17_09",
@@ -971,6 +1041,18 @@ def get_log_evidence_evolution(cfg,which_model,ratio_list,ratio_names_list,plott
 
 		for tt in range(len(ratio_list)):
 			log_evidence_tot, mse_tot = compute_model_error_for_selected_model(cfg,dict_all_list[bb],which_model=which_model,which_ratio=ratio_names_list[tt],plot_data_analysis=plotting)
+			# try:
+			# except:
+			# 	log_evidence_tot, mse_tot = 0.0, 0.0
+			# 	logger.info("MODEL FAILED MASSIVELY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+			# 	logger.info("MODEL FAILED MASSIVELY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+			# 	logger.info("MODEL FAILED MASSIVELY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+			# 	logger.info("MODEL FAILED MASSIVELY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+			# 	logger.info("MODEL FAILED MASSIVELY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+			# 	logger.info("MODEL FAILED MASSIVELY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+			# 	logger.info("MODEL FAILED MASSIVELY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+			# 	logger.info("MODEL FAILED MASSIVELY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+			# 	logger.info("MODEL FAILED MASSIVELY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 			logger.info("log_evidence_tot: {0:f}".format(log_evidence_tot))
 			logger.info("mse_tot: {0:f}".format(mse_tot))
 
@@ -1065,11 +1147,22 @@ def mainall(cfg):
 @hydra.main(config_path="./config",config_name="config")
 def statistical_comparison(cfg):
 
-	which_model_list = ["gpssm_se","gpssm_matern","MOrrtp"]
+	# # DBG:
+	# load_MOrrtp_model(cfg,"/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments",file_name="reconstruction_data_2023_03_29_04_14_03.pickle")
+
+	which_model_list = ["MOrrtp","gpssm_matern"]
+	# which_model_list = ["gpssm_matern","MOrrtp"]
+	# which_model_list = ["gpssm_se","gpssm_matern","MOrrtp"]
 	which_model_list_legend = ["GPSSM - SE kernel", "GPSSM - Matern kernel", "rrGPSSM (ours)"]
 
-	ratio_list = [0.25,0.5,0.75,1.0]
-	ratio_names_list = ["p25","p50","p75","p100"]
+	# ratio_list = [0.25,0.5,0.75,1.0]
+	# ratio_names_list = ["p25","p50","p75","p100"]
+
+	# ratio_list = [0.25,0.5,0.75,1.0]
+	# ratio_names_list = ["p25","p50","p75","p100"]
+
+	ratio_list = [0.01, 0.03, 0.05, 0.07, 0.09, 0.11, 0.13, 0.15, 0.17, 0.19, 0.21, 0.23, 0.25,0.5,0.75,1.0]
+	ratio_names_list = ["p01","p03","p05","p07","p09","p11","p13","p15","p17","p19","p21","p23","p25","p50","p75","p100"]
 
 	# # DBG:
 	# which_model = "gpssm_matern"
@@ -1092,11 +1185,8 @@ def statistical_comparison(cfg):
 		# log_evidence_batch = np.random.rand(5,4)
 		# mse_batch = np.random.rand(5,4)
 
-
-
 		# Compute log:
 		mse_batch = np.log10(mse_batch)
-
 
 		log_evidence_per_model_list += [log_evidence_batch]
 		mse_per_model_list += [mse_batch]
@@ -1123,6 +1213,9 @@ def statistical_comparison(cfg):
 	mse_batch_std_table = np.concatenate(mse_batch_std_list,axis=0) # [Nmodels,Nratios]
 
 
+	print("which_model_list: {0:s}".format(str(which_model_list)))
+	print("ratio_names_list: {0:s}".format(str(ratio_names_list)))
+
 	print("log_evidence_batch_mean_table")
 	print(log_evidence_batch_mean_table)
 
@@ -1139,7 +1232,74 @@ def statistical_comparison(cfg):
 	return
 
 
-def plot_stuff():
+
+def plot4paper_more_ratios():
+
+	mse_batch_mean_table = np.array([[-3.70873851, -3.72574116, -3.7403577 , -3.72476369, -3.72143096, -3.72694755,
+	                                 -3.62374377, -3.72089846, -3.72128007, -3.74164422, -3.70266378, -3.70543203,
+	                                 -3.73784932, -3.70919092, -3.68906884, -3.58486864],
+	                                [-3.19722683, -2.28413905,  -2.16       , -2.0479427 , -2.64011689, -2.97488357,
+	                                 -3.50149271, -3.73674403, -3.8790972 , -4.07722906, -4.0979427 , -4.18719769,
+	                                  -4.34724579 ,-4.41617443 ,-4.4875986  ,-4.53888869]])
+
+	mse_batch_std_table = np.array([[0.04025116, 0.03393473, 0.00821406, 0.03439879, 0.03674786, 0.02076013,
+	                                 0.15576746, 0.02764067, 0.0502651 , 0.00706727, 0.08619312, 0.05844246,
+	                                 0.02882138, 0.05293327, 0.08241207, 0.16673316],
+	                                [0.05379203, 0.18419222, 0.05      , 0.0667758 , 0.26372669, 0.08236473,
+	                                 0.06337772, 0.08414016, 0.10532287, 0.0857551 , 0.07538134, 0.06507934,
+	                                 0.0354778, 0.0241211, 0.0400531, 0.03082269]])
+
+
+	which_model_list = ["gpssm_matern","MOrrtp"]
+	which_model_list_legend = ["GPSSM - Matern kernel", "rrGPSSM (ours)"]
+
+	ratio_list = [0.01, 0.03, 0.05, 0.07, 0.09, 0.11, 0.13, 0.15, 0.17, 0.19, 0.21, 0.23, 0.25,0.5,0.75,1.0]
+	# ratio_list = [0.25,0.5,0.75,1.0]
+	# ratio_names_list = ["p25","p50","p75","p100"]
+
+
+
+	# hdl_fig_data, hdl_splots_data = plt.subplots(1,1,figsize=(12,8),sharex=True)
+	# hdl_fig_data.suptitle("Data efficiency assessment",fontsize=fontsize_labels)
+	# ratio_list_plot = (np.array(ratio_list)*100).astype(dtype=int)
+	# for mm in range(len(which_model_list)):
+	# 	hdl_splots_data.plot(ratio_list_plot,log_evidence_per_model_list[mm],lw=1,alpha=0.7,color="darkgreen",marker=marker_list[mm],markersize=5,label=which_model_list_legend[mm])
+	# 	hdl_splots_data.set_xticks([])
+	# 	hdl_splots_data.set_ylabel(r"$-\log p(\Delta x_{t+1})$",fontsize=fontsize_labels)
+
+	# 	# hdl_splots_data[1].plot(ratio_list_plot,mse_per_model_list[mm],lw=1,alpha=0.7,color="darkgreen",marker=marker_list[mm],markersize=5)
+	# 	# hdl_splots_data[1].set_xticks([])
+	# 	# hdl_splots_data[1].set_ylabel(r"RMSE",fontsize=fontsize_labels)
+
+
+	color_list = ["darkgreen", "crimson", "navy"]
+	ratio_list_plot = (np.array(ratio_list)*100).astype(dtype=int)
+	hdl_fig_data, hdl_splots_data = plt.subplots(1,1,figsize=(15,8),sharex=True)
+	for mm in range(len(which_model_list)):
+		hdl_splots_data.plot(ratio_list_plot,mse_batch_mean_table[mm,:],linestyle="-",marker="None",lw=2.0,alpha=1.0,color=color_list[mm],label=which_model_list_legend[mm])
+		hdl_splots_data.fill_between(ratio_list_plot,mse_batch_mean_table[mm,:] - mse_batch_std_table[mm,:],mse_batch_mean_table[mm,:] + mse_batch_std_table[mm,:],linestyle="None",alpha=0.2,color=color_list[mm])
+
+
+	hdl_splots_data.set_xlim([25,100])
+	hdl_splots_data.set_xticks(ratio_list_plot)
+	hdl_splots_data.set_xlabel(r"\% of training data",fontsize=fontsize_labels)
+	hdl_splots_data.set_ylabel(r"$\log_{10}$(RMSE)",fontsize=fontsize_labels)
+	hdl_splots_data.legend(loc="best",fontsize=fontsize_labels)
+
+
+	plt.show(block=True)
+
+	# hdl_splots_data[-1].set_xticks([])
+
+
+
+
+
+
+
+
+
+def plot4paper_less_ratios():
 
 
 	# log_evidence_batch_mean_table
@@ -1226,14 +1386,18 @@ if __name__ == "__main__":
 
 
 
-	Nrepeats = 5
-	name_file_date_list = []
-	for _ in range(Nrepeats):
-		training_for_multiple_ratios()
+	# Nrepeats = 5
+	# name_file_date_list = []
+	# for _ in range(Nrepeats):
+	# 	training_for_multiple_ratios()
 
-	# statistical_comparison()
+	statistical_comparison()
 
-	# plot_stuff()
+	# plot4paper_less_ratios()
+	# 
+	# 
+
+	# plot4paper_more_ratios()
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_19_55_23*" ./data_efficiency_test_with_dubinscar/
 

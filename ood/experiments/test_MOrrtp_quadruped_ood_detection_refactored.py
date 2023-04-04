@@ -1349,7 +1349,7 @@ def plots4paper_ood(cfg):
 	if savefig:
 		path2save_fig = "{0:s}/plotting/plots4paper/ood_quadruped_rrMOtp{1:s}.png".format(path2project,name_file_date)
 		logger.info("Saving fig at {0:s} ...".format(path2save_fig))
-		hdl_fig_pred_sampling_rec.savefig(path2save_fig,bbox_inches='tight',dpi=300,transparent=True)
+		hdl_fig_pred_sampling_rec.savefig(path2save_fig,bbox_inches='tight',dpi=600,transparent=True)
 		logger.info("Done saving fig!")
 	else:
 		plt.show(block=True)
@@ -1408,7 +1408,7 @@ def main(cfg):
 	# file_name = "predicted_trajs_2023_03_30_17_20_27.pickle" # hybridrob, Nhor: 10, Nrollouts: 5 || trained on walking circle; tested on: walking
 	# file_name = "predicted_trajs_2023_03_30_17_31_00.pickle" # hybridrob, Nhor: 10, Nrollouts: 5 || trained on walking circle; tested on: rope
 	# file_name = "predicted_trajs_2023_03_30_17_36_23.pickle" # hybridrob, Nhor: 10, Nrollouts: 5 || trained on walking circle; tested on: rocky
-	file_name = "predicted_trajs_2023_03_30_17_40_29.pickle" # hybridrob, Nhor: 10, Nrollouts: 5 || trained on walking circle; tested on: poking
+	# file_name = "predicted_trajs_2023_03_30_17_40_29.pickle" # hybridrob, Nhor: 10, Nrollouts: 5 || trained on walking circle; tested on: poking
 	# plot_predictions(cfg,file_name)
 
 
@@ -1425,9 +1425,9 @@ def main(cfg):
 	# file_name = "predicted_trajs_2023_03_30_14_03_40.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: rope
 	# file_name = "predicted_trajs_2023_03_30_13_34_28.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: rocky
 	# file_name = "predicted_trajs_2023_03_30_13_58_31.pickle" # hybridrob, Nhor: 30, Nrollouts: 20; noise: 0.0001; first rollout is the mean || trained on walking circle; tested on: poking
-	plot_predictions(cfg,file_name)
+	# plot_predictions(cfg,file_name)
 
-	# plots4paper_ood(cfg)
+	plots4paper_ood(cfg)
 
 
 

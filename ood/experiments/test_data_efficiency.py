@@ -1436,13 +1436,13 @@ if __name__ == "__main__":
 	# for _ in range(Nrepeats):
 	# 	training_for_multiple_ratios()
 
-	# statistical_comparison()
+	statistical_comparison()
 
 	# plot4paper_less_ratios()
 	# 
 	# 
 
-	plot4paper_more_ratios()
+	# plot4paper_more_ratios()
 
 	# scp -P 4444 -r amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/data_efficiency_test_with_dubinscar/"*2023_03_27_19_55_23*" ./data_efficiency_test_with_dubinscar/
 

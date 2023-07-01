@@ -79,14 +79,24 @@ hyperpars:
   #   learn: False
 
 
-  # Making MOrrp trainable
+  # # Making MOrrp trainable
+  # prior_variance: 1.0
+  # prior_mean_factor: 1.0
+  # noise_std_process:
+  #   # value_init: 0.1
+  #   # value_init: 0.05
+  #   value_init: 0.1
+  #   learn: True
+
+
+  # With RRDubinsCarFeatures
   prior_variance: 1.0
   prior_mean_factor: 1.0
   noise_std_process:
     # value_init: 0.1
     # value_init: 0.05
-    value_init: 0.1
-    learn: True
+    value_init: 0.01
+    learn: False
 
 
   chol_corr_noise_mat_lim:
@@ -108,8 +118,9 @@ learning:
 # which_process: "student-t" # [gaussian,student-t]
 which_process: "gaussian" # [gaussian,student-t]
 
-which_features: "RRPDiscreteCosineFeaturesVariableIntegrationStep" # RRPLinearFeatures, RRPDiscreteCosineFeatures, RRPRegularFourierFeatures, RRPRandomFourierFeatures, RRPDiscreteCosineFeaturesVariableIntegrationStep
-# which_features: "RRPDiscreteCosineFeatures" # RRPLinearFeatures, RRPDiscreteCosineFeatures, RRPRegularFourierFeatures, RRPRandomFourierFeatures, RRPDiscreteCosineFeaturesVariableIntegrationStep
+# which_features: "RRPDiscreteCosineFeaturesVariableIntegrationStep" # RRPLinearFeatures, RRPDiscreteCosineFeatures, RRPRegularFourierFeatures, RRPRandomFourierFeatures, RRPDiscreteCosineFeaturesVariableIntegrationStep, RRDubinsCarFeatures
+# which_features: "RRPDiscreteCosineFeatures" # RRPLinearFeatures, RRPDiscreteCosineFeatures, RRPRegularFourierFeatures, RRPRandomFourierFeatures, RRPDiscreteCosineFeaturesVariableIntegrationStep, RRDubinsCarFeatures
+which_features: "RRDubinsCarFeatures" # RRPLinearFeatures, RRPDiscreteCosineFeatures, RRPRegularFourierFeatures, RRPRandomFourierFeatures, RRPDiscreteCosineFeaturesVariableIntegrationStep, RRDubinsCarFeatures
 
 
 using_hybridrobotics: False

@@ -7,9 +7,7 @@ Software infrastructure for out-of-distribution detection with a real quadrupeda
 
 ![daisy](pics/eye_catcher2_wide.png)
 
-Features
-========
-+ Prediction module (C++) for fast rolling-out of state trajectories. Implemented using [Eigen](https://eigen.tuxfamily.org/) and [pybind11](https://github.com/pybind/pybind11)
+It features as prediction module (C++) for fast rolling-out of state trajectories. Implemented using [Eigen](https://eigen.tuxfamily.org/) and [pybind11](https://github.com/pybind/pybind11)
 
 
 

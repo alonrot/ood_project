@@ -114,19 +114,95 @@ def OoD_metric():
 	"""
 	pass
 
+def cost_running(state_curr,goal):
+	"""
+	Immediate cost at each time step
+
+
+	state_curr: [Npoints,dim_x]
+	goal: [dim_x,]
+	"""
+
+	assert len(state_curr.shape) == 2
+	assert len(goal.shape) == 1
+
+	cost_per_dim = (state_curr - np.reshape(goal,(1,-1)))**2 # [Npoints,dim_x]
+
+	cost_vec = np.mean(cost_per_dim,axis=1)
+
+	return np.sum(cost_vec)
+
+
+def get_traj_for_single_ut(rrgp,x0,ut_vec):
+	"""
+	
+	x0: [1,dim_x]
+	ut_vec: [T,dim_u]
+	"""
+	Nrollouts = 1 # This means that we're just sampling once, but not the mean necessarily
+
+	# Predict from prior
+	# Nrollouts = 10
+	# pdb.set_trace()
+	# x0 = tf.zeros((1,3))
+	x0_tf = tf.convert_to_tensor(value=x0,dtype=tf.float32) # [Npoints,self.dim_in], with Npoints=1
+	u_applied_tf = tf.convert_to_tensor(value=ut_vec,dtype=tf.float32) # [Npoints,self.dim_in]
+	# Regardless of self.using_deltas, the function below returns the actual state, not the deltas
+	x_traj_pred, y_traj_pred = rrgp._rollout_model_given_control_sequence_tf(x0=x0_tf,Nsamples=1,Nrollouts=Nrollouts,u_traj=u_applied_tf,traj_length=-1,
+																			sort=False,plotting=False,str_progress_bar="[hola] ",from_prior=False,
+																			when2sample="once_per_class_instantiation") # [Nrollouts,traj_length-1,self.dim_out]
+
+
+	pdb.set_trace()
+	# assert 
+
+	return y_traj_pred, u_applied_tf
+
+
+def cost_softmax(cost_mat):
+
+
 
 
 def main():
 
 	Nsteps = 101
 	deltaT = 0.01
-	ut_vec = generate_vel_profile(Nsteps,deltaT=deltaT,vt_fac=10.0,wt_fac=5.0) # [Nsteps,2]
+	ut_vec = generate_vel_profile(Nsteps,deltaT=deltaT,vt_fac=10.0,wt_fac=5.0) # [Nsteps,dim_u]
 
 	beta_d_vec_mean = np.reshape(np.array([1.,1.,1.]),(-1,1))
 	beta_d_vec_var = np.reshape(np.array([1.,1.,1.]),(-1,1))
 
+	# Collect data from real system:
 	beta_true = beta_d_vec_mean[:,0]*1.1
 	Xtrain, Ytrain, state_real_data = collect_data(ut_vec,deltaT,Nsteps,beta_true,noise_std=0.01)
+
+	# Train model
+	Ncut = Nsteps
+	Dstate_data = state_real_data[1::,0:Ncut] - state_real_data[0:-1,0:Ncut]
+	Xtrain = np.concatenate([state_real_data[0:-1,0:Ncut],ut_vec[0:-1,0:Ncut]],axis=1)
+	Ytrain = Dstate_data
+
+	rrgp = MultiObjectiveReducedRankProcess(dim_in=5,cfg=cfg,spectral_density=None,Xtrain=Xtrain,Ytrain=Ytrain,using_deltas=True)
+
+	goal_vec = np.array([5.,5.,np.pi])
+	state0 = np.array([0.,0.,0.0])
+
+	# Add noise:
+	Sigma_ut = 1.*np.eye(Nsteps)
+	Nsamples = 5
+
+	# Add noise to nominal control sequence:
+	ut_new = noise_ut + np.random.multivariate_normal(mean=np.zeros(Nsteps),cov=Sigma_ut,size=(Nsamples,dim_u)) # [Nsamples,dim_u,Nsteps]
+
+	# For each sampled control sequence, rollout the model and compute the weighting
+	for ss in range(Nsamples):
+		y_traj_pred,_ = get_traj_for_single_ut(rrgp,x0,ut_new[ss,...].T)
+
+
+
+
+
 
 	# 1) Create a cost function as th distance from the state to a goal
 	# 2) Create some virtual obstacles and assign a high cost to passing through them and to the obstacles
@@ -134,14 +210,6 @@ def main():
 	# 4) Create an MPC for loop, have a shorter time horizon, H = 10
 	# 5) Generate R=10 rollputs for each velocity profiel; sample the V=5 velocity profiles by sampling vt_fac, wt_fac
 	# 6) Pick the best control sequence, then pick the best, repeat
-
-
-
-
-
-
-
-
 
 
 

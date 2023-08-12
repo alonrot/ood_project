@@ -726,6 +726,36 @@ def ker_exp_sup(x,xp,b,M=None):
 	ker_mat = num / den
 	return ker_mat
 
+
+def ker_gaussians(x,xp,M=None):
+	"""
+	x: [Npoints,1]
+	xp: [Npoints,1]
+
+	out: [Npoints,Npoints]
+	"""
+
+	# Distribute centers:
+	cen_vec = np.linspace(-1.,1.,M)
+	cen_vec = np.reshape(cen_vec,(1,-1))
+
+	if M is not None: assert M > 2
+	if M is None: raise NotImplementedError
+
+	dim_in = 1
+	assert x.shape[1] == dim_in
+	assert xp.shape[1] == dim_in
+
+	feat_mat = np.exp(-(x - cen_vec)**2) # [Npoints,M]
+	feat_mat_p = np.exp(-(xp - cen_vec)**2) # [Npoints,M]
+
+	ker_mat = (feat_mat @ feat_mat_p.T) / M
+
+	var_prior = 3.0
+	ker_mat = ker_mat * var_prior
+
+	return ker_mat
+
 def illustrate_KL_construction():
 
 
@@ -737,6 +767,9 @@ def illustrate_KL_construction():
 	# M = 128
 	ker_fun = lambda x,xp: ker_exp_sup(x,xp,b=0.999,M=M)
 
+	# M = 128
+	# ker_fun = lambda x,xp: ker_gaussians(x,xp,M=M)
+
 	Nsamples = 2
 	Npred = 120
 	mvn0_samples = np.random.randn(Nsamples,Npred)
@@ -744,13 +777,13 @@ def illustrate_KL_construction():
 	hdl_fig_ker, hdl_splots_illus = plt.subplots(1,1,figsize=(10,4),sharex=False)
 	hdl_splots_illus = [hdl_splots_illus]
 	
-	# savefig = False
-	savefig = True
+	savefig = False
+	# savefig = True
 	path2folder = "/Users/alonrot/work/meetings/presentation_2023_june/pics"
 	# path2folder = "/Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/plotting/presentation/parabola_LQRker_like"
 	color_list = sns.color_palette("deep",3)
-	ind_Xevals_sel = [45,115]
-	# ind_Xevals_sel = []
+	# ind_Xevals_sel = [45,115]
+	ind_Xevals_sel = [] # No evals, plot prior
 	Nevals = len(ind_Xevals_sel)
 
 	def f_call(x):
@@ -953,9 +986,9 @@ if __name__ == "__main__":
 
 	# illustrate_true_function()
 
-	illustrate_fit_three_steps_poster()
+	# illustrate_fit_three_steps_poster()
 
-	# illustrate_KL_construction()
+	illustrate_KL_construction()
 
 	# illustrate_mutual_info()
 

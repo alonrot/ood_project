@@ -10,7 +10,6 @@ Software infrastructure for out-of-distribution detection with a real quadrupeda
 Features
 ========
 + Prediction module (C++) for fast rolling-out of state trajectories. Implemented using [Eigen](https://eigen.tuxfamily.org/) and [pybind11](https://github.com/pybind/pybind11)
-+ 
 
 
 

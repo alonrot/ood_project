@@ -5,7 +5,12 @@ Software infrastructure for out-of-distribution detection with a real quadrupeda
 > Alonso Marco, Elias Morley, Claire J. Tomlin
 > 2023 IEEE 62nd Conference on Decision and Control (CDC)
 
+![daisy](pics/eye_catcher2_wide.png)
 
+Features
+========
++ Prediction module (C++) for fast rolling-out of state trajectories. Implemented using [Eigen](https://eigen.tuxfamily.org/) and [pybind11](https://github.com/pybind/pybind11)
++ 
 
 
 

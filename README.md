@@ -1,6 +1,15 @@
+# Introduction
+Software infrastructure for out-of-distribution detection with a real quadrupedal robot based on Gaussian process state-space models. This repository implements the experiments of the paper:
+
+> Out of Distribution Detection via Domain-Informed Gaussian Process State Space Models
+> Alonso Marco, Elias Morley, Claire J. Tomlin
+> 2023 IEEE 62nd Conference on Decision and Control (CDC)
 
 
-### Install
+
+
+
+### Installation notes
 
 ```bash
 conda create -n ood python=3.7
@@ -13,18 +22,4 @@ pip install control
 pip install -e .
 cd <path/to/LQRker>
 pip install -e .
-```
-
-### Install Latex
-```bash
-perl ./install-tl --no-interaction --scheme=small --no-doc-install --no-src-install --texdir=/home/amarco/code_projects/latex_installation --texuserdir=/home/amarco/code_projects/latex_installation
-export PATH="/home/amarco/code_projects/latex_installation/bin/x86_64-linux:$PATH"
-```
-
-
-### Copy data
-```bash
-scp -r -P 4444 amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/dubins_car_reconstruction/\* /Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubins_car_reconstruction/from_dawkins/
-
-scp -r -P 4444 amarco@hybridrobotics.hopto.org:/home/amarco/code_projects/ood_project/ood/experiments/dubins_car_receding_gpflow/model_13_coregionalization_True /Users/alonrot/work/code_projects_WIP/ood_project/ood/experiments/dubins_car_receding_gpflow/from_hybridrobotics/
 ```
